@@ -54,3 +54,15 @@
     - { wrong: "estoy comer", right: "estoy comiendo", rule_tag: es.a2.present_progressive }
   # "quiero que me llamas" is a B1 subjunctive error: above A2, so it must be ignored.
   must_not_flag: ["que me llamas"]
+
+# Over the display cap (A2 shows 3): all four errors must be reported.
+- id: a2-009
+  level: A2
+  text: "Ayer tení un día largo. Por la mañana yo levanté a las seis y trabajé para ocho horas. Por la noche hací la cena para mi familia."
+  expected:
+    - { wrong: "tení", right: "tuve", rule_tag: es.a2.preterite_irregular }
+    - { wrong: "yo levanté", right: "me levanté", rule_tag: es.a2.reflexive_verbs }
+    - { wrong: "para ocho horas", right: "por ocho horas", rule_tag: es.a2.por_vs_para_basic,
+        also_right: ["durante ocho horas", "trabajé ocho horas"] }
+    - { wrong: "hací", right: "hice", rule_tag: es.a2.preterite_irregular }
+  must_not_flag: ["para mi familia", "Por la mañana"]

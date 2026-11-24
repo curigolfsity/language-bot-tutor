@@ -42,9 +42,11 @@ async def get_help(ctx: AppContext, turn_id: int, kind: HelpKind) -> HelpOut:
         # Context before the tutor message (the message itself is passed separately).
         history = await turns.recent_until(session.id, turn.seq - 1, CONTEXT_TURNS)
         prior = [PriorTurn(role=t.role, text=t.text) for t in history]
-        final = (turn.result_json or {}).get("final") or {}
+        # Explain what the learner was shown ("final" for turns saved before the display cut).
+        rj = turn.result_json or {}
+        shown = rj.get("shown") or rj.get("final") or {}
         corrections = [
-            (c["wrong"], c["right"], c.get("explanation", "")) for c in final.get("corrections", [])
+            (c["wrong"], c["right"], c.get("explanation", "")) for c in shown.get("corrections", [])
         ]
 
     system, user = build_help_prompt(policy, kind, scenario, prior, turn.text, corrections)

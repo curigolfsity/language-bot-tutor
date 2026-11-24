@@ -11,7 +11,12 @@ from tutor_api.domain.prompt import (
     build_user_content,
     catalogue_for,
 )
-from tutor_api.domain.tags import apply_policy, sanitize_tags
+from tutor_api.domain.tags import (
+    MAX_REPORTED_CORRECTIONS,
+    apply_policy,
+    for_display,
+    sanitize_tags,
+)
 
 # ---------------------------------------------------------------- policy
 
@@ -98,7 +103,7 @@ def test_sanitize_maps_unknown(es):
     assert set(report.unknown_tags) == {"made.up", "bogus", "also.bogus"}
 
 
-def test_apply_policy_drops_above_level_and_truncates(es):
+def test_apply_policy_drops_above_level_and_orders_majors_first(es):
     p = resolve_policy(es, "A1", "en")  # max 2, at_or_below_level
     r = make_result(
         corrections=[
@@ -110,10 +115,22 @@ def test_apply_policy_drops_above_level_and_truncates(es):
         ]
     )
     out, report = apply_policy(r, p, es)
-    assert [c.wrong for c in out.corrections] == ["x3", "x4"]  # majors first, then truncated
+    # Every in-scope correction is kept (they drive mastery), majors first.
+    assert [c.wrong for c in out.corrections] == ["x3", "x4", "x1"]
     assert any(v.startswith("above_level") for v in report.violations)
-    assert any(v.startswith("too_many_corrections") for v in report.violations)
     assert any(v.startswith("noop_correction") for v in report.violations)
+    assert not any(v.startswith("too_many_corrections") for v in report.violations)
+    # The learner sees only the level's cut.
+    assert [c.wrong for c in for_display(out, p).corrections] == ["x3", "x4"]
+
+
+def test_apply_policy_sanity_ceiling(es):
+    p = resolve_policy(es, "C2", "en")
+    n = MAX_REPORTED_CORRECTIONS + 5
+    r = make_result(corrections=[(f"w{i}", f"r{i}", "unknown", "minor") for i in range(n)])
+    out, report = apply_policy(r, p, es)
+    assert len(out.corrections) == MAX_REPORTED_CORRECTIONS
+    assert any(v.startswith("too_many_corrections") for v in report.violations)
 
 
 def test_apply_policy_all_keeps_higher_topics(es):
@@ -200,11 +217,17 @@ def test_well_done_topics(es):
     )
     # corrected topic and "unknown" excluded; capped at 2
     assert well_done_topics(r, p, es) == ["es.a1.ser_present", "es.a1.gender_agreement"]
-    at_cap = make_result(
-        corrections=[("a", "b", "unknown", "major"), ("c", "d", "unknown", "minor")],
-        tags=["es.a1.ser_present"],
+    # A topic whose error falls beyond the display cut is still not praised.
+    beyond_cut = make_result(
+        corrections=[
+            ("a", "b", "unknown", "major"),
+            ("c", "d", "unknown", "major"),
+            ("e", "f", "es.a1.ser_present", "minor"),
+        ],
+        tags=["es.a1.ser_present", "es.a1.gender_agreement"],
     )
-    assert well_done_topics(at_cap, p, es) == []
+    assert len(for_display(beyond_cut, p).corrections) == 2
+    assert well_done_topics(beyond_cut, p, es) == ["es.a1.gender_agreement"]
 
 
 @pytest.mark.parametrize("kind", ["hint", "translate", "suggest", "explain"])

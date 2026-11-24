@@ -13,7 +13,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import statistics
 import sys
+import time
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -51,12 +53,14 @@ async def run_case(
 ) -> dict[str, Any]:
     policy = resolve_policy(curriculum, case["level"], NEUTRAL_NATIVE_LANG)
     async with sem:
+        t0 = time.perf_counter()
         try:
             run = await run_correction(
                 llm, curriculum, policy, None, build_learner_summary([], []), [], case["text"]
             )
         except UpstreamError as e:
             return {"id": case["id"], "error": str(e)}
+        seconds = time.perf_counter() - t0
     expected = [Expected(**e) for e in case.get("expected") or []]
     predicted = [Predicted(c.wrong, c.right, c.rule_tag) for c in run.final.corrections]
     score = score_case(case["text"], expected, predicted, case.get("must_not_flag") or [])
@@ -65,6 +69,7 @@ async def run_case(
         "id": case["id"],
         "text": case["text"],
         "refused": run.refused,
+        "seconds": round(seconds, 2),
         "score": asdict(score),
         "policy_violations": list(run.policy_violations),
         "unknown_tags": list(run.unknown_tags),
@@ -99,9 +104,13 @@ async def main() -> int:
     ap.add_argument("--input-price", type=float, default=4.0, help="USD per 1M input tokens")
     ap.add_argument("--output-price", type=float, default=20.0, help="USD per 1M output tokens")
     ap.add_argument("--out", type=Path, default=HERE / "reports")
+    ap.add_argument("--effort", help="override TUTOR_EFFORT for this run (low|medium|high|...)")
+    ap.add_argument("--label", default="", help="suffix for the report file name")
     args = ap.parse_args()
 
     settings = get_settings()
+    if args.effort:
+        settings = settings.model_copy(update={"tutor_effort": args.effort})
     curriculum = load_curriculum(settings.curriculum_dir / args.lang)
     cases = load_cases(args.cases_dir, args.level)
     if not cases:
@@ -137,8 +146,13 @@ async def main() -> int:
                     "cache_creation_input_tokens",
                 )
             }
+            secs = sorted(r["seconds"] for r in ok)
             report["levels"][level] = {
                 "metrics": asdict(metrics),
+                "latency_s": {
+                    "median": round(statistics.median(secs), 2) if secs else None,
+                    "p90": round(secs[int(0.9 * (len(secs) - 1))], 2) if secs else None,
+                },
                 "errors": [r for r in results if "error" in r],
                 "usage": usage,
                 "cost_usd": round(cost_usd(usage, args.input_price, args.output_price), 4),
@@ -149,13 +163,14 @@ async def main() -> int:
 
     args.out.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    out_path = args.out / f"{stamp}_{args.lang}_{'-'.join(sorted(report['levels']))}.json"
+    label = f"_{args.label}" if args.label else ""
+    out_path = args.out / f"{stamp}_{args.lang}_{'-'.join(sorted(report['levels']))}{label}.json"
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"model={report['model']} effort={report['effort']}")
     print(
         f"{'level':<6}{'cases':>6}{'recall':>8}{'prec':>8}{'tag_acc':>9}{'mnf_fp':>8}"
-        f"{'policy':>8}{'refuse':>8}{'errors':>8}{'cost$':>9}"
+        f"{'policy':>8}{'refuse':>8}{'errors':>8}{'cost$':>9}{'med_s':>7}{'p90_s':>7}"
     )
     for level, data in report["levels"].items():
         m = data["metrics"]
@@ -168,6 +183,7 @@ async def main() -> int:
             f"{f(m['rule_tag_accuracy']):>9}{m['must_not_flag_false_positives']:>8}"
             f"{m['policy_violations']:>8}{m['refusals']:>8}{len(data['errors']):>8}"
             f"{data['cost_usd']:>9.4f}"
+            f"{f(data['latency_s']['median']):>7}{f(data['latency_s']['p90']):>7}"
         )
     print(f"report: {out_path}")
     return 0

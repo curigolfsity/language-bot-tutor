@@ -45,6 +45,9 @@ def sanitize_tags(
     return clean, SanitizeReport(unknown_tags=tuple(unknown))
 
 
+MAX_REPORTED_CORRECTIONS = 30  # sanity ceiling on what the model may report, not a level policy
+
+
 def apply_policy(
     result: TurnResult, policy: Policy, curriculum: Curriculum
 ) -> tuple[TurnResult, PolicyReport]:
@@ -52,8 +55,10 @@ def apply_policy(
 
     - drops no-op corrections (wrong == right)
     - at `at_or_below_level`, drops corrections tagged with a topic above the learner's level
-    - truncates to `max_corrections_per_turn`, keeping major ones first
-    Each intervention is reported as a violation (the model should have done it itself).
+    - orders major before minor (stable), so the display cut keeps the important ones
+    Each dropped correction is reported as a violation (the model should have done it itself).
+    The result keeps ALL in-scope corrections: they drive mistakes and mastery. What the learner
+    sees is the `for_display` cut of it.
     """
     violations: list[str] = []
     kept: list[Correction] = []
@@ -68,26 +73,31 @@ def apply_policy(
                 continue
         kept.append(c)
 
-    if len(kept) > policy.max_corrections_per_turn:
-        violations.append(f"too_many_corrections:{len(kept)}>{policy.max_corrections_per_turn}")
-        # stable sort: major before minor, otherwise keep the model's order
-        kept = sorted(kept, key=lambda c: 0 if c.severity == "major" else 1)
-        kept = kept[: policy.max_corrections_per_turn]
+    # stable sort: major before minor, otherwise keep the model's order
+    kept = sorted(kept, key=lambda c: 0 if c.severity == "major" else 1)
+    if len(kept) > MAX_REPORTED_CORRECTIONS:
+        violations.append(f"too_many_corrections:{len(kept)}>{MAX_REPORTED_CORRECTIONS}")
+        kept = kept[:MAX_REPORTED_CORRECTIONS]
 
     return result.model_copy(update={"corrections": kept}), PolicyReport(tuple(violations))
+
+
+def for_display(result: TurnResult, policy: Policy) -> TurnResult:
+    """What the learner is shown: the first `max_corrections_per_turn` corrections."""
+    return result.model_copy(
+        update={"corrections": result.corrections[: policy.max_corrections_per_turn]}
+    )
 
 
 MAX_PRAISED_TOPICS = 2
 
 
 def well_done_topics(result: TurnResult, policy: Policy, curriculum: Curriculum) -> list[str]:
-    """Topic ids the learner used correctly, for praise. Expects a sanitised, policy-applied result.
+    """Topic ids the learner used correctly, for praise.
 
-    Conservative on purpose: when the correction cap was reached, some errors may be hidden,
-    so nothing is praised.
+    Expects the sanitised, policy-applied result with ALL corrections (not the display cut), so a
+    topic with a hidden error is never praised.
     """
-    if len(result.corrections) >= policy.max_corrections_per_turn:
-        return []
     corrected = {c.rule_tag for c in result.corrections}
     praised = [
         t

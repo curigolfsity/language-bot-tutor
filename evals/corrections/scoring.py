@@ -3,7 +3,9 @@
 A predicted correction matches an expected one when:
   - their `wrong` spans overlap in the learner's text, and
   - the normalised `right` texts match (either one contains the other, so a slightly longer or
-    shorter corrected span still counts).
+    shorter corrected span still counts). `also_right` lists other acceptable corrections.
+The rule tag counts as correct if it is `rule_tag` or one of `also_tags` (for errors that two
+catalogue topics describe equally well).
 Matching is one-to-one and greedy in expected order.
 """
 
@@ -20,6 +22,14 @@ class Expected:
     wrong: str
     right: str
     rule_tag: str
+    also_right: Sequence[str] = ()
+    also_tags: Sequence[str] = ()
+
+    def accepts_right(self, pred: str) -> bool:
+        return any(rights_match(pred, r) for r in (self.right, *self.also_right))
+
+    def accepts_tag(self, tag: str) -> bool:
+        return tag == self.rule_tag or tag in self.also_tags
 
 
 @dataclass(frozen=True)
@@ -95,7 +105,7 @@ def score_case(
                 for i, p in enumerate(predicted)
                 if i not in used
                 and _wrong_overlap(text, p.wrong, exp.wrong)
-                and rights_match(p.right, exp.right)
+                and exp.accepts_right(p.right)
             ),
             None,
         )
@@ -104,7 +114,7 @@ def score_case(
             continue
         used.add(hit)
         matched += 1
-        if predicted[hit].rule_tag == exp.rule_tag:
+        if exp.accepts_tag(predicted[hit].rule_tag):
             tag_correct += 1
 
     unmatched_predicted = [

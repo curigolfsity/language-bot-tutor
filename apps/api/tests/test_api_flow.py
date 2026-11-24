@@ -211,18 +211,23 @@ async def test_turn_response_praise_and_turn_id(client, fake_llm):
     assert [t["id"] for t in body["well_done"]] == ["es.a1.ser_present", "es.a1.gender_agreement"]
     assert body["well_done"][0]["title"]
 
-    # A1 allows 2 corrections: at the cap nothing is praised (other errors may be hidden).
+    # A1 shows 2 corrections. A third (hidden) error is still recorded as a mistake, and its
+    # topic is not praised even though the model also listed it in grammar_tags.
     fake_llm.push_result(
         make_result(
             corrections=[
                 ("a", "b", "es.a1.ser_vs_estar_basic", "major"),
                 ("c", "d", "es.a1.tener_expressions", "major"),
+                ("e", "f", "es.a1.possessive_agreement", "minor"),
             ],
-            tags=["es.a1.possessive_agreement"],
+            tags=["es.a1.possessive_agreement", "es.a1.gender_agreement"],
         )
     )
     body = (await client.post(f"/v1/sessions/{sid}/turns", json={"text": "x"})).json()
-    assert body["well_done"] == []
+    assert [c["wrong"] for c in body["corrections"]] == ["a", "c"]
+    assert [t["id"] for t in body["well_done"]] == ["es.a1.gender_agreement"]
+    mistakes = (await client.get(f"/v1/learners/{pid}/mistakes")).json()
+    assert {m["wrong"] for m in mistakes} == {"a", "c", "e"}
 
 
 async def test_help_on_opening_and_turn(client, fake_llm):

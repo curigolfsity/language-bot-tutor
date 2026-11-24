@@ -55,3 +55,36 @@
     - { wrong: "podo", right: "puedo", rule_tag: es.a1.stem_changing_present }
     - { wrong: "quero", right: "quiero", rule_tag: es.a1.stem_changing_present }
   must_not_flag: []
+
+# Over the display cap (A1 shows 2): every error must still be reported, so mastery is not
+# credited for topics the learner got wrong.
+- id: a1-009
+  level: A1
+  text: "Mi hermana es alto y tiene 20 año. Ella es en Madrid y trabaja en un oficina."
+  expected:
+    - { wrong: "alto", right: "alta", rule_tag: es.a1.gender_agreement }
+    - { wrong: "20 año", right: "20 años", rule_tag: es.a1.number_agreement }
+    - { wrong: "es en Madrid", right: "está en Madrid", rule_tag: es.a1.ser_vs_estar_basic }
+    - { wrong: "un oficina", right: "una oficina", rule_tag: es.a1.gender_agreement }
+  must_not_flag: ["trabaja"]
+
+- id: a1-010
+  level: A1
+  text: "Nosotros tiene un perro y dos gato. Los perros es muy simpáticos y me gusta los animales."
+  expected:
+    - { wrong: "Nosotros tiene", right: "Nosotros tenemos", rule_tag: es.a1.subject_verb_agreement }
+    - { wrong: "dos gato", right: "dos gatos", rule_tag: es.a1.number_agreement }
+    - { wrong: "perros es", right: "perros son", rule_tag: es.a1.subject_verb_agreement,
+        also_tags: [es.a1.ser_present] }
+    - { wrong: "me gusta los", right: "me gustan los", rule_tag: es.a1.gustar_basic }
+  must_not_flag: ["simpáticos"]
+
+- id: a1-011
+  level: A1
+  text: "Yo quero ir a la playa porque hace calor. Mi amigos no puede venir y soy solo."
+  expected:
+    - { wrong: "quero", right: "quiero", rule_tag: es.a1.stem_changing_present }
+    - { wrong: "Mi amigos", right: "Mis amigos", rule_tag: es.a1.possessive_agreement }
+    - { wrong: "no puede", right: "no pueden", rule_tag: es.a1.subject_verb_agreement }
+    - { wrong: "soy solo", right: "estoy solo", rule_tag: es.a1.ser_vs_estar_basic }
+  must_not_flag: ["hace calor"]

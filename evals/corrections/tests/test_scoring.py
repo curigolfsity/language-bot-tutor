@@ -50,6 +50,22 @@ def test_one_to_one_matching():
     assert score_case(TEXT, exp, pred).matched == 1
 
 
+def test_alternatives():
+    exp = [
+        Expected(
+            "soy en",
+            "estoy en",
+            "es.a1.ser_vs_estar_basic",
+            also_right=["me encuentro en"],
+            also_tags=["es.a1.estar_present"],
+        )
+    ]
+    pred = [Predicted("soy en", "me encuentro en", "es.a1.estar_present")]
+    s = score_case(TEXT, exp, pred)
+    assert (s.matched, s.tag_correct) == (1, 1)
+    assert score_case(TEXT, exp, [Predicted("soy en", "era en", "x")]).matched == 0
+
+
 def test_aggregate():
     a = score_case(TEXT, EXP, [Predicted("soy en", "estoy en", "es.a1.ser_vs_estar_basic")])
     b = score_case("Hola.", [], [])
@@ -69,7 +85,8 @@ def test_cases_reference_real_topics():
             count += 1
             assert es.has_level(case["level"]), case["id"]
             for exp in case["expected"]:
-                assert exp["rule_tag"] in es.topics, f"{case['id']}: {exp['rule_tag']}"
+                for tag in [exp["rule_tag"], *exp.get("also_tags", [])]:
+                    assert tag in es.topics, f"{case['id']}: {tag}"
                 assert find_span(case["text"], exp["wrong"]), f"{case['id']}: {exp['wrong']}"
             for phrase in case.get("must_not_flag") or []:
                 assert find_span(case["text"], phrase), f"{case['id']}: {phrase}"

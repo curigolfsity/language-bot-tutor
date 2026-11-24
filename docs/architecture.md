@@ -183,7 +183,7 @@ sequenceDiagram
 
 **TurnResult schema**, the contract with the LLM (any change means re-running the eval). The API returns it wrapped as `TurnResponse`, adding fields the server computes (the LLM never sees them):
 - `turn_id`: the tutor turn, for help requests
-- `well_done[]`: `{id, title}` of topics used correctly, from `domain/tags.py::well_done_topics`. That is the grammar tags minus the corrected topics, at most 2. Nothing is praised when the correction cap was reached, because errors may be hidden.
+- `well_done[]`: `{id, title}` of topics used correctly, from `domain/tags.py::well_done_topics`. That is the grammar tags minus every corrected topic (including corrections beyond the display cut), at most 2.
 
 Mistakes and session summaries also carry readable topic titles (`rule_title`, `title`).
 
@@ -212,7 +212,9 @@ TurnResult {
   5. the new message
 
   Item 1 is the `system` block with `cache_control`. Items 2–5 go in a single user message as tagged sections (`<scenario>`, `<learner>`, `<conversation>`, `<latest_learner_message>`), with learner text XML-escaped. The learner's native language goes in `<learner>`, not the system prompt, so learners at the same level share the cache.
-- After the call, `domain/tags.py::apply_policy` enforces the policy as a safety net: it drops above-level corrections at `at_or_below_level`, drops no-op corrections, and truncates to `max_corrections_per_turn` (major first). Each intervention is logged and stored as a policy violation.- Ask the model to list the learner's correct uses as `grammar_tags`, so mastery can go up as well as down.
+- After the call, `domain/tags.py::apply_policy` enforces the policy as a safety net: it drops above-level corrections at `at_or_below_level` and no-op corrections (each logged and stored as a policy violation), and orders major before minor.
+- **All errors vs. what is shown.** The model reports *every* in-scope error. `max_corrections_per_turn` is a display limit only: `for_display` cuts the list for the learner (`TurnResponse.corrections`, stored as `result_json.shown`), while the full list (`result_json.final`) drives mistakes, mastery and praise. Before this split, the model was told "at most N", so hidden errors were silently dropped and their topics in `grammar_tags` counted as correct uses, raising mastery on a mistake. A sanity ceiling (`MAX_REPORTED_CORRECTIONS`) guards against runaway output.
+- Ask the model to list the learner's correct uses as `grammar_tags`, so mastery can go up as well as down.
 
 **Learner help** (`services/help_service.py`, prompt in `domain/prompt.py::build_help_prompt`) runs on a tutor turn, including the opening line:
 - `hint`: what the tutor asked plus a few useful words, without the answer (native language)
@@ -233,7 +235,7 @@ The result is a `Policy` object, and prompt assembly reads only that object:
 | Policy field | What it controls |
 |---|---|
 | `explanation_language` | language of `explanation` text: native → learner's `native_lang`, target → the target language, mixed → target language with native glosses |
-| `max_corrections_per_turn` + `correct_topics` | correction depth; at low levels, errors above the learner's level are ignored, not flagged |
+| `max_corrections_per_turn` + `correct_topics` | how many corrections the learner is shown (all are recorded); at low levels, errors above the learner's level are ignored, not flagged |
 | `tutor_reply` | length and vocabulary ceiling of the tutor's reply |
 
 ## 8. Learner model updates (`domain/mastery.py`)

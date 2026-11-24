@@ -31,7 +31,8 @@
   level: B1
   text: "Es la chica que hablé con ayer en la biblioteca."
   expected:
-    - { wrong: "que hablé con", right: "con quien hablé", rule_tag: es.b1.relative_pronouns }
+    - { wrong: "que hablé con", right: "con quien hablé", rule_tag: es.b1.relative_pronouns,
+        also_right: ["con la que hablé", "con la cual hablé"] }
   must_not_flag: ["en la biblioteca"]
 
 - id: b1-006
@@ -44,6 +45,7 @@
   level: B1
   text: "Necesito el informe por el lunes, y quiero que lo revisas tú."
   expected:
-    - { wrong: "por el lunes", right: "para el lunes", rule_tag: es.b1.por_vs_para_extended }
+    - { wrong: "por el lunes", right: "para el lunes", rule_tag: es.b1.por_vs_para_extended,
+        also_tags: [es.a2.por_vs_para_basic] }
     - { wrong: "revisas", right: "revises", rule_tag: es.b1.subjunctive_wishes_emotion }
   must_not_flag: []

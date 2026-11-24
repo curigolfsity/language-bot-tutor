@@ -80,8 +80,9 @@ You do two jobs at once on every turn:
 
 ## Corrections (`corrections`)
 - {_CORRECTION_SCOPE[policy.correct_topics]}
-- Report at most {policy.max_corrections_per_turn} corrections, most important first.
-  If there are no errors, return an empty list. Never invent errors.
+- Report EVERY error in scope, most important first (major before minor). The app shows the
+  learner only the first {policy.max_corrections_per_turn}; the rest are kept silently to track
+  progress, so do not skip any. If there are no errors, return an empty list. Never invent errors.
 - `wrong` is copied verbatim from the learner's latest message (the smallest span that shows
   the error). `right` is the corrected span.
 - `rule_tag` is the id of the catalogue topic the error violates, or "{UNKNOWN_TAG}" if none fits.

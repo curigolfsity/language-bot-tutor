@@ -33,7 +33,7 @@ from tutor_api.domain.prompt import (
     build_system_prompt,
     build_user_content,
 )
-from tutor_api.domain.tags import apply_policy, sanitize_tags, well_done_topics
+from tutor_api.domain.tags import apply_policy, for_display, sanitize_tags, well_done_topics
 from tutor_api.llm import LLMError, LLMTurnOutcome, TurnLLM
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import ConflictError, NotFoundError, UpstreamError
@@ -46,7 +46,8 @@ RECENT_MISTAKES_IN_SUMMARY = 5
 
 @dataclass(frozen=True)
 class CorrectionRun:
-    final: TurnResult  # what the learner sees and what is persisted
+    final: TurnResult  # all in-scope corrections: persisted, drives mistakes and mastery
+    shown: TurnResult  # the display cut of `final`: what the learner sees
     raw: TurnResult | None  # exactly what the model returned (None on refusal)
     refused: bool
     unknown_tags: tuple[str, ...]
@@ -75,7 +76,7 @@ async def run_correction(
         final = TurnResult(
             reply=curriculum.lang.refusal_reply, corrections=[], new_vocab=[], grammar_tags=[]
         )
-        return CorrectionRun(final, None, True, (), (), outcome)
+        return CorrectionRun(final, final, None, True, (), (), outcome)
 
     raw = outcome.result
     clean, sreport = sanitize_tags(raw, curriculum.topic_ids())
@@ -86,7 +87,15 @@ async def run_correction(
     final, preport = apply_policy(clean, policy, curriculum)
     if preport.violations:
         log.info("level-policy enforcement: %s", preport.violations)
-    return CorrectionRun(final, raw, False, sreport.unknown_tags, preport.violations, outcome)
+    return CorrectionRun(
+        final,
+        for_display(final, policy),
+        raw,
+        False,
+        sreport.unknown_tags,
+        preport.violations,
+        outcome,
+    )
 
 
 async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> TurnResponse:
@@ -150,6 +159,7 @@ async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> Turn
                     result_json={
                         "raw": run.raw.model_dump() if run.raw else None,
                         "final": final.model_dump(),
+                        "shown": run.shown.model_dump(),
                         "refused": run.refused,
                         "refusal_category": run.outcome.refusal_category,
                         "unknown_tags": list(run.unknown_tags),
@@ -168,7 +178,7 @@ async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> Turn
 
     praised = [] if run.refused else well_done_topics(final, policy, curriculum)
     return TurnResponse(
-        **final.model_dump(),
+        **run.shown.model_dump(),
         turn_id=tutor_turn.id,
         well_done=[TopicRef(id=t, title=curriculum.topics[t].title) for t in praised],
     )
