@@ -133,7 +133,7 @@ def make_result(
             for w, r, t, s in (corrections or [])
         ],
         new_vocab=[
-            NewVocab(lemma=v, translation="t", pos="noun", example="e") for v in vocab or []
+            NewVocab(lemma=v, translation="t", pos="noun") for v in vocab or []
         ],
         grammar_tags=tags or [],
     )

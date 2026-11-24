@@ -9,7 +9,8 @@
   level: B2
   text: "Mi jefe quería que yo termino el informe antes del viernes."
   expected:
-    - { wrong: "termino", right: "terminara", rule_tag: es.b2.imperfect_subjunctive }
+    - { wrong: "termino", right: "terminara", rule_tag: es.b2.imperfect_subjunctive,
+        also_tags: [es.c1.subjunctive_sequence_of_tenses] }
   must_not_flag: ["antes del viernes"]
 
 - id: b2-003

@@ -202,7 +202,7 @@ TurnResult {
 - Structured outputs: `client.beta.messages.parse(output_format=TurnResult)` (the beta surface carries server-side `fallbacks`). Thinking is adaptive.
 - The LLM-plus-domain path is `turn_service.run_correction` (no DB). `handle_turn` and the eval both call it.
 - No assistant prefill and no forced `tool_choice`. Current models reject both.
-- The model comes from `TUTOR_MODEL` (default `claude-opus-5-5`), with `effort` set explicitly. Change models only on eval evidence.
+- The model comes from `TUTOR_MODEL` (default `claude-opus-5-5`), with `effort` set explicitly. Change models only on eval evidence. Turns run at `TUTOR_EFFORT=low`: on the correction eval it matched `medium` on every case at about half the cost and a shorter latency tail. Help buttons use `TUTOR_HELP_EFFORT` (also `low`).
 - Check `stop_reason`. On `refusal`, return a polite generic reply with no corrections and log it. Server-side fallbacks are enabled (`fallbacks: "default"`, `TUTOR_FALLBACKS=off` disables them). The refusal reply text comes from `language.yaml`.
 - Prompt order for caching:
   1. tutor instructions + level policy + topic catalogue for the level (stable, cached)

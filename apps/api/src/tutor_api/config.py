@@ -20,8 +20,10 @@ class Settings(BaseSettings):
 
     # LLM. The model id is configuration, never a literal in code paths.
     tutor_model: str = Field(default="claude-opus-5-5", alias="TUTOR_MODEL")
+    # "low" matched "medium" on every correction-eval case at half the cost and a shorter
+    # latency tail (evals/corrections/reports/*fix-low*). Raise it only on eval evidence.
     tutor_effort: Literal["low", "medium", "high", "xhigh", "max"] = Field(
-        default="medium", alias="TUTOR_EFFORT"
+        default="low", alias="TUTOR_EFFORT"
     )
     # Hint/translate/suggest/explain are simple and latency-sensitive: lower effort by default.
     tutor_help_effort: Literal["low", "medium", "high", "xhigh", "max"] = Field(

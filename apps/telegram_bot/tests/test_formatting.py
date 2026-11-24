@@ -41,7 +41,7 @@ def test_format_turn_escapes_and_lists_corrections():
                 severity="major",
             )
         ],
-        new_vocab=[NewVocab(lemma="la playa", translation="beach", pos="noun", example="...")],
+        new_vocab=[NewVocab(lemma="la playa", translation="beach", pos="noun")],
     )
     out = formatting.format_turn(r)
     assert "&lt;amigo&gt;" in out

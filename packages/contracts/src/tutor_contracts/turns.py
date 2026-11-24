@@ -24,7 +24,6 @@ class NewVocab(BaseModel):
     lemma: str = Field(description="Dictionary form of a word or fixed expression the tutor used.")
     translation: str = Field(description="Translation into the learner's native language.")
     pos: str = Field(description="Part of speech, e.g. noun, verb, adjective, phrase.")
-    example: str = Field(description="A short example sentence in the target language.")
 
 
 class TurnResult(BaseModel):
