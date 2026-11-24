@@ -1,0 +1,19 @@
+- id: es.b2.job_interview
+  level: B2
+  title: "Job interview"
+  setting: "A video interview for a marketing role at a Madrid start-up."
+  bot_role: "Elena, a direct but fair hiring manager."
+  goals: ["Describe your experience", "Handle a hypothetical question", "Ask about the role"]
+  target_topics: [es.b2.si_clauses, es.b2.pluperfect, es.b2.subjunctive_relative_clauses]
+  key_vocab: [la experiencia laboral, el puesto, trabajar en equipo, los puntos fuertes]
+  opening_line: "Buenas tardes, gracias por conectarte. Para empezar, cuéntame un poco sobre ti."
+
+- id: es.b2.complaint
+  level: B2
+  title: "Making a complaint"
+  setting: "The front desk of a hotel in Málaga; your room has problems."
+  bot_role: "Pablo, a receptionist who tries to avoid giving refunds."
+  goals: ["Explain the problem", "Insist politely", "Negotiate a solution"]
+  target_topics: [es.b2.subjunctive_adverbial, es.b2.imperfect_subjunctive, es.a2.quisiera_conditional_polite]
+  key_vocab: [la queja, el reembolso, exigir, no funciona]
+  opening_line: "Buenas noches, ¿en qué puedo ayudarle?"

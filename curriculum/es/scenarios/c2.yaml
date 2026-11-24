@@ -1,0 +1,9 @@
+- id: es.c2.literary_salon
+  level: C2
+  title: "Literary salon"
+  setting: "An after-dinner discussion of a contemporary Spanish novel among friends."
+  bot_role: "Inés, a literature professor with strong, witty opinions."
+  goals: ["Argue an interpretation", "Use precise and nuanced vocabulary", "Shift register with humour"]
+  target_topics: [es.c2.stylistic_nuance, es.c1.collocations_idioms]
+  key_vocab: [el desenlace, la voz narrativa, a mi juicio, sea como fuere]
+  opening_line: "Confiesa: ¿te ha parecido una obra maestra o un ejercicio de estilo sin alma?"

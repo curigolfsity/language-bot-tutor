@@ -1,0 +1,327 @@
+# Architecture
+
+Status: Phase 1 scaffolded, 2026-11-24. This is the source of truth for structure. Change it in the same commit as any structural change.
+
+## 1. Goals and non-goals
+**Goals**
+- A conversational tutor that corrects the learner at the right depth for their CEFR level (A1–C2).
+- A learner model that improves over time:
+  - mastery per grammar topic
+  - mastery per word
+  - a level per skill (speaking, listening, reading, writing, grammar, vocab)
+- One core API that every client uses. Telegram is first; web and mobile come later.
+- Adding a language means adding data (`curriculum/<lang>/`), not code.
+- Measurable correction quality through an eval set.
+
+**Non-goals for Phase 1:**
+- voice
+- web or mobile UI
+- spaced-repetition scheduling
+- placement testing
+- real user auth or billing
+- content for languages other than Spanish
+
+## 2. Components
+```mermaid
+flowchart LR
+  TG[Telegram user] --> BOT[apps/telegram_bot<br/>thin client]
+  WEB[future web/mobile] -.-> API
+  BOT -- HTTPS JSON + X-Client-Key --> API[apps/api<br/>FastAPI core]
+  API --> SVC[services/]
+  SVC --> DOM[domain/<br/>pure logic]
+  SVC --> LLM[llm/<br/>Anthropic SDK]
+  SVC --> DB[(Postgres)]
+  CUR[curriculum/&lt;lang&gt;/*.yaml] --> LOADER[curriculum loader] --> DOM
+  EVAL[evals/corrections] --> SVC
+```
+Layering inside `apps/api`. Arrows mean "may import":
+`routes → services → (domain, llm, db, curriculum)`. `domain` imports nothing that does I/O.
+
+| Layer | Responsibility |
+|---|---|
+| routes | HTTP, auth header, DTO in/out (from `packages/contracts`). No logic. |
+| services | Use-case orchestration and transaction boundaries (`turn_service`, `session_service`, `learner_service`). |
+| domain | Level policy resolution, prompt assembly, mastery/skill math, tag sanitising. Pure and fully unit-tested. |
+| llm | One wrapper around the Anthropic client: model id from config, structured output parsing, refusal/fallback handling, token accounting. |
+| curriculum | Loads and validates YAML at startup into an immutable in-memory `Curriculum` object per language. |
+| db | SQLAlchemy 2 async models and repositories. |
+
+**Running it day to day (single Windows machine).** `scripts/supervisor.py` (stdlib only) runs the
+API (uvicorn, no `--reload`, 127.0.0.1:8000) and the bot as windowless child processes. It restarts
+a child that exits, with exponential backoff (2s up to 5 min, reset after 60s of healthy running),
+writes `logs/{api,bot,supervisor}.log` (rotated at 5 MB) and keeps its pid and state in `.run/`.
+`tutor.cmd` → `scripts/tutor.py` gives `start | stop | restart | status | logs | autostart on|off`.
+Autostart is a shortcut in the user's Startup folder (no admin, no Windows service). It refuses to start
+if port 8000 is already served, and Telegram allows only one poller, so never run a manual bot alongside
+it. This is a local convenience, not the production deployment.
+
+## 3. Curriculum data (YAML)
+Ids are global, stable and namespaced: `<lang>.<level>.<slug>`. **Never rename an id once it is used.** Mark it `deprecated: true` instead.
+
+`curriculum/es/grammar/a1.yaml`
+```yaml
+- id: es.a1.ser_vs_estar_basic
+  level: A1
+  title: "Ser vs estar (identity vs location/state)"
+  prerequisites: [es.a1.present_regular]
+  description: "Ser for identity/origin/profession; estar for location and temporary states."
+  examples:
+    - { wrong: "Yo soy en Madrid.", right: "Yo estoy en Madrid." }
+```
+
+`curriculum/es/scenarios/a2.yaml`
+```yaml
+- id: es.a2.restaurant_order
+  level: A2
+  title: "Ordering at a restaurant"
+  setting: "A small tapas bar in Sevilla, evening."
+  bot_role: "Friendly waiter who speaks only Spanish."
+  goals: ["Order food and drink", "Ask for the bill"]
+  target_topics: [es.a2.quisiera_conditional_polite, es.a1.gender_agreement]
+  key_vocab: [la cuenta, la ración, para picar]
+  opening_line: "¡Buenas noches! ¿Qué les pongo?"
+```
+
+`curriculum/es/levels.yaml` holds the level policy that drives adaptation:
+```yaml
+A1:
+  rank: 1                           # orders the levels; code never hard-codes level names
+  explanation_language: native      # native | mixed | target
+  max_corrections_per_turn: 2
+  correct_topics: at_or_below_level # at_or_below_level | all | all_plus_style
+  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very simple, present tense" }
+  free_opening: "¡Hola! ¿Cómo estás?"   # tutor's first line in a session with no scenario
+  label: "Total beginner"              # learner-facing, plain words (no CEFR jargon)
+  can_do: "I know a few words, or none at all"
+  starter_scenario: es.a1.meet_new_friend  # first role-play after onboarding (must be at this level)
+B1:
+  rank: 3
+  explanation_language: mixed
+  max_corrections_per_turn: 4
+  correct_topics: all
+  tutor_reply: { max_sentences: 4, vocab_ceiling: B1 }
+  free_opening: "..."
+```
+Every level A1–C2 is defined. A new profile starts at the lowest-ranked level.
+
+`curriculum/es/language.yaml` holds everything else language-specific that code needs, so code stays language-agnostic:
+```yaml
+code: es
+name: Spanish
+native_name: Español
+refusal_reply: "Perdona, no puedo responder a eso. ¿Seguimos con otra cosa?"
+prompt_notes:      # appended to the tutor system prompt (e.g. "don't flag a missing ¿")
+  - "..."
+```
+
+The loader fails startup on any of these:
+- a duplicate id
+- an unknown prerequisite
+- a prerequisite cycle
+- a prerequisite at a higher level than its dependent
+- a scenario `target_topics` entry that doesn't exist
+- a missing level in `levels.yaml`
+- an id whose prefix doesn't match its language and level (`es.a1.` for an A1 Spanish topic)
+- duplicate level ranks, or a `vocab_ceiling` that isn't a defined level
+- unknown fields, or YAML syntax errors
+
+## 4. Data model (Postgres)
+| table | columns (PK **bold**) | notes |
+|---|---|---|
+| users | **id uuid**, display_name, created_at | one per human |
+| user_identities | **provider, external_id**, user_id | `provider` ∈ telegram/web/…; lets one human use many clients |
+| learner_profiles | **id uuid**, user_id, target_lang, native_lang, explanation_lang_override?, cefr_level, created_at | unique(user_id, target_lang): one profile per language learned |
+| skill_levels | **profile_id, skill**, cefr_level, score (0–1), updated_at | skill ∈ speaking, listening, reading, writing, grammar, vocab |
+| grammar_mastery | **profile_id, topic_id**, mastery (0–1), attempts, errors, last_seen_at | topic_id = curriculum id (text) |
+| vocab_items | **id**, profile_id, lemma, translation, pos, seen_count, mastery, first_seen_at, last_seen_at | unique(profile_id, lemma) |
+| sessions | **id uuid**, profile_id, mode (free/roleplay), scenario_id?, level_at_start, started_at, ended_at? | at most one open session per profile |
+| turns | **id**, session_id, seq, role (learner/tutor), text, grammar_tags text[], llm_model, result_json jsonb, input_tokens, output_tokens, created_at | unique(session_id, seq). The opening line is tutor turn seq 0. On tutor turns `result_json` = `{raw, final, refused, refusal_category, unknown_tags, policy_violations, cache_*_tokens}`: the raw model TurnResult is kept for audit/re-scoring |
+| mistakes | **id**, profile_id, turn_id, wrong, right, rule_tag, explanation, severity, created_at | index(profile_id, rule_tag), index(profile_id, created_at) |
+
+Curriculum ids are stored as text, not as FKs. The YAML is the authority, and startup validation keeps the data consistent.
+
+## 5. API (v1)
+All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIENT_API_KEYS` (the API refuses to start if that is empty; `/healthz` is open). Service errors map to 404 / 409 (session ended) / 400 / 502 (LLM failure). DTOs live in `packages/contracts`.
+
+| method | path | purpose |
+|---|---|---|
+| GET | /healthz | liveness + curriculum loaded |
+| POST | /v1/users/resolve | `{provider, external_id, display_name, target_lang, native_lang}` → user + profile (idempotent) |
+| GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language). Omitted PATCH fields are unchanged; `explanation_lang_override: null` clears it |
+| GET | /v1/learners/{id}/mistakes?topic=&limit= | recent mistakes |
+| GET | /v1/learners/{id}/vocab?limit= | vocab |
+| GET | /v1/learners/{id}/active-session | open session or 404 (clients stay stateless) |
+| GET | /v1/curriculum/{lang} | language name + levels with `label`, `can_do`, `starter_scenario` (onboarding screens) |
+| GET | /v1/curriculum/{lang}/levels | level codes in rank order (clients never hard-code levels) |
+| GET | /v1/curriculum/{lang}/grammar?level= | topics (exactly at `level` if given) |
+| GET | /v1/curriculum/{lang}/scenarios?level= | scenarios within one level of `level` (all if omitted) |
+| POST | /v1/sessions | `{profile_id, scenario_id?}` → session + tutor opening line + `opening_turn_id` (closes any open session) |
+| POST | /v1/sessions/{id}/turns | `{text}` → `TurnResponse` = `TurnResult` + `turn_id` + `well_done[]` |
+| POST | /v1/turns/{turn_id}/help | `{kind: hint\|translate\|suggest\|explain}` on a **tutor** turn → `{kind, text}` |
+| POST | /v1/sessions/{id}/end | close session → summary (turn count, top mistakes, new vocab) |
+
+## 6. A conversation turn
+```mermaid
+sequenceDiagram
+  participant B as Telegram bot
+  participant A as API /turns
+  participant S as turn_service
+  participant D as domain
+  participant L as llm (Anthropic)
+  participant P as Postgres
+  B->>A: POST /v1/sessions/{id}/turns {text}
+  A->>S: handle_turn(session_id, text)
+  S->>P: load profile, mastery summary, recent turns (short read; no tx held during the LLM call)
+  S->>D: resolve_policy(level, levels.yaml) + build_prompt(policy, scenario, profile)
+  S->>L: beta.messages.parse(model=TUTOR_MODEL, output_format=TurnResult, fallbacks)
+  L-->>S: TurnResult (validated) | refusal
+  S->>D: sanitize_tags + apply_policy (safety net) + topic_updates
+  S->>P: insert turns, mistakes, upsert vocab_items, grammar_mastery (one tx)
+  S-->>A: TurnResult
+  A-->>B: JSON → bot formats reply + corrections
+```
+
+**TurnResult schema**, the contract with the LLM (any change means re-running the eval). The API returns it wrapped as `TurnResponse`, adding fields the server computes (the LLM never sees them):
+- `turn_id`: the tutor turn, for help requests
+- `well_done[]`: `{id, title}` of topics used correctly, from `domain/tags.py::well_done_topics`. That is the grammar tags minus the corrected topics, at most 2. Nothing is praised when the correction cap was reached, because errors may be hidden.
+
+Mistakes and session summaries also carry readable topic titles (`rule_title`, `title`).
+
+```
+TurnResult {
+  reply: str                          # tutor's in-character response, at the learner's level
+  corrections: [ { wrong: str, right: str, rule_tag: topic_id|"unknown",
+                   explanation: str,  # in the policy's explanation language
+                   severity: "minor"|"major" } ]
+  new_vocab:   [ { lemma: str, translation: str, pos: str, example: str } ]
+  grammar_tags: [topic_id]            # topics the learner's message exercised
+}
+```
+
+**LLM call rules**
+- Structured outputs: `client.beta.messages.parse(output_format=TurnResult)` (the beta surface carries server-side `fallbacks`). Thinking is adaptive.
+- The LLM-plus-domain path is `turn_service.run_correction` (no DB). `handle_turn` and the eval both call it.
+- No assistant prefill and no forced `tool_choice`. Current models reject both.
+- The model comes from `TUTOR_MODEL` (default `claude-opus-5-5`), with `effort` set explicitly. Change models only on eval evidence.
+- Check `stop_reason`. On `refusal`, return a polite generic reply with no corrections and log it. Server-side fallbacks are enabled (`fallbacks: "default"`, `TUTOR_FALLBACKS=off` disables them). The refusal reply text comes from `language.yaml`.
+- Prompt order for caching:
+  1. tutor instructions + level policy + topic catalogue for the level (stable, cached)
+  2. scenario
+  3. learner summary
+  4. recent turns
+  5. the new message
+
+  Item 1 is the `system` block with `cache_control`. Items 2–5 go in a single user message as tagged sections (`<scenario>`, `<learner>`, `<conversation>`, `<latest_learner_message>`), with learner text XML-escaped. The learner's native language goes in `<learner>`, not the system prompt, so learners at the same level share the cache.
+- After the call, `domain/tags.py::apply_policy` enforces the policy as a safety net: it drops above-level corrections at `at_or_below_level`, drops no-op corrections, and truncates to `max_corrections_per_turn` (major first). Each intervention is logged and stored as a policy violation.- Ask the model to list the learner's correct uses as `grammar_tags`, so mastery can go up as well as down.
+
+**Learner help** (`services/help_service.py`, prompt in `domain/prompt.py::build_help_prompt`) runs on a tutor turn, including the opening line:
+- `hint`: what the tutor asked plus a few useful words, without the answer (native language)
+- `translate`: the tutor message in the native language
+- `suggest`: one example answer at the learner's level, with a translation
+- `explain`: a deeper explanation of that turn's corrections, in the policy's explanation language
+
+It uses the same model with `TUTOR_HELP_EFFORT` (default `low`, measured at 2–5 s), structured output `{text}`, and no prompt caching (the prompt is short and per-learner). Help requests are not persisted.
+
+## 7. Level adaptation
+`domain/policy.py` merges three inputs:
+1. the `levels.yaml` entry for the learner's `cefr_level`
+2. the profile override (`explanation_lang_override`)
+3. the scenario
+
+The result is a `Policy` object, and prompt assembly reads only that object:
+
+| Policy field | What it controls |
+|---|---|
+| `explanation_language` | language of `explanation` text: native → learner's `native_lang`, target → the target language, mixed → target language with native glosses |
+| `max_corrections_per_turn` + `correct_topics` | correction depth; at low levels, errors above the learner's level are ignored, not flagged |
+| `tutor_reply` | length and vocabulary ceiling of the tutor's reply |
+
+## 8. Learner model updates (`domain/mastery.py`)
+- **Per topic.** Uses an exponentially weighted update with α from config:
+  - correct use: `m ← m + α(1−m)`
+  - error: `m ← m − α·m·w`, where w is 1.0 for major and 0.5 for minor
+  - `attempts` and `errors` are counted alongside.
+- **Per word.** `seen_count++` when the tutor introduces it (`new_vocab`) and when the learner uses it. Mastery rises (`m ← m + α(1−m)`) only when the learner's message contains a known lemma outside any corrected span.
+- Topics start at mastery 0. Each correction is one error on its `rule_tag`. A `grammar_tag` with no correction on the same topic is one correct use. `unknown` is never tracked.
+- **Skill levels.** These change only from aggregates, never on a single turn. Phase 1 updates only the `grammar` and `vocab` scores, at session end, as the mean mastery of practised topics and known words. A learner-confirmed level change (PATCH) moves every skill's `cefr_level` with it. CEFR level changes are proposed by the system and confirmed by the learner, not applied automatically.
+
+## 9. Evaluation (`evals/corrections`)
+`cases/<level>.yaml`:
+```yaml
+- id: a1-001
+  level: A1
+  text: "Yo soy en la playa con mi amigos."
+  expected:
+    - { wrong: "soy en", right: "estoy en", rule_tag: es.a1.ser_vs_estar_basic }
+    - { wrong: "mi amigos", right: "mis amigos", rule_tag: es.a1.possessive_agreement }
+  must_not_flag: ["la playa"]
+```
+`run_eval.py` runs each case through the same `turn_service` correction path with a fixed neutral session context. For each level it reports:
+- correction recall and precision. A match means the normalized `right` text matches and the span overlaps.
+- rule_tag accuracy
+- false positives on `must_not_flag`
+- level-policy violations (interventions by `apply_policy`: too many corrections, above-level corrections, no-ops). Checking the explanation language automatically is not implemented yet.
+- refusals and errors
+- tokens and cost
+
+Scoring lives in `evals/corrections/scoring.py` (pure, unit-tested). Prices are CLI flags (`--input-price`, `--output-price`). It writes a dated JSON report under `evals/corrections/reports/`. It makes real API calls, so run it on purpose. Start with about 30 cases across A1–B2 and grow the set whenever a bad correction shows up in real use.
+
+## 10. Telegram client (`apps/telegram_bot`)
+Button-first, so nobody needs to type commands. Modules:
+- `bot.py`: handlers
+- `keyboards.py`: menus and callback data
+- `formatting.py`: DTO → HTML
+- `api_client.py`: HTTP
+
+**Onboarding** (first `/start`) runs in three steps:
+1. "Which language should I explain things in?" (buttons, with Telegram's language first)
+2. "How much Spanish do you know?" (buttons with `label` · `can_do` from `levels.yaml`)
+3. The main menu appears and the learner is dropped straight into the level's `starter_scenario`.
+
+**Persistent menu** under the text box: 💬 Free chat · 🎭 Role-play · 📊 My progress · 🏁 Finish session · ⚙️ Settings · ❓ How it works. Commands still exist for power users and are registered with `setMyCommands` so `/` shows a menu:
+- `/start`, `/chat`, `/roleplay`, `/progress`, `/end`, `/settings`, `/help`
+- older aliases: `/play <id>`, `/level [code]`, `/native [code]`, `/scenarios`, `/mistakes`
+
+**Every tutor message** (including opening lines) carries 💡 Hint · 🌐 Translate · ✍️ Suggest buttons, plus ❓ Explain my mistakes when there were corrections.
+
+**Turn message layout:**
+1. the reply
+2. ✅ praise (`well_done`)
+3. ✏️ "N quick fixes" with `wrong → right` lines and the explanations in a collapsed `<blockquote expandable>`
+4. 📚 new words
+
+The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it offers next-step buttons.
+
+**Stateless:** each step's choice travels in callback data (`h:<kind>:<turn_id>`, `nat:<code>:<o|s>`, `lvl:<code>:<o|s>`, `play:<id>`, `menu:<action>`, all ≤ 64 bytes). The active session comes from the API.
+
+**Config:**
+- `TELEGRAM_TOKEN`, `TUTOR_API_URL`
+- `TUTOR_API_KEY` (defaults to the first `CLIENT_API_KEYS` entry)
+- `BOT_TARGET_LANG`
+- `BOT_NATIVE_LANG_CHOICES` (`code:label` list for the language buttons)
+
+## 11. Extensibility
+- **New language:** add `curriculum/<lang>/` with `language.yaml`, `levels.yaml`, grammar and scenarios, then add eval cases. No code change is needed. The code takes `lang` as a parameter everywhere.
+- **New client (web, mobile, voice):** a new `apps/<client>` that uses `packages/contracts` and calls the API.
+- **Multi-user:** already modelled (`users`, `user_identities`). Real auth (per-user tokens) replaces `X-Client-Key` later.
+- **Different model per route** (e.g. a cheaper model for summaries): add config keys. The `llm/` wrapper is the only place that changes.
+
+## 12. Roadmap after Phase 1
+- spaced-repetition review of mistakes and vocab
+- placement test
+- voice: speech-to-text in, text-to-speech out, plus speaking and listening skill updates
+- web client
+- per-user auth
+- reading and writing exercises
+- a second target language
+
+## 13. Layering guards
+`apps/api/tests/test_architecture.py` enforces the rules mechanically:
+- the bot never imports `tutor_api`, `anthropic` or `sqlalchemy`
+- `domain/` imports nothing that does I/O
+- only `llm/` imports `anthropic`
+- routes don't import `db`, `llm` or `domain`
+- there are no `claude-*` model literals outside `config.py`
+- there are no CEFR level literals in API code
+
+Tests use an in-memory SQLite DB (Postgres types have SQLite variants) and a fake `TurnLLM`. Migrations target Postgres only.

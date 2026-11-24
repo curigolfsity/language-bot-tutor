@@ -1,0 +1,439 @@
+"""Telegram handlers. Thin: every decision is made by the API; this file only drives the UI.
+
+New learner flow (stateless; each step's choice travels in the button's callback data):
+  /start -> "explain in which language?" -> "how much do you know?" -> starter role-play
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import logging
+from collections.abc import AsyncIterator
+
+from telegram import BotCommand, CallbackQuery, Message, Update
+from telegram.constants import ChatAction, ParseMode
+from telegram.error import BadRequest
+from telegram.ext import (
+    Application,
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+from tutor_contracts import (
+    LearnerPatch,
+    LearnerProfileOut,
+    LevelOut,
+    ResolveUserRequest,
+    SessionOut,
+)
+
+from tutor_telegram import formatting
+from tutor_telegram import keyboards as kb
+from tutor_telegram.api_client import ApiError, TutorApiClient
+from tutor_telegram.config import BotSettings
+
+log = logging.getLogger(__name__)
+
+PROVIDER = "telegram"
+HELP_KINDS = {"hint", "translate", "suggest", "explain"}
+
+COMMANDS = [
+    BotCommand("start", "Start or restart"),
+    BotCommand("chat", "Free conversation"),
+    BotCommand("roleplay", "Practise a real-life situation"),
+    BotCommand("progress", "Your progress and recent mistakes"),
+    BotCommand("end", "Finish the session and see a summary"),
+    BotCommand("settings", "Change level or explanation language"),
+    BotCommand("help", "How it works"),
+]
+
+
+# ----------------------------------------------------------------------------- plumbing
+
+
+def _api(context: ContextTypes.DEFAULT_TYPE) -> TutorApiClient:
+    return context.application.bot_data["api"]
+
+
+def _settings(context: ContextTypes.DEFAULT_TYPE) -> BotSettings:
+    return context.application.bot_data["settings"]
+
+
+def _detected_lang(update: Update) -> str | None:
+    user = update.effective_user
+    code = (user.language_code or "").split("-")[0].lower() if user else ""
+    return code if len(code) >= 2 else None
+
+
+async def _resolve(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> tuple[LearnerProfileOut, bool]:
+    user = update.effective_user
+    assert user is not None
+    settings = _settings(context)
+    res = await _api(context).resolve_user(
+        ResolveUserRequest(
+            provider=PROVIDER,
+            external_id=str(user.id),
+            display_name=user.full_name or "",
+            target_lang=settings.target_lang,
+            native_lang=_detected_lang(update) or settings.default_native_lang,
+        )
+    )
+    return res.profile, res.created
+
+
+async def _send(update: Update, text: str, **kwargs: object) -> Message:
+    chat = update.effective_chat
+    assert chat is not None
+    return await chat.send_message(text, parse_mode=ParseMode.HTML, **kwargs)  # type: ignore[arg-type]
+
+
+@contextlib.asynccontextmanager
+async def _typing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> AsyncIterator[None]:
+    """Keep "typing…" visible while the tutor thinks (Telegram clears it after ~5 s)."""
+    chat = update.effective_chat
+
+    async def keep_typing() -> None:
+        while chat is not None:
+            with contextlib.suppress(Exception):
+                await context.bot.send_chat_action(chat_id=chat.id, action=ChatAction.TYPING)
+            await asyncio.sleep(4)
+
+    task = asyncio.create_task(keep_typing())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
+async def _levels(context: ContextTypes.DEFAULT_TYPE) -> list[LevelOut]:
+    return (await _api(context).language(_settings(context).target_lang)).levels
+
+
+async def _show_session(update: Update, session: SessionOut, first_time: bool = False) -> None:
+    await _send(
+        update,
+        formatting.format_session_start(session, first_time),
+        reply_markup=kb.help_buttons(session.opening_turn_id),
+    )
+
+
+# ----------------------------------------------------------------------------- onboarding
+
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, created = await _resolve(update, context)
+    if created:
+        lang = await _api(context).language(_settings(context).target_lang)
+        await _send(
+            update,
+            f"👋 <b>Hi!</b> I'm your {lang.name} conversation tutor.\n"
+            "We'll chat, I'll gently fix your mistakes, and you'll pick up words as you go.\n\n"
+            "First, <b>which language should I explain things in?</b>",
+            reply_markup=kb.native_keyboard(
+                _settings(context).native_choices(), _detected_lang(update), onboarding=True
+            ),
+        )
+        return
+    levels = await _levels(context)
+    await _send(
+        update,
+        "👋 Welcome back! " + formatting.format_profile(profile, levels),
+        reply_markup=kb.main_menu(),
+    )
+    session = await _api(context).active_session(profile.id)
+    if session is not None:
+        await _send(
+            update,
+            "You have a conversation in progress. Just reply to continue, or start something new:",
+            reply_markup=kb.next_step_keyboard(),
+        )
+    else:
+        await _send(update, "What would you like to do?", reply_markup=kb.next_step_keyboard())
+
+
+async def _ask_level(update: Update, context: ContextTypes.DEFAULT_TYPE, onboarding: bool) -> None:
+    lang = await _api(context).language(_settings(context).target_lang)
+    await _send(
+        update,
+        f"<b>How much {lang.name} do you know?</b>",
+        reply_markup=kb.level_keyboard(lang.levels, onboarding=onboarding),
+    )
+
+
+async def _after_level_chosen(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, profile: LearnerProfileOut
+) -> None:
+    """Last onboarding step: show the menu and drop the learner straight into a role-play."""
+    levels = await _levels(context)
+    level = next((lv for lv in levels if lv.code == profile.cefr_level), None)
+    await _send(
+        update,
+        "🎉 You're all set! Your menu is below the text box. Let's start with a short "
+        "role-play. Just answer the message below.",
+        reply_markup=kb.main_menu(),
+    )
+    starter = level.starter_scenario if level else None
+    session = await _api(context).start_session(profile.id, starter)
+    await _show_session(update, session, first_time=True)
+
+
+# ----------------------------------------------------------------------------- menu actions
+
+
+async def do_free_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    await _show_session(update, await _api(context).start_session(profile.id))
+
+
+async def do_roleplay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    scenarios = await _api(context).scenarios(profile.target_lang, level=profile.cefr_level)
+    await _send(
+        update,
+        formatting.format_scenarios(scenarios),
+        reply_markup=kb.scenario_keyboard(scenarios) if scenarios else None,
+    )
+
+
+async def do_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    api = _api(context)
+    profile = await api.get_learner(profile.id)
+    levels = await _levels(context)
+    words = await api.vocab(profile.id)
+    mistakes = await api.mistakes(profile.id, limit=5)
+    await _send(update, formatting.format_progress(profile, levels, len(words), mistakes))
+
+
+async def do_finish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    session = await _api(context).active_session(profile.id)
+    if session is None:
+        await _send(
+            update, "No conversation in progress. Start one:", reply_markup=kb.next_step_keyboard()
+        )
+        return
+    summary = await _api(context).end_session(session.id)
+    await _send(update, formatting.format_summary(summary), reply_markup=kb.next_step_keyboard())
+
+
+async def do_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    await _send(
+        update,
+        "⚙️ " + formatting.format_profile(profile, await _levels(context)),
+        reply_markup=kb.settings_keyboard(),
+    )
+
+
+async def do_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _send(update, formatting.HOW_IT_WORKS, reply_markup=kb.main_menu())
+
+
+MENU_ACTIONS = {
+    kb.MENU_CHAT: do_free_chat,
+    kb.MENU_ROLEPLAY: do_roleplay,
+    kb.MENU_PROGRESS: do_progress,
+    kb.MENU_FINISH: do_finish,
+    kb.MENU_SETTINGS: do_settings,
+    kb.MENU_HELP: do_help,
+}
+
+
+# ----------------------------------------------------------------------------- commands kept
+# for power users (and the "/" menu); each maps onto the same actions as the buttons.
+
+
+async def cmd_level(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if context.args:
+        profile, _ = await _resolve(update, context)
+        updated = await _api(context).patch_learner(
+            profile.id, LearnerPatch(cefr_level=context.args[0].upper())
+        )
+        await _send(update, "✅ " + formatting.format_profile(updated, await _levels(context)))
+        return
+    await _ask_level(update, context, onboarding=False)
+
+
+async def cmd_native(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        await _send(
+            update,
+            "<b>Which language should I explain things in?</b>",
+            reply_markup=kb.native_keyboard(
+                _settings(context).native_choices(), _detected_lang(update), onboarding=False
+            ),
+        )
+        return
+    profile, _ = await _resolve(update, context)
+    updated = await _api(context).patch_learner(
+        profile.id, LearnerPatch(native_lang=context.args[0].lower())
+    )
+    await _send(update, "✅ " + formatting.format_profile(updated, await _levels(context)))
+
+
+async def cmd_play(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        await do_roleplay(update, context)
+        return
+    profile, _ = await _resolve(update, context)
+    await _show_session(update, await _api(context).start_session(profile.id, context.args[0]))
+
+
+async def cmd_mistakes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await do_progress(update, context)
+
+
+# ----------------------------------------------------------------------------- callbacks
+
+
+async def _ack(query: CallbackQuery, text: str | None = None) -> None:
+    """Stop the button's spinner. Taps queued while the bot was down are too old to
+    acknowledge; Telegram rejects those, but the tap itself is still handled."""
+    try:
+        await query.answer(text)
+    except BadRequest as e:
+        log.debug("could not answer callback query: %s", e)
+
+
+async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    assert query is not None and query.data is not None
+    kind, _, rest = query.data.partition(":")
+
+    if kind == "h":  # help on a tutor message
+        help_kind, _, turn_id = rest.partition(":")
+        if help_kind not in HELP_KINDS or not turn_id.isdigit():
+            await _ack(query)
+            return
+        await _ack(query, "One moment…")
+        async with _typing(update, context):
+            help_ = await _api(context).help(int(turn_id), help_kind)  # type: ignore[arg-type]
+        assert query.message is not None
+        await query.message.reply_text(formatting.format_help(help_), parse_mode=ParseMode.HTML)
+        return
+
+    await _ack(query)
+    if kind == "nat":
+        code, _, flag = rest.partition(":")
+        profile, _ = await _resolve(update, context)
+        await _api(context).patch_learner(profile.id, LearnerPatch(native_lang=code))
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        if flag == "o":
+            await _ask_level(update, context, onboarding=True)
+        else:
+            await _send(update, "✅ Explanations will be in that language from now on.")
+    elif kind == "lvl":
+        code, _, flag = rest.partition(":")
+        profile, _ = await _resolve(update, context)
+        updated = await _api(context).patch_learner(profile.id, LearnerPatch(cefr_level=code))
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        if flag == "o":
+            await _after_level_chosen(update, context, updated)
+        else:
+            await _send(
+                update,
+                "✅ " + formatting.format_profile(updated, await _levels(context)),
+                reply_markup=kb.next_step_keyboard(),
+            )
+    elif kind == "play":
+        profile, _ = await _resolve(update, context)
+        await _show_session(update, await _api(context).start_session(profile.id, rest))
+    elif kind == "menu":
+        if rest == "free":
+            await do_free_chat(update, context)
+        elif rest == "roleplay":
+            await do_roleplay(update, context)
+        elif rest == "settings_level":
+            await _ask_level(update, context, onboarding=False)
+        elif rest == "settings_native":
+            await cmd_native(update, context)
+
+
+# ----------------------------------------------------------------------------- free text
+
+
+async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    msg = update.effective_message
+    if msg is None or not msg.text:
+        return
+    action = MENU_ACTIONS.get(msg.text.strip())
+    if action is not None:
+        await action(update, context)
+        return
+
+    profile, _ = await _resolve(update, context)
+    api = _api(context)
+    session = await api.active_session(profile.id)
+    if session is None:
+        session = await api.start_session(profile.id)
+    async with _typing(update, context):
+        result = await api.send_turn(session.id, msg.text)
+    await msg.reply_text(
+        formatting.format_turn(result),
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb.help_buttons(result.turn_id, bool(result.corrections)),
+    )
+
+
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    err = context.error
+    log.error("handler error: %s", err, exc_info=err)
+    if not isinstance(update, Update) or update.effective_chat is None:
+        return
+    if isinstance(err, ApiError) and err.status_code == 409:
+        text = "That conversation has ended. Tap 💬 Free chat or 🎭 Role-play to start a new one."
+    elif isinstance(err, ApiError) and err.status_code < 500:
+        text = f"⚠️ {err.detail}"
+    else:
+        text = "⚠️ Sorry, something went wrong on my side. Please try again in a moment."
+    await update.effective_chat.send_message(text)
+
+
+# ----------------------------------------------------------------------------- app
+
+
+def build_application(settings: BotSettings) -> Application:
+    async def post_init(app: Application) -> None:
+        assert settings.api_key is not None
+        app.bot_data["settings"] = settings
+        app.bot_data["api"] = TutorApiClient(
+            settings.api_base_url, settings.api_key, settings.request_timeout_seconds
+        )
+        await app.bot.set_my_commands(COMMANDS)
+
+    async def post_shutdown(app: Application) -> None:
+        api: TutorApiClient | None = app.bot_data.get("api")
+        if api is not None:
+            await api.aclose()
+
+    app = (
+        ApplicationBuilder()
+        .token(settings.telegram_token)
+        .post_init(post_init)
+        .post_shutdown(post_shutdown)
+        .concurrent_updates(True)
+        .build()
+    )
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", do_help))
+    app.add_handler(CommandHandler("chat", do_free_chat))
+    app.add_handler(CommandHandler(["roleplay", "scenarios"], do_roleplay))
+    app.add_handler(CommandHandler("play", cmd_play))
+    app.add_handler(CommandHandler(["progress", "mistakes"], cmd_mistakes))
+    app.add_handler(CommandHandler("end", do_finish))
+    app.add_handler(CommandHandler("settings", do_settings))
+    app.add_handler(CommandHandler("level", cmd_level))
+    app.add_handler(CommandHandler("native", cmd_native))
+    app.add_handler(CallbackQueryHandler(on_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_error_handler(on_error)
+    return app

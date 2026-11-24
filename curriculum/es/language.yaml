@@ -1,0 +1,11 @@
+# Language metadata. Everything language-specific that code needs lives here,
+# so the code itself stays language-agnostic.
+code: es
+name: Spanish
+native_name: Español
+# Sent to the learner when the model declines a turn (stop_reason == "refusal").
+refusal_reply: "Perdona, no puedo responder a eso. ¿Seguimos con otra cosa?"
+# Language-specific guidance appended to the tutor's system prompt.
+prompt_notes:
+  - "Do not flag a missing opening ¿ or ¡ in casual chat messages; do flag missing written accents that change meaning or are taught at the learner's level."
+  - "Accept both Spain and Latin American usage (vosotros/ustedes, vocabulary variants) as correct."

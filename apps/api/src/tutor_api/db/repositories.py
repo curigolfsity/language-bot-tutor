@@ -1,0 +1,294 @@
+"""Data access. Repositories take an AsyncSession; services own the transaction.
+
+Upserts are written as select-then-write so the same code runs on Postgres and the SQLite test
+database. Writes for one profile happen inside one service transaction.
+"""
+
+from __future__ import annotations
+
+import uuid
+from collections.abc import Iterable, Sequence
+from datetime import datetime
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from tutor_api.db.models import (
+    GrammarMastery,
+    LearnerProfile,
+    Mistake,
+    Session,
+    SkillLevel,
+    Turn,
+    User,
+    UserIdentity,
+    VocabItem,
+    utcnow,
+)
+
+
+class UserRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get_by_identity(self, provider: str, external_id: str) -> User | None:
+        stmt = (
+            select(User)
+            .join(UserIdentity, UserIdentity.user_id == User.id)
+            .where(UserIdentity.provider == provider, UserIdentity.external_id == external_id)
+        )
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def create_with_identity(
+        self, provider: str, external_id: str, display_name: str
+    ) -> User:
+        user = User(display_name=display_name)
+        self.db.add(user)
+        await self.db.flush()
+        self.db.add(UserIdentity(provider=provider, external_id=external_id, user_id=user.id))
+        await self.db.flush()
+        return user
+
+
+class ProfileRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get(self, profile_id: uuid.UUID) -> LearnerProfile | None:
+        return await self.db.get(LearnerProfile, profile_id)
+
+    async def get_for_user(self, user_id: uuid.UUID, target_lang: str) -> LearnerProfile | None:
+        stmt = select(LearnerProfile).where(
+            LearnerProfile.user_id == user_id, LearnerProfile.target_lang == target_lang
+        )
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def create(
+        self, user_id: uuid.UUID, target_lang: str, native_lang: str, cefr_level: str
+    ) -> LearnerProfile:
+        p = LearnerProfile(
+            user_id=user_id, target_lang=target_lang, native_lang=native_lang, cefr_level=cefr_level
+        )
+        self.db.add(p)
+        await self.db.flush()
+        return p
+
+    async def skills(self, profile_id: uuid.UUID) -> Sequence[SkillLevel]:
+        stmt = (
+            select(SkillLevel).where(SkillLevel.profile_id == profile_id).order_by(SkillLevel.skill)
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
+    async def upsert_skill(
+        self, profile_id: uuid.UUID, skill: str, cefr_level: str, score: float | None = None
+    ) -> None:
+        row = await self.db.get(SkillLevel, (profile_id, skill))
+        if row is None:
+            self.db.add(
+                SkillLevel(
+                    profile_id=profile_id, skill=skill, cefr_level=cefr_level, score=score or 0.0
+                )
+            )
+        else:
+            row.cefr_level = cefr_level
+            if score is not None:
+                row.score = score
+            row.updated_at = utcnow()
+        await self.db.flush()
+
+
+class SessionRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get(self, session_id: uuid.UUID) -> Session | None:
+        return await self.db.get(Session, session_id)
+
+    async def get_open(self, profile_id: uuid.UUID) -> Session | None:
+        stmt = select(Session).where(Session.profile_id == profile_id, Session.ended_at.is_(None))
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def create(
+        self, profile_id: uuid.UUID, mode: str, scenario_id: str | None, level: str
+    ) -> Session:
+        s = Session(profile_id=profile_id, mode=mode, scenario_id=scenario_id, level_at_start=level)
+        self.db.add(s)
+        await self.db.flush()
+        return s
+
+    async def close(self, session: Session, at: datetime | None = None) -> None:
+        session.ended_at = at or utcnow()
+        await self.db.flush()
+
+
+class TurnRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def next_seq(self, session_id: uuid.UUID) -> int:
+        stmt = select(func.coalesce(func.max(Turn.seq), -1)).where(Turn.session_id == session_id)
+        return int((await self.db.execute(stmt)).scalar_one()) + 1
+
+    async def add(self, turn: Turn) -> Turn:
+        self.db.add(turn)
+        await self.db.flush()
+        return turn
+
+    async def recent(self, session_id: uuid.UUID, limit: int) -> list[Turn]:
+        if limit <= 0:
+            return []
+        stmt = (
+            select(Turn).where(Turn.session_id == session_id).order_by(Turn.seq.desc()).limit(limit)
+        )
+        rows = (await self.db.execute(stmt)).scalars().all()
+        return list(reversed(rows))
+
+    async def get(self, turn_id: int) -> Turn | None:
+        return await self.db.get(Turn, turn_id)
+
+    async def recent_until(self, session_id: uuid.UUID, seq: int, limit: int) -> list[Turn]:
+        """Up to `limit` turns ending at (and including) `seq`, oldest first."""
+        if limit <= 0:
+            return []
+        stmt = (
+            select(Turn)
+            .where(Turn.session_id == session_id, Turn.seq <= seq)
+            .order_by(Turn.seq.desc())
+            .limit(limit)
+        )
+        rows = (await self.db.execute(stmt)).scalars().all()
+        return list(reversed(rows))
+
+    async def first(self, session_id: uuid.UUID) -> Turn | None:
+        stmt = select(Turn).where(Turn.session_id == session_id).order_by(Turn.seq).limit(1)
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def count_learner_turns(self, session_id: uuid.UUID) -> int:
+        stmt = select(func.count()).where(Turn.session_id == session_id, Turn.role == "learner")
+        return int((await self.db.execute(stmt)).scalar_one())
+
+
+class MistakeRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def add_many(self, mistakes: Iterable[Mistake]) -> None:
+        self.db.add_all(list(mistakes))
+        await self.db.flush()
+
+    async def list(
+        self, profile_id: uuid.UUID, topic: str | None = None, limit: int = 20
+    ) -> Sequence[Mistake]:
+        stmt = select(Mistake).where(Mistake.profile_id == profile_id)
+        if topic:
+            stmt = stmt.where(Mistake.rule_tag == topic)
+        stmt = stmt.order_by(Mistake.created_at.desc(), Mistake.id.desc()).limit(limit)
+        return (await self.db.execute(stmt)).scalars().all()
+
+    async def top_tags_for_session(
+        self, session_id: uuid.UUID, limit: int = 5
+    ) -> list[tuple[str, int]]:
+        stmt = (
+            select(Mistake.rule_tag, func.count().label("n"))
+            .join(Turn, Turn.id == Mistake.turn_id)
+            .where(Turn.session_id == session_id)
+            .group_by(Mistake.rule_tag)
+            .order_by(func.count().desc(), Mistake.rule_tag)
+            .limit(limit)
+        )
+        return [(tag, int(n)) for tag, n in (await self.db.execute(stmt)).all()]
+
+
+class MasteryRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get_many(
+        self, profile_id: uuid.UUID, topic_ids: Iterable[str]
+    ) -> dict[str, GrammarMastery]:
+        ids = list(set(topic_ids))
+        if not ids:
+            return {}
+        stmt = select(GrammarMastery).where(
+            GrammarMastery.profile_id == profile_id, GrammarMastery.topic_id.in_(ids)
+        )
+        return {m.topic_id: m for m in (await self.db.execute(stmt)).scalars().all()}
+
+    async def weakest(self, profile_id: uuid.UUID, limit: int = 5) -> Sequence[GrammarMastery]:
+        stmt = (
+            select(GrammarMastery)
+            .where(GrammarMastery.profile_id == profile_id, GrammarMastery.errors > 0)
+            .order_by(GrammarMastery.mastery, GrammarMastery.topic_id)
+            .limit(limit)
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
+    async def all_masteries(self, profile_id: uuid.UUID) -> list[float]:
+        stmt = select(GrammarMastery.mastery).where(
+            GrammarMastery.profile_id == profile_id, GrammarMastery.attempts > 0
+        )
+        return [float(x) for x in (await self.db.execute(stmt)).scalars().all()]
+
+    async def upsert(
+        self,
+        profile_id: uuid.UUID,
+        topic_id: str,
+        mastery: float,
+        attempts: int,
+        errors: int,
+        existing: GrammarMastery | None,
+    ) -> None:
+        if existing is None:
+            self.db.add(
+                GrammarMastery(
+                    profile_id=profile_id,
+                    topic_id=topic_id,
+                    mastery=mastery,
+                    attempts=attempts,
+                    errors=errors,
+                )
+            )
+        else:
+            existing.mastery = mastery
+            existing.attempts = attempts
+            existing.errors = errors
+            existing.last_seen_at = utcnow()
+
+
+class VocabRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def all_for_profile(self, profile_id: uuid.UUID) -> dict[str, VocabItem]:
+        stmt = select(VocabItem).where(VocabItem.profile_id == profile_id)
+        return {v.lemma: v for v in (await self.db.execute(stmt)).scalars().all()}
+
+    async def list(self, profile_id: uuid.UUID, limit: int = 50) -> Sequence[VocabItem]:
+        stmt = (
+            select(VocabItem)
+            .where(VocabItem.profile_id == profile_id)
+            .order_by(VocabItem.last_seen_at.desc(), VocabItem.id.desc())
+            .limit(limit)
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
+    async def first_seen_between(
+        self, profile_id: uuid.UUID, start: datetime, end: datetime
+    ) -> Sequence[VocabItem]:
+        stmt = (
+            select(VocabItem)
+            .where(
+                VocabItem.profile_id == profile_id,
+                VocabItem.first_seen_at >= start,
+                VocabItem.first_seen_at <= end,
+            )
+            .order_by(VocabItem.first_seen_at)
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
+    def add(self, item: VocabItem) -> None:
+        self.db.add(item)
+
+    async def all_masteries(self, profile_id: uuid.UUID) -> list[float]:
+        stmt = select(VocabItem.mastery).where(VocabItem.profile_id == profile_id)
+        return [float(x) for x in (await self.db.execute(stmt)).scalars().all()]

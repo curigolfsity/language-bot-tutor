@@ -1,0 +1,48 @@
+- id: b2-001
+  level: B2
+  text: "Si tendría más tiempo, aprendería a tocar la guitarra."
+  expected:
+    - { wrong: "Si tendría", right: "Si tuviera", rule_tag: es.b2.si_clauses }
+  must_not_flag: ["aprendería"]
+
+- id: b2-002
+  level: B2
+  text: "Mi jefe quería que yo termino el informe antes del viernes."
+  expected:
+    - { wrong: "termino", right: "terminara", rule_tag: es.b2.imperfect_subjunctive }
+  must_not_flag: ["antes del viernes"]
+
+- id: b2-003
+  level: B2
+  text: "Cuando llegarás a casa, llámame por favor."
+  expected:
+    - { wrong: "Cuando llegarás", right: "Cuando llegues", rule_tag: es.b2.subjunctive_adverbial }
+  must_not_flag: ["llámame"]
+
+- id: b2-004
+  level: B2
+  text: "En esta tienda se vende muchos productos ecológicos."
+  expected:
+    - { wrong: "se vende", right: "se venden", rule_tag: es.b2.passive_se }
+  must_not_flag: ["productos ecológicos"]
+
+- id: b2-005
+  level: B2
+  text: "Cuando llegué a la estación, el tren ya salió."
+  expected:
+    - { wrong: "ya salió", right: "ya había salido", rule_tag: es.b2.pluperfect }
+  must_not_flag: ["Cuando llegué"]
+
+- id: b2-006
+  level: B2
+  text: "Busco un piso que tiene terraza y que está cerca del centro."
+  expected:
+    - { wrong: "tiene", right: "tenga", rule_tag: es.b2.subjunctive_relative_clauses }
+    - { wrong: "está", right: "esté", rule_tag: es.b2.subjunctive_relative_clauses }
+  must_not_flag: ["del centro"]
+
+- id: b2-007
+  level: B2
+  text: "Aunque llueva mañana, iremos a la excursión que habíamos planeado."
+  expected: []
+  must_not_flag: ["Aunque llueva", "habíamos planeado"]

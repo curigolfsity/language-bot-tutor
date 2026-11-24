@@ -1,0 +1,82 @@
+# Level policy. Drives bot difficulty, explanation language and correction depth.
+# `rank` orders the levels (1 = lowest). Code never hard-codes level names or thresholds.
+#
+# explanation_language: native | mixed | target
+#   native -> explanations in the learner's native language
+#   mixed  -> explanations in the target language with short native-language glosses
+#   target -> explanations fully in the target language
+# correct_topics: at_or_below_level | all | all_plus_style
+#   at_or_below_level -> ignore errors whose topic sits above the learner's level
+#   all               -> correct every grammatical error
+#   all_plus_style    -> also flag unnatural phrasing, register and style (as minor)
+# free_opening: tutor's first line when a session starts without a scenario.
+#
+# Shown to learners when they pick a level (plain words, not CEFR jargon):
+#   label, can_do
+# starter_scenario: the first role-play a new learner at this level is dropped into.
+
+A1:
+  rank: 1
+  label: "Total beginner"
+  can_do: "I know a few words, or none at all"
+  explanation_language: native
+  max_corrections_per_turn: 2
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very simple, present tense only, short sentences" }
+  free_opening: "¡Hola! ¿Cómo estás?"
+  starter_scenario: es.a1.meet_new_friend
+
+A2:
+  rank: 2
+  label: "Beginner"
+  can_do: "I can introduce myself and order food"
+  explanation_language: native
+  max_corrections_per_turn: 3
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple sentences, present and past tenses" }
+  free_opening: "¡Hola! ¿Qué tal tu día?"
+  starter_scenario: es.a2.restaurant_order
+
+B1:
+  rank: 3
+  label: "Intermediate"
+  can_do: "I can chat about my day and my plans"
+  explanation_language: mixed
+  max_corrections_per_turn: 4
+  correct_topics: all
+  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural but clear, everyday topics" }
+  free_opening: "¡Hola! ¿Qué has hecho esta semana?"
+  starter_scenario: es.b1.giving_advice
+
+B2:
+  rank: 4
+  label: "Upper intermediate"
+  can_do: "I can discuss most topics, with some mistakes"
+  explanation_language: mixed
+  max_corrections_per_turn: 5
+  correct_topics: all
+  tutor_reply: { max_sentences: 5, vocab_ceiling: B2, speed_note: "natural speech, some idioms" }
+  free_opening: "¡Buenas! ¿De qué te apetece hablar hoy?"
+  starter_scenario: es.b2.job_interview
+
+C1:
+  rank: 5
+  label: "Advanced"
+  can_do: "I speak fluently and want to polish my style"
+  explanation_language: target
+  max_corrections_per_turn: 8
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 6, vocab_ceiling: C2, speed_note: "native-like, varied register" }
+  free_opening: "¡Buenas! Cuéntame, ¿qué tema te ronda la cabeza últimamente?"
+  starter_scenario: es.c1.debate_remote_work
+
+C2:
+  rank: 6
+  label: "Near native"
+  can_do: "I want nuance, idioms and debate"
+  explanation_language: target
+  max_corrections_per_turn: 10
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 6, vocab_ceiling: C2, speed_note: "fully native, nuanced and idiomatic" }
+  free_opening: "¡Muy buenas! ¿Sobre qué debatimos hoy?"
+  starter_scenario: es.c2.literary_salon

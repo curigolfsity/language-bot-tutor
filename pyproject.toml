@@ -1,0 +1,33 @@
+[project]
+name = "spanish-tutor"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["tutor-api", "tutor-telegram", "tutor-contracts"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/api", "apps/telegram_bot", "packages/contracts"]
+
+[tool.uv.sources]
+tutor-api = { workspace = true }
+tutor-telegram = { workspace = true }
+tutor-contracts = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.8", "aiosqlite>=0.20"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["apps/api/tests", "apps/telegram_bot/tests", "evals/corrections/tests"]
+pythonpath = ["evals/corrections"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["apps/api/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "SIM"]

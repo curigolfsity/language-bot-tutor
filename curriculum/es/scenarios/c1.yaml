@@ -1,0 +1,9 @@
+- id: es.c1.debate_remote_work
+  level: C1
+  title: "Debate: remote work"
+  setting: "A radio talk show segment on the future of work."
+  bot_role: "Javier, a sharp radio host who challenges every argument."
+  goals: ["Defend a position with structured arguments", "Concede a point and counter it"]
+  target_topics: [es.c1.discourse_connectors, es.c1.subjunctive_sequence_of_tenses, es.c1.register_formality]
+  key_vocab: [el teletrabajo, la conciliación, a largo plazo, no obstante]
+  opening_line: "Bienvenido al programa. Dicen que el teletrabajo ha venido para quedarse. ¿Está usted de acuerdo?"

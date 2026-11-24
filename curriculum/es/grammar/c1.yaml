@@ -1,0 +1,31 @@
+- id: es.c1.subjunctive_sequence_of_tenses
+  level: C1
+  title: "Sequence of tenses with the subjunctive"
+  prerequisites: [es.b2.imperfect_subjunctive, es.b2.pluperfect]
+  description: "Matching main-clause and subordinate tenses (me pidió que fuera; me alegra que hayas venido)."
+  examples:
+    - { wrong: "Me pidió que vaya ayer.", right: "Me pidió que fuera ayer." }
+
+- id: es.c1.register_formality
+  level: C1
+  title: "Register and formality"
+  prerequisites: []
+  description: "Choosing tú/usted, formal connectors and vocabulary appropriate to the context."
+  examples:
+    - { wrong: "Oye, jefe, mándame el informe ya.", right: "Disculpe, ¿podría enviarme el informe cuando pueda?" }
+
+- id: es.c1.discourse_connectors
+  level: C1
+  title: "Discourse connectors (sin embargo, por lo tanto, no obstante)"
+  prerequisites: []
+  description: "Linking ideas with precise connectors and correct punctuation."
+  examples:
+    - { wrong: "Estudié mucho, sin embargo aprobé.", right: "Estudié mucho; por lo tanto, aprobé." }
+
+- id: es.c1.collocations_idioms
+  level: C1
+  title: "Collocations and idiomatic usage"
+  prerequisites: []
+  description: "Natural word combinations: tomar una decisión, echar de menos, dar un paseo."
+  examples:
+    - { wrong: "Hice una decisión.", right: "Tomé una decisión." }

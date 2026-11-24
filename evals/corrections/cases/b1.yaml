@@ -1,0 +1,49 @@
+- id: b1-001
+  level: B1
+  text: "Espero que tú vienes a mi fiesta el sábado."
+  expected:
+    - { wrong: "vienes", right: "vengas", rule_tag: es.b1.subjunctive_wishes_emotion }
+  must_not_flag: ["el sábado"]
+
+- id: b1-002
+  level: B1
+  text: "No creo que es una buena idea viajar ahora."
+  expected:
+    - { wrong: "es", right: "sea", rule_tag: es.b1.subjunctive_doubt_denial }
+  must_not_flag: ["viajar ahora"]
+
+- id: b1-003
+  level: B1
+  text: "Esta mañana he hacido la compra y he escribido un correo."
+  expected:
+    - { wrong: "he hacido", right: "he hecho", rule_tag: es.b1.present_perfect }
+    - { wrong: "he escribido", right: "he escrito", rule_tag: es.b1.present_perfect }
+  must_not_flag: []
+
+- id: b1-004
+  level: B1
+  text: "Si me ayudas, yo podería terminar el proyecto antes."
+  expected:
+    - { wrong: "podería", right: "podría", rule_tag: es.b1.conditional_simple }
+  must_not_flag: ["Si me ayudas"]
+
+- id: b1-005
+  level: B1
+  text: "Es la chica que hablé con ayer en la biblioteca."
+  expected:
+    - { wrong: "que hablé con", right: "con quien hablé", rule_tag: es.b1.relative_pronouns }
+  must_not_flag: ["en la biblioteca"]
+
+- id: b1-006
+  level: B1
+  text: "Creo que mañana lloverá, así que llevaré un paraguas."
+  expected: []
+  must_not_flag: ["Creo que mañana lloverá", "llevaré un paraguas"]
+
+- id: b1-007
+  level: B1
+  text: "Necesito el informe por el lunes, y quiero que lo revisas tú."
+  expected:
+    - { wrong: "por el lunes", right: "para el lunes", rule_tag: es.b1.por_vs_para_extended }
+    - { wrong: "revisas", right: "revises", rule_tag: es.b1.subjunctive_wishes_emotion }
+  must_not_flag: []

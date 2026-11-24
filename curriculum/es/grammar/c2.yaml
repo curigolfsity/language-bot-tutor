@@ -1,0 +1,15 @@
+- id: es.c2.stylistic_nuance
+  level: C2
+  title: "Stylistic nuance and precision"
+  prerequisites: [es.c1.collocations_idioms, es.c1.register_formality]
+  description: "Choosing the most precise and natural word or structure among correct options."
+  examples:
+    - { wrong: "Es una cosa muy importante que hay que hacer.", right: "Es una tarea imprescindible." }
+
+- id: es.c2.future_subjunctive_formulas
+  level: C2
+  title: "Future subjunctive in fixed legal/literary formulas"
+  prerequisites: [es.c1.subjunctive_sequence_of_tenses]
+  description: "Recognising fuere/hubiere in legal texts and set phrases (sea como fuere, adonde fueres)."
+  examples:
+    - { wrong: "Sea como sea fuere.", right: "Sea como fuere." }

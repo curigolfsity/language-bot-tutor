@@ -1,0 +1,56 @@
+- id: a2-001
+  level: A2
+  text: "Ayer yo hací mis deberes y después fui al cine."
+  expected:
+    - { wrong: "hací", right: "hice", rule_tag: es.a2.preterite_irregular }
+  must_not_flag: ["fui al cine"]
+
+- id: a2-002
+  level: A2
+  text: "Cuando era pequeño, jugué al fútbol todos los días."
+  expected:
+    - { wrong: "jugué", right: "jugaba", rule_tag: es.a2.preterite_vs_imperfect }
+  must_not_flag: ["era pequeño"]
+
+- id: a2-003
+  level: A2
+  text: "Gracias para la ayuda, eres muy amable."
+  expected:
+    - { wrong: "para la ayuda", right: "por la ayuda", rule_tag: es.a2.por_vs_para_basic }
+  must_not_flag: ["eres muy amable"]
+
+- id: a2-004
+  level: A2
+  text: "Tengo el libro de María. Le lo doy mañana."
+  expected:
+    - { wrong: "Le lo doy", right: "Se lo doy", rule_tag: es.a2.indirect_object_pronouns }
+  must_not_flag: ["Tengo el libro"]
+
+- id: a2-005
+  level: A2
+  text: "Normalmente levanto a las siete y ducho rápido."
+  expected:
+    - { wrong: "levanto", right: "me levanto", rule_tag: es.a2.reflexive_verbs }
+    - { wrong: "ducho", right: "me ducho", rule_tag: es.a2.reflexive_verbs }
+  must_not_flag: []
+
+- id: a2-006
+  level: A2
+  text: "Mi hermano es más mejor que yo en matemáticas."
+  expected:
+    - { wrong: "más mejor", right: "mejor", rule_tag: es.a2.comparatives }
+  must_not_flag: ["en matemáticas"]
+
+- id: a2-007
+  level: A2
+  text: "El sábado pasado fuimos a la playa y comimos paella."
+  expected: []
+  must_not_flag: ["fuimos a la playa", "comimos paella"]
+
+- id: a2-008
+  level: A2
+  text: "Ahora estoy comer y luego quiero que me llamas."
+  expected:
+    - { wrong: "estoy comer", right: "estoy comiendo", rule_tag: es.a2.present_progressive }
+  # "quiero que me llamas" is a B1 subjunctive error: above A2, so it must be ignored.
+  must_not_flag: ["que me llamas"]

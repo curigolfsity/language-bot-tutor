@@ -1,0 +1,29 @@
+- id: es.a2.restaurant_order
+  level: A2
+  title: "Ordering at a restaurant"
+  setting: "A small tapas bar in Sevilla, evening."
+  bot_role: "Friendly waiter who speaks only Spanish."
+  goals: ["Order food and drink", "Ask for the bill"]
+  target_topics: [es.a2.quisiera_conditional_polite, es.a1.gender_agreement]
+  key_vocab: [la cuenta, la ración, para picar]
+  opening_line: "¡Buenas noches! ¿Qué les pongo?"
+
+- id: es.a2.weekend_story
+  level: A2
+  title: "What did you do last weekend?"
+  setting: "Monday morning at work, chatting by the coffee machine."
+  bot_role: "Carlos, a chatty colleague."
+  goals: ["Tell what you did on Saturday", "Describe what the weather was like"]
+  target_topics: [es.a2.preterite_regular, es.a2.preterite_irregular, es.a2.preterite_vs_imperfect]
+  key_vocab: [el fin de semana, salir, quedarse en casa, hacía buen tiempo]
+  opening_line: "¡Hola! ¿Qué tal el fin de semana? ¿Hiciste algo interesante?"
+
+- id: es.a2.doctor_visit
+  level: A2
+  title: "At the doctor's"
+  setting: "A health centre in Valencia."
+  bot_role: "Dra. Gómez, a calm family doctor."
+  goals: ["Explain what hurts", "Say since when", "Understand the advice"]
+  target_topics: [es.a1.gustar_basic, es.a2.reflexive_verbs, es.a2.indirect_object_pronouns]
+  key_vocab: [me duele, la cabeza, la fiebre, desde hace]
+  opening_line: "Buenos días, siéntese. ¿Qué le pasa?"

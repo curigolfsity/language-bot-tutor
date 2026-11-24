@@ -1,0 +1,63 @@
+- id: es.b1.present_subjunctive_forms
+  level: B1
+  title: "Present subjunctive forms"
+  prerequisites: [es.a1.present_regular, es.a1.stem_changing_present]
+  description: "hable, coma, viva; irregulars sea, vaya, tenga, haga."
+  examples:
+    - { wrong: "Espero que tú vienes.", right: "Espero que tú vengas." }
+
+- id: es.b1.subjunctive_wishes_emotion
+  level: B1
+  title: "Subjunctive after wishes and emotions"
+  prerequisites: [es.b1.present_subjunctive_forms]
+  description: "querer que, esperar que, alegrarse de que + subjunctive."
+  examples:
+    - { wrong: "Quiero que me ayudas.", right: "Quiero que me ayudes." }
+
+- id: es.b1.subjunctive_doubt_denial
+  level: B1
+  title: "Subjunctive after doubt and denial"
+  prerequisites: [es.b1.present_subjunctive_forms]
+  description: "no creo que, dudo que + subjunctive; creo que + indicative."
+  examples:
+    - { wrong: "No creo que es verdad.", right: "No creo que sea verdad." }
+
+- id: es.b1.present_perfect
+  level: B1
+  title: "Present perfect (he hablado)"
+  prerequisites: [es.a2.preterite_regular]
+  description: "haber + past participle; irregular participles hecho, dicho, visto, escrito."
+  examples:
+    - { wrong: "He hacido la tarea.", right: "He hecho la tarea." }
+
+- id: es.b1.future_simple
+  level: B1
+  title: "Simple future"
+  prerequisites: [es.a1.ir_a_infinitive]
+  description: "hablaré, comerás; irregulars tendré, podré, haré, diré."
+  examples:
+    - { wrong: "Mañana yo teneré tiempo.", right: "Mañana tendré tiempo." }
+
+- id: es.b1.conditional_simple
+  level: B1
+  title: "Simple conditional"
+  prerequisites: [es.b1.future_simple]
+  description: "hablaría, comerías; same irregular stems as the future."
+  examples:
+    - { wrong: "Yo podería ayudarte.", right: "Yo podría ayudarte." }
+
+- id: es.b1.relative_pronouns
+  level: B1
+  title: "Relative pronouns (que, quien, donde, lo que)"
+  prerequisites: []
+  description: "que for most antecedents, quien after prepositions for people, lo que for ideas."
+  examples:
+    - { wrong: "Es la chica que hablé con.", right: "Es la chica con quien hablé." }
+
+- id: es.b1.por_vs_para_extended
+  level: B1
+  title: "Por vs para (extended uses)"
+  prerequisites: [es.a2.por_vs_para_basic]
+  description: "Deadlines (para el lunes), opinion (para mí), means (por teléfono), agent (por)."
+  examples:
+    - { wrong: "Lo necesito por el lunes.", right: "Lo necesito para el lunes." }

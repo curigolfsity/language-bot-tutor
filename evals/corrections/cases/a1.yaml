@@ -1,0 +1,57 @@
+- id: a1-001
+  level: A1
+  text: "Yo soy en la playa con mi amigos."
+  expected:
+    - { wrong: "soy en", right: "estoy en", rule_tag: es.a1.ser_vs_estar_basic }
+    - { wrong: "mi amigos", right: "mis amigos", rule_tag: es.a1.possessive_agreement }
+  must_not_flag: ["la playa"]
+
+- id: a1-002
+  level: A1
+  text: "Me llamo Ana y soy 25 años."
+  expected:
+    - { wrong: "soy 25 años", right: "tengo 25 años", rule_tag: es.a1.tener_expressions }
+  must_not_flag: ["Me llamo Ana"]
+
+- id: a1-003
+  level: A1
+  text: "El casa de mi madre es muy bonito."
+  expected:
+    - { wrong: "El casa", right: "La casa", rule_tag: es.a1.gender_agreement }
+    - { wrong: "bonito", right: "bonita", rule_tag: es.a1.gender_agreement }
+  must_not_flag: ["mi madre"]
+
+- id: a1-004
+  level: A1
+  text: "Yo gusto mucho el café con leche."
+  expected:
+    - { wrong: "Yo gusto", right: "Me gusta", rule_tag: es.a1.gustar_basic }
+  must_not_flag: ["café con leche"]
+
+- id: a1-005
+  level: A1
+  text: "Nosotros vive en Madrid y trabajamos en un banco."
+  expected:
+    - { wrong: "Nosotros vive", right: "Nosotros vivimos", rule_tag: es.a1.subject_verb_agreement }
+  must_not_flag: ["trabajamos en un banco"]
+
+- id: a1-006
+  level: A1
+  text: "Mañana voy comer con mi hermano."
+  expected:
+    - { wrong: "voy comer", right: "voy a comer", rule_tag: es.a1.ir_a_infinitive }
+  must_not_flag: ["mi hermano"]
+
+- id: a1-007
+  level: A1
+  text: "Hola, me llamo Pedro. Soy de México y estudio inglés."
+  expected: []
+  must_not_flag: ["Soy de México", "estudio inglés"]
+
+- id: a1-008
+  level: A1
+  text: "Yo podo nadar pero no quero correr."
+  expected:
+    - { wrong: "podo", right: "puedo", rule_tag: es.a1.stem_changing_present }
+    - { wrong: "quero", right: "quiero", rule_tag: es.a1.stem_changing_present }
+  must_not_flag: []

@@ -1,0 +1,29 @@
+- id: es.a1.meet_new_friend
+  level: A1
+  title: "Meeting someone new"
+  setting: "A language exchange evening in a café in Madrid."
+  bot_role: "Lucía, a friendly student from Madrid who speaks only simple Spanish."
+  goals: ["Say your name and where you are from", "Say what you do", "Ask one question back"]
+  target_topics: [es.a1.ser_present, es.a1.present_regular, es.a1.question_words]
+  key_vocab: [me llamo, soy de, estudiar, trabajar, "¿y tú?"]
+  opening_line: "¡Hola! Me llamo Lucía. ¿Cómo te llamas?"
+
+- id: es.a1.cafe_order
+  level: A1
+  title: "Ordering at a café"
+  setting: "A busy café counter in Barcelona, morning."
+  bot_role: "Jordi, a quick but patient barista."
+  goals: ["Order a drink and something to eat", "Ask the price"]
+  target_topics: [es.a1.gender_agreement, es.a1.gustar_basic, es.a1.question_words]
+  key_vocab: [un café con leche, una tostada, "¿cuánto es?", por favor]
+  opening_line: "¡Buenos días! ¿Qué quieres tomar?"
+
+- id: es.a1.describe_family
+  level: A1
+  title: "Talking about your family"
+  setting: "Showing photos on your phone to a new classmate."
+  bot_role: "Marta, a curious classmate."
+  goals: ["Describe two family members", "Say their age and where they are"]
+  target_topics: [es.a1.possessive_agreement, es.a1.tener_expressions, es.a1.ser_vs_estar_basic]
+  key_vocab: [el hermano, la madre, tener ... años, vivir en]
+  opening_line: "¡Qué foto tan bonita! ¿Quién es?"

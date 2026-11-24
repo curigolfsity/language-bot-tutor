@@ -1,0 +1,19 @@
+- id: es.b1.flat_hunting
+  level: B1
+  title: "Looking for a flat"
+  setting: "A phone call with a landlord in Granada."
+  bot_role: "Señor Ruiz, a landlord who answers questions but is a bit vague."
+  goals: ["Ask about price and conditions", "Say what you need", "Arrange a viewing"]
+  target_topics: [es.b1.subjunctive_wishes_emotion, es.b1.relative_pronouns, es.b1.future_simple]
+  key_vocab: [el alquiler, la fianza, amueblado, los gastos incluidos]
+  opening_line: "¿Sí? Dígame. Llama por el piso del anuncio, ¿verdad?"
+
+- id: es.b1.giving_advice
+  level: B1
+  title: "Giving advice to a friend"
+  setting: "A friend messages you because they are nervous about a job interview."
+  bot_role: "Ana, an anxious friend who asks for advice."
+  goals: ["Give at least three pieces of advice", "Express your opinion and doubts"]
+  target_topics: [es.b1.subjunctive_wishes_emotion, es.b1.subjunctive_doubt_denial, es.b1.conditional_simple]
+  key_vocab: [te recomiendo que, yo que tú, tranquilizarse, la entrevista]
+  opening_line: "Oye, mañana tengo la entrevista y estoy fatal de nervios. ¿Qué hago?"

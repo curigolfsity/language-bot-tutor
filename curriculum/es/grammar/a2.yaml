@@ -1,0 +1,87 @@
+- id: es.a2.preterite_regular
+  level: A2
+  title: "Preterite of regular verbs"
+  prerequisites: [es.a1.present_regular]
+  description: "Completed past actions: hablé, comiste, vivió."
+  examples:
+    - { wrong: "Ayer yo hablo con ella.", right: "Ayer hablé con ella." }
+
+- id: es.a2.preterite_irregular
+  level: A2
+  title: "Irregular preterites (ir/ser, tener, hacer, estar)"
+  prerequisites: [es.a2.preterite_regular]
+  description: "fui, tuve, hice, estuve, pude, dije."
+  examples:
+    - { wrong: "Ayer yo hací la tarea.", right: "Ayer hice la tarea." }
+
+- id: es.a2.imperfect
+  level: A2
+  title: "Imperfect tense"
+  prerequisites: [es.a1.present_regular]
+  description: "Habitual or ongoing past: hablaba, comía, era, iba."
+  examples:
+    - { wrong: "Cuando era niño, jugué cada día.", right: "Cuando era niño, jugaba cada día." }
+
+- id: es.a2.preterite_vs_imperfect
+  level: A2
+  title: "Preterite vs imperfect"
+  prerequisites: [es.a2.preterite_regular, es.a2.imperfect]
+  description: "Preterite for completed events; imperfect for background, habits and descriptions."
+  examples:
+    - { wrong: "Mientras cocinaba, sonaba el teléfono.", right: "Mientras cocinaba, sonó el teléfono." }
+
+- id: es.a2.direct_object_pronouns
+  level: A2
+  title: "Direct object pronouns (lo, la, los, las)"
+  prerequisites: [es.a1.gender_agreement]
+  description: "Replace the direct object and go before a conjugated verb: lo veo."
+  examples:
+    - { wrong: "Veo lo.", right: "Lo veo." }
+
+- id: es.a2.indirect_object_pronouns
+  level: A2
+  title: "Indirect object pronouns (le, les, se lo)"
+  prerequisites: [es.a2.direct_object_pronouns]
+  description: "le/les for the recipient; le/les becomes se before lo/la/los/las."
+  examples:
+    - { wrong: "Le lo doy.", right: "Se lo doy." }
+
+- id: es.a2.reflexive_verbs
+  level: A2
+  title: "Reflexive verbs"
+  prerequisites: [es.a1.present_regular]
+  description: "me levanto, te duchas, se acuesta."
+  examples:
+    - { wrong: "Yo levanto a las siete.", right: "Me levanto a las siete." }
+
+- id: es.a2.por_vs_para_basic
+  level: A2
+  title: "Por vs para (basic uses)"
+  prerequisites: []
+  description: "Para for purpose/destination/recipient; por for cause, exchange, through, duration."
+  examples:
+    - { wrong: "Gracias para la ayuda.", right: "Gracias por la ayuda." }
+
+- id: es.a2.comparatives
+  level: A2
+  title: "Comparatives (más/menos ... que, tan ... como)"
+  prerequisites: [es.a1.gender_agreement]
+  description: "más alto que, tan alto como, mejor/peor/mayor/menor."
+  examples:
+    - { wrong: "Es más mejor.", right: "Es mejor." }
+
+- id: es.a2.quisiera_conditional_polite
+  level: A2
+  title: "Polite requests (quisiera, me gustaría, ¿podría...?)"
+  prerequisites: [es.a1.gustar_basic]
+  description: "Softened requests in service situations: quisiera un café, ¿me podría traer...?"
+  examples:
+    - { wrong: "Quiero que me das la cuenta.", right: "¿Me podría traer la cuenta, por favor?" }
+
+- id: es.a2.present_progressive
+  level: A2
+  title: "Present progressive (estar + gerund)"
+  prerequisites: [es.a1.estar_present]
+  description: "Action in progress: estoy comiendo, está leyendo."
+  examples:
+    - { wrong: "Estoy comer.", right: "Estoy comiendo." }

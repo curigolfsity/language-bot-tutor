@@ -1,0 +1,119 @@
+- id: es.a1.present_regular
+  level: A1
+  title: "Present tense of regular verbs (-ar, -er, -ir)"
+  prerequisites: []
+  description: "Regular present endings: hablo/hablas/habla, como/comes/come, vivo/vives/vive."
+  examples:
+    - { wrong: "Yo habla español.", right: "Yo hablo español." }
+
+- id: es.a1.subject_verb_agreement
+  level: A1
+  title: "Subject-verb agreement"
+  prerequisites: [es.a1.present_regular]
+  description: "The verb ending must match the subject's person and number."
+  examples:
+    - { wrong: "Nosotros vive en Lima.", right: "Nosotros vivimos en Lima." }
+
+- id: es.a1.ser_present
+  level: A1
+  title: "Ser in the present"
+  prerequisites: []
+  description: "Forms of ser: soy, eres, es, somos, sois, son."
+  examples:
+    - { wrong: "Yo es estudiante.", right: "Yo soy estudiante." }
+
+- id: es.a1.estar_present
+  level: A1
+  title: "Estar in the present"
+  prerequisites: []
+  description: "Forms of estar: estoy, estás, está, estamos, estáis, están."
+  examples:
+    - { wrong: "Ella esta cansada.", right: "Ella está cansada." }
+
+- id: es.a1.ser_vs_estar_basic
+  level: A1
+  title: "Ser vs estar (identity vs location/state)"
+  prerequisites: [es.a1.ser_present, es.a1.estar_present]
+  description: "Ser for identity/origin/profession; estar for location and temporary states."
+  examples:
+    - { wrong: "Yo soy en Madrid.", right: "Yo estoy en Madrid." }
+
+- id: es.a1.gender_agreement
+  level: A1
+  title: "Noun-article-adjective gender agreement"
+  prerequisites: []
+  description: "Articles and adjectives agree in gender with the noun: la casa blanca, el coche rojo."
+  examples:
+    - { wrong: "El casa es bonito.", right: "La casa es bonita." }
+
+- id: es.a1.number_agreement
+  level: A1
+  title: "Noun-article-adjective number agreement"
+  prerequisites: [es.a1.gender_agreement]
+  description: "Articles and adjectives agree in number with the noun: los libros nuevos."
+  examples:
+    - { wrong: "Las casa grandes.", right: "Las casas grandes." }
+
+- id: es.a1.possessive_agreement
+  level: A1
+  title: "Possessive adjectives (mi/mis, tu/tus, su/sus)"
+  prerequisites: [es.a1.number_agreement]
+  description: "Possessives agree in number (and nuestro/vuestro in gender) with the thing possessed."
+  examples:
+    - { wrong: "mi amigos", right: "mis amigos" }
+
+- id: es.a1.hay_vs_estar
+  level: A1
+  title: "Hay vs estar"
+  prerequisites: [es.a1.estar_present]
+  description: "Hay for existence of indefinite things; estar for location of specific things."
+  examples:
+    - { wrong: "En la mesa está un libro.", right: "En la mesa hay un libro." }
+
+- id: es.a1.tener_expressions
+  level: A1
+  title: "Tener for age and states (tener hambre, años)"
+  prerequisites: [es.a1.present_regular]
+  description: "Spanish uses tener, not ser/estar, for age, hunger, thirst, cold, heat."
+  examples:
+    - { wrong: "Soy 25 años.", right: "Tengo 25 años." }
+
+- id: es.a1.gustar_basic
+  level: A1
+  title: "Gustar (me gusta / me gustan)"
+  prerequisites: [es.a1.present_regular]
+  description: "Gustar agrees with the thing liked, with an indirect object pronoun for the person."
+  examples:
+    - { wrong: "Yo gusto el café.", right: "Me gusta el café." }
+
+- id: es.a1.stem_changing_present
+  level: A1
+  title: "Stem-changing verbs in the present (e>ie, o>ue, e>i)"
+  prerequisites: [es.a1.present_regular]
+  description: "querer > quiero, poder > puedo, pedir > pido (not in nosotros/vosotros)."
+  examples:
+    - { wrong: "Yo podo ir.", right: "Yo puedo ir." }
+
+- id: es.a1.ir_a_infinitive
+  level: A1
+  title: "Ir a + infinitive (near future)"
+  prerequisites: [es.a1.present_regular]
+  description: "Voy a comer: ir conjugated + a + infinitive."
+  examples:
+    - { wrong: "Voy comer.", right: "Voy a comer." }
+
+- id: es.a1.question_words
+  level: A1
+  title: "Question words and accents (qué, dónde, cómo, cuándo)"
+  prerequisites: []
+  description: "Interrogatives carry a written accent and questions open with ¿."
+  examples:
+    - { wrong: "¿Donde vives?", right: "¿Dónde vives?" }
+
+- id: es.a1.spelling_accents
+  level: A1
+  title: "Basic spelling and written accents"
+  prerequisites: []
+  description: "Common accent marks and spelling (está, también, café, ñ)."
+  examples:
+    - { wrong: "Tambien me gusta.", right: "También me gusta." }

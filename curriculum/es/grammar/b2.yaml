@@ -1,0 +1,47 @@
+- id: es.b2.imperfect_subjunctive
+  level: B2
+  title: "Imperfect subjunctive"
+  prerequisites: [es.b1.present_subjunctive_forms, es.a2.preterite_irregular]
+  description: "hablara/hablase, tuviera, fuera; used in past-tense subjunctive contexts."
+  examples:
+    - { wrong: "Quería que me ayudas.", right: "Quería que me ayudaras." }
+
+- id: es.b2.si_clauses
+  level: B2
+  title: "Conditional si-clauses"
+  prerequisites: [es.b2.imperfect_subjunctive, es.b1.conditional_simple]
+  description: "si + present → future/present; si + imperfect subjunctive → conditional. Never si + conditional."
+  examples:
+    - { wrong: "Si tendría dinero, viajaría.", right: "Si tuviera dinero, viajaría." }
+
+- id: es.b2.subjunctive_adverbial
+  level: B2
+  title: "Subjunctive in adverbial clauses (cuando, para que, aunque)"
+  prerequisites: [es.b1.present_subjunctive_forms]
+  description: "cuando + subjunctive for future events; para que, antes de que always take subjunctive."
+  examples:
+    - { wrong: "Cuando llegarás, llámame.", right: "Cuando llegues, llámame." }
+
+- id: es.b2.passive_se
+  level: B2
+  title: "Passive and impersonal se"
+  prerequisites: [es.a2.reflexive_verbs]
+  description: "Se venden casas; se habla español; the verb agrees with the noun in passive se."
+  examples:
+    - { wrong: "Se vende casas.", right: "Se venden casas." }
+
+- id: es.b2.pluperfect
+  level: B2
+  title: "Pluperfect (había hecho)"
+  prerequisites: [es.b1.present_perfect, es.a2.imperfect]
+  description: "An action completed before another past action."
+  examples:
+    - { wrong: "Cuando llegué, ya se fue.", right: "Cuando llegué, ya se había ido." }
+
+- id: es.b2.subjunctive_relative_clauses
+  level: B2
+  title: "Subjunctive in relative clauses (unknown antecedent)"
+  prerequisites: [es.b1.relative_pronouns, es.b1.present_subjunctive_forms]
+  description: "Busco un piso que tenga terraza (not known to exist)."
+  examples:
+    - { wrong: "Busco un trabajo que paga bien.", right: "Busco un trabajo que pague bien." }
