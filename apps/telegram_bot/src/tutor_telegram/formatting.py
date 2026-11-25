@@ -19,9 +19,11 @@ from tutor_contracts import (
     LevelOut,
     MistakeOut,
     PlacementStepOut,
+    PracticeItemOut,
     ReminderOut,
     ReviewAnswerOut,
     ReviewQueueOut,
+    SavedWordsOut,
     ScenarioOut,
     SessionOut,
     SessionSummary,
@@ -45,6 +47,7 @@ from tutor_telegram.keyboards import (
     MENU_ROLEPLAY,
     MENU_SETTINGS,
     REVIEW_HEADER,
+    SAVE_HEADER,
     TOPIC_ICONS,
     level_icon,
 )
@@ -539,8 +542,14 @@ def format_word_front(q: WordQueueOut) -> str:
 
 
 def format_word_back(c: WordCardOut) -> str:
+    """The reading (zh/ja translations start with "reading — meaning") gets its own big line."""
     pos = f" <i>({escape(c.pos)})</i>" if c.pos else ""
-    return f"🃏 <b>{escape(c.word)}</b>{pos}\n\n{escape(c.translation)}\n\n<i>Did you know it?</i>"
+    reading, sep, meaning = c.translation.partition(" — ")
+    lines = [f"🃏 <b>{escape(c.word)}</b>{pos}"]
+    if sep and reading.strip() and reading.strip() != c.word:
+        lines.append(f"🔤 <b>{escape(reading.strip())}</b>")
+    lines += ["", escape(meaning.strip() if sep else c.translation), "", "<i>Did you know it?</i>"]
+    return "\n".join(lines)
 
 
 def format_word_result(word: str, r: WordAnswerOut) -> str:
@@ -627,3 +636,40 @@ def format_weekly(w: WeeklySummaryOut) -> str:
     elif w.days_active >= 5:
         lines += ["", "Fantastic consistency! 🌟"]
     return "\n".join(lines)
+
+
+def save_words_prompt(turn_id: int) -> str:
+    return (
+        f"<b>{SAVE_HEADER}{turn_id}</b>\n"
+        "Type the word(s) from that message you want to keep (separate them with commas)."
+    )
+
+
+def parse_save_turn(prompt_text: str | None) -> int | None:
+    m = re.match(re.escape(SAVE_HEADER) + r"(\d+)", prompt_text or "")
+    return int(m.group(1)) if m else None
+
+
+def format_saved_words(out: SavedWordsOut) -> str:
+    lines = ["✅ <b>Saved to your word cards</b>"]
+    lines += [f"• <b>{escape(w.word)}</b> — {escape(w.translation)}" for w in out.words]
+    lines.append("<i>They'll come up in 🧠 Practice.</i>")
+    return "\n".join(lines)
+
+
+def format_practice_menu(item: PracticeItemOut) -> str:
+    due = item.mistakes_due + item.words_due
+    if not due:
+        return "🧠 <b>Practice</b>\n\n🎉 Nothing due right now. New cards come from your chats."
+    return (
+        f"🧠 <b>Practice</b>\n\n{item.mistakes_due} mistake(s) and {item.words_due} word(s) due.\n"
+        "<i>Practise now mixes both into a short round.</i>"
+    )
+
+
+def format_round_summary(done: int, right: int, streak: int | None) -> str:
+    if not done:
+        return "🎉 Nothing due right now. Come back later!"
+    stars = "🌟" if right == done else ("👍" if right * 2 >= done else "💪")
+    streak_text = f" · 🔥 streak {streak}" if streak else ""
+    return f"🏁 <b>Round done!</b> {stars}\n<b>{right}/{done}</b> right{streak_text}"

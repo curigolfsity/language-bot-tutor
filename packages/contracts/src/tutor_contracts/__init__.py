@@ -70,7 +70,15 @@ from tutor_contracts.turns import (
 )
 from tutor_contracts.users import ResolveUserRequest, ResolveUserResponse
 from tutor_contracts.weekly import WeeklySummaryOut, WeeklyTopicOut
-from tutor_contracts.words import WordAnswerOut, WordAnswerRequest, WordCardOut, WordQueueOut
+from tutor_contracts.words import (
+    PracticeItemOut,
+    SavedWordsOut,
+    SaveWordsRequest,
+    WordAnswerOut,
+    WordAnswerRequest,
+    WordCardOut,
+    WordQueueOut,
+)
 
 __all__ = [
     "AskOut",
@@ -132,6 +140,9 @@ __all__ = [
     "VocabOut",
     "WeeklySummaryOut",
     "WeeklyTopicOut",
+    "PracticeItemOut",
+    "SaveWordsRequest",
+    "SavedWordsOut",
     "WordAnswerOut",
     "WordAnswerRequest",
     "WordCardOut",

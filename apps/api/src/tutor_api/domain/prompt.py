@@ -483,3 +483,20 @@ def build_exercise_grade_prompt(
         f"<learner_answer>{escape(answer)}</learner_answer>"
     )
     return system, user
+
+
+def build_save_words_prompt(
+    curriculum: Curriculum, policy: Policy, words: str, context: str | None
+) -> tuple[str, str]:
+    """(system, user) to turn words the learner typed into dictionary entries."""
+    target = policy.target_lang_name
+    system = f"""You write flashcard entries for a learner of {target} whose native language is \
+ISO 639-1 '{policy.native_lang}'. For each word or expression in <words> (one entry each, in \
+order): `lemma` is its dictionary form in {target} (fix obvious typos), `translation` is a short \
+meaning in the learner's native language, as used in <context> if given, and `pos` its part of \
+speech. Skip anything that is not {target}.{_lang_notes(curriculum, target)}
+"""
+    parts = [f"<words>{escape(words)}</words>"]
+    if context:
+        parts.append(f"<context>{escape(context)}</context>")
+    return system, "\n\n".join(parts)

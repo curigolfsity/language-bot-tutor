@@ -40,8 +40,10 @@ from tutor_contracts import (
     LevelOut,
     PlacementStepOut,
     ResolveUserRequest,
+    ReviewQueueOut,
     SessionOut,
     WordCardOut,
+    WordQueueOut,
 )
 
 from tutor_telegram import formatting, views
@@ -61,6 +63,7 @@ COMMANDS = [
     BotCommand("lessons", "Grammar lessons with practice"),
     BotCommand("review", "Practise your past mistakes"),
     BotCommand("words", "Word flashcards from our chats"),
+    BotCommand("save", "Save words as flashcards: /save palabra"),
     BotCommand("week", "Your week in numbers"),
     BotCommand("placement", "Quick test to find your level"),
     BotCommand("ask", "Ask a question without interrupting the conversation"),
@@ -520,6 +523,10 @@ async def answer_card(
     assert msg is not None
     async with _typing(update, context):
         result = await _api(context).answer_review(card_id, answer)
+    if _tally(context, result.correct, result.progress.streak):
+        await msg.reply_text(formatting.format_review_result(result), parse_mode=ParseMode.HTML)
+        await next_in_round(update, context)
+        return
     await msg.reply_text(
         formatting.format_review_result(result),
         parse_mode=ParseMode.HTML,
@@ -555,14 +562,15 @@ async def start_lesson(
 ) -> None:
     """Generate the lesson, show the explanation, then the first exercise as a reply prompt."""
     profile, _ = await _resolve(update, context)
-    await _send(update, "📖 Preparing your lesson…")
+    waiting = await _send(update, "📖 <i>Preparing your lesson…</i>")
     async with _typing(update, context):
         lesson = await _api(context).start_lesson(profile.id, topic_id, fresh=fresh)
-    await _send(
-        update,
-        formatting.format_lesson(lesson),
-        reply_markup=kb.lesson_fresh_keyboard(topic_id) if lesson.reused else None,
-    )
+    html = formatting.format_lesson(lesson)
+    markup = kb.lesson_fresh_keyboard(topic_id) if lesson.reused else None
+    try:  # the lesson replaces the "preparing" note
+        await waiting.edit_text(html, parse_mode=ParseMode.HTML, reply_markup=markup)
+    except TelegramError:
+        await _send(update, html, reply_markup=markup)
     if lesson.exercise is not None:
         await _send(
             update,
@@ -672,7 +680,9 @@ async def on_word_button(
         await query.edit_message_text(
             formatting.format_word_result(card.word, result), parse_mode=ParseMode.HTML
         )
-    if result.due:
+    if _tally(context, result.knew, result.progress.streak):
+        await next_in_round(update, context)
+    elif result.due:
         await do_words(update, context)
     else:
         await _send(update, "🎉 All words done for now!", reply_markup=kb.next_step_keyboard())
@@ -753,6 +763,120 @@ async def on_placement_button(
     await _show_placement_step(update, context, step, edit=True)
 
 
+# ----------------------------------------------------------------------------- practice rounds
+
+ROUND_SIZE = 10  # items per "Practise now" round
+
+
+def _round(context: ContextTypes.DEFAULT_TYPE) -> dict | None:
+    return (context.chat_data or {}).get("round")
+
+
+async def do_practice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """🧠 Practice: what's due, and a button to practise both kinds together."""
+    profile, _ = await _resolve(update, context)
+    item = await _api(context).practice_next(profile.id)
+    await _send(
+        update,
+        formatting.format_practice_menu(item),
+        reply_markup=kb.practice_keyboard(item.mistakes_due, item.words_due),
+    )
+
+
+async def start_round(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if context.chat_data is not None:
+        context.chat_data["round"] = {"done": 0, "right": 0, "streak": None}
+    await next_in_round(update, context)
+
+
+async def next_in_round(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    rnd = _round(context)
+    if rnd is None:
+        return
+    profile, _ = await _resolve(update, context)
+    item = None if rnd["done"] >= ROUND_SIZE else await _api(context).practice_next(profile.id)
+    if item is None or item.kind is None:
+        assert context.chat_data is not None
+        context.chat_data.pop("round", None)
+        await _send(
+            update,
+            formatting.format_round_summary(rnd["done"], rnd["right"], rnd["streak"]),
+            reply_markup=kb.next_step_keyboard(),
+        )
+        return
+    step = f"\n\n<i>Round {rnd['done'] + 1}/{ROUND_SIZE}</i>"
+    if item.kind == "mistake":
+        assert item.mistake is not None
+        queue = ReviewQueueOut(
+            card=item.mistake, due=item.mistakes_due, total=item.mistakes_due, next_due_at=None
+        )
+        await _send(
+            update, formatting.format_card(queue) + step, reply_markup=kb.reply_prompt("Your fix…")
+        )
+    else:
+        assert item.word is not None and context.chat_data is not None
+        context.chat_data.setdefault("word_cards", {})[item.word.id] = item.word.model_dump()
+        queue_w = WordQueueOut(card=item.word, due=item.words_due, total=item.words_due)
+        await _send(
+            update,
+            formatting.format_word_front(queue_w) + step,
+            reply_markup=kb.word_front_keyboard(item.word.id),
+        )
+
+
+def _tally(context: ContextTypes.DEFAULT_TYPE, right: bool, streak: int) -> bool:
+    """Count an answer in the current round. False if no round is running."""
+    rnd = _round(context)
+    if rnd is None:
+        return False
+    rnd["done"] += 1
+    rnd["right"] += int(right)
+    rnd["streak"] = streak
+    return True
+
+
+# ----------------------------------------------------------------------------- save words
+
+
+async def ask_save_words(
+    update: Update, turn_id: int, tutor_message: MaybeInaccessibleMessage | None
+) -> None:
+    params = (
+        ReplyParameters(message_id=tutor_message.message_id, allow_sending_without_reply=True)
+        if isinstance(tutor_message, Message)
+        else None
+    )
+    await _send(
+        update,
+        formatting.save_words_prompt(turn_id),
+        reply_markup=kb.reply_prompt("e.g. perro, bonito"),
+        reply_parameters=params,
+    )
+
+
+async def save_words(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, text: str, turn_id: int | None
+) -> None:
+    msg = update.effective_message
+    assert msg is not None
+    profile, _ = await _resolve(update, context)
+    async with _typing(update, context):
+        out = await _api(context).save_words(profile.id, text, turn_id)
+    await msg.reply_text(formatting.format_saved_words(out), parse_mode=ParseMode.HTML)
+
+
+async def cmd_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = " ".join(context.args or []).strip()
+    if text:
+        await save_words(update, context, text, None)
+    else:
+        await _send(update, "Usage: <code>/save palabra, otra palabra</code>")
+
+
+async def do_more(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _send(update, "☰ <b>More</b>", reply_markup=kb.more_keyboard())
+
+
 # ----------------------------------------------------------------------------- weekly summary
 
 
@@ -778,6 +902,10 @@ MENU_ACTIONS = {
     kb.MENU_SETTINGS: do_settings,
     kb.MENU_HELP: do_help,
     kb.MENU_WORDS: do_words,
+    kb.MENU_CHAT_SHORT: do_free_chat,
+    kb.MENU_PRACTICE: do_practice,
+    kb.MENU_LESSONS_SHORT: do_lessons,
+    kb.MENU_MORE: do_more,
 }
 
 
@@ -889,6 +1017,18 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await _ack(query)
         return
 
+    if kind == "pr":  # mixed practice round
+        await _ack(query)
+        with contextlib.suppress(TelegramError):
+            await query.edit_message_reply_markup(None)
+        await start_round(update, context)
+        return
+
+    if kind == "sw" and rest.isdigit():  # save words from a tutor message
+        await _ack(query)
+        await ask_save_words(update, int(rest), query.message)
+        return
+
     if kind == "pl":  # placement test
         await on_placement_button(update, context, rest)
         return
@@ -986,6 +1126,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         if rest == "next":
             await do_review(update, context)
         else:
+            if context.chat_data is not None:
+                context.chat_data.pop("round", None)
             await _send(update, "👍 Nice work. What next?", reply_markup=kb.next_step_keyboard())
     elif kind == "rem" and rest in ("on", "off"):
         profile, _ = await _resolve(update, context)
@@ -1022,6 +1164,18 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await _ask_level(update, context, onboarding=False)
         elif rest == "settings_native":
             await cmd_native(update, context)
+        else:
+            more = {
+                "progress": do_progress,
+                "week": do_week,
+                "ask": do_ask,
+                "finish": do_finish,
+                "settings": do_settings,
+                "help": do_help,
+                "practice": do_practice,
+            }.get(rest)
+            if more is not None:
+                await more(update, context)
 
 
 # ----------------------------------------------------------------------------- free text
@@ -1035,6 +1189,12 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     action = MENU_ACTIONS.get(text)
     if action is not None:
         await action(update, context)
+        if text in kb.LEGACY_MENU_LABELS:  # an old menu on the phone: send the new one
+            await _send(
+                update,
+                "✨ The menu got simpler: ☰ More has the rest.",
+                reply_markup=kb.main_menu(),
+            )
         return
 
     # A reply to one of the bot's prompts (practice card or "ask me anything").
@@ -1046,6 +1206,9 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
         if (exercise := formatting.parse_exercise(replied.text)) is not None:
             await answer_exercise(update, context, *exercise, text)
+            return
+        if (save_turn := formatting.parse_save_turn(replied.text)) is not None:
+            await save_words(update, context, text, save_turn)
             return
         card_id = formatting.parse_card_id(replied.text)
         if card_id is not None:
@@ -1238,6 +1401,8 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
     app.add_handler(CommandHandler(["words", "cards"], do_words))
     app.add_handler(CommandHandler("week", do_week))
+    app.add_handler(CommandHandler("save", cmd_save))
+    app.add_handler(CommandHandler("practice_now", start_round))
     app.add_handler(CommandHandler(["placement", "test"], do_placement))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

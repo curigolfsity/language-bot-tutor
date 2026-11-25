@@ -152,7 +152,7 @@ def test_help_buttons():
     assert kb.help_buttons(None) is None
     rows = kb.help_buttons(5).inline_keyboard
     assert [b.callback_data for b in rows[0]] == ["h:hint:5", "h:translate:5", "h:suggest:5"]
-    assert [b.callback_data for b in rows[1]] == ["sp:5", "ask:5"]
+    assert [b.callback_data for b in rows[1]] == ["sp:5", "ask:5", "sw:5"]
 
 
 def test_native_keyboard_puts_detected_first():
@@ -163,7 +163,7 @@ def test_native_keyboard_puts_detected_first():
 
 def test_menu_labels_are_unique_and_all_shown():
     shown = [b.text for row in kb.main_menu().keyboard for b in row]
-    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 10
+    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 5
     assert set(shown) == kb.MENU_LABELS
 
 
@@ -279,11 +279,12 @@ def test_fold_toggle_and_explain_button():
     assert [(b.text, b.callback_data) for b in folded[1]] == [
         ("🔊", "sp:5"),
         ("🙋 Ask", "ask:5"),
+        ("➕ Word", "sw:5"),
         ("▾ ✏️ 2 fixes", "fb:5"),
     ]
     assert len(folded) == 2  # "Explain my mistakes" waits until the fixes are visible
     unfolded = kb.help_buttons(5, True, "✏️ 2 fixes", expanded=True).inline_keyboard
-    assert unfolded[1][2].text == "▴ Hide feedback"
+    assert unfolded[1][3].text == "▴ Hide feedback"
     assert [b.callback_data for b in unfolded[2]] == ["h:explain:5"]
     # Corrections but nothing to fold (unforeseen): Explain stays reachable.
     assert kb.help_buttons(5, True).inline_keyboard[2][0].callback_data == "h:explain:5"
@@ -321,7 +322,7 @@ def test_views_fold_and_extras():
     )
     v = views.from_turn(t)
     assert views.render(v) == "¡Hola!"
-    assert views.markup(v).inline_keyboard[1][2].callback_data == "fb:7"
+    assert views.markup(v).inline_keyboard[1][3].callback_data == "fb:7"
     v["expanded"] = True
     assert "<s>soy</s>" in views.render(v)
     v["extras"].append(["translate", formatting.help_block("translate", "Hello!")])
@@ -333,7 +334,8 @@ def test_views_fold_and_extras():
 
     # A plain view (no feedback) has no fold button.
     plain = views.new_view(9, "Opening line")
-    assert [b.callback_data for b in views.markup(plain).inline_keyboard[1]] == ["sp:9", "ask:9"]
+    row = views.markup(plain).inline_keyboard[1]
+    assert [b.callback_data for b in row] == ["sp:9", "ask:9", "sw:9"]
 
 
 def test_views_memory_is_bounded():
@@ -479,3 +481,18 @@ def test_forms_with_persons_become_a_table():
     assert _forms_block("yo: hablé · tú: hablaste · nosotros: hablamos") == (
         "<pre>yo        hablé\ntú        hablaste\nnosotros  hablamos</pre>"
     )
+
+
+def test_word_back_shows_reading_on_its_own_line():
+    from tutor_contracts import WordCardOut
+
+    ja = WordCardOut(id=1, word="学生", translation="がくせい — student", pos="noun", box=0)
+    html = formatting.format_word_back(ja)
+    assert "🔤 <b>がくせい</b>" in html and "\nstudent\n" in html
+    es = WordCardOut(id=2, word="perro", translation="dog", pos="", box=0)
+    assert "🔤" not in formatting.format_word_back(es)
+
+
+def test_round_summary():
+    assert "<b>8/10</b> right · 🔥 streak 12" in formatting.format_round_summary(10, 8, 12)
+    assert "🌟" in formatting.format_round_summary(3, 3, None)

@@ -6,7 +6,7 @@ from conftest import make_result
 from sqlalchemy import update
 from test_api_flow import resolve
 from tutor_api.curriculum.models import Placement, PlacementQuestion
-from tutor_api.db.models import VocabItem, utcnow
+from tutor_api.db.models import ReviewItem, VocabItem, utcnow
 from tutor_api.domain.placement import Answered, next_step
 
 LEVELS = ("A1", "A2", "B1")
@@ -97,3 +97,33 @@ async def test_words_flashcards_and_weekly(client, ctx, fake_llm):
         "/v1/reminders/weekly/claim", json={"provider": "telegram", "target_lang": "es"}
     )
     assert claim.status_code == 200
+
+
+async def test_save_words_and_mixed_practice(client, ctx, fake_llm):
+    pid = (await resolve(client))["profile"]["id"]
+    sid = (await client.post("/v1/sessions", json={"profile_id": pid})).json()["id"]
+    fake_llm.push_result(
+        make_result(
+            reply="¡Qué perro tan bonito!",
+            corrections=[("soy en", "estoy en", "es.a1.ser_vs_estar_basic", "major")],
+        )
+    )
+    turn = (await client.post(f"/v1/sessions/{sid}/turns", json={"text": "Yo soy en casa"})).json()
+
+    r = await client.post(
+        f"/v1/learners/{pid}/words", json={"text": "perro", "turn_id": turn["turn_id"]}
+    )
+    assert r.status_code == 201, r.text
+    assert [w["word"] for w in r.json()["words"]] == ["perro"]
+    assert "¡Qué perro tan bonito!" in fake_llm.vocab_calls[0][1]  # meaning in context
+    again = await client.post(f"/v1/learners/{pid}/words", json={"text": "perro"})
+    assert again.json()["words"][0]["id"] == r.json()["words"][0]["id"]  # no duplicate
+
+    assert (await client.get(f"/v1/learners/{pid}/practice/next")).json()["kind"] is None
+    async with ctx.sessionmaker.begin() as db:
+        past = utcnow() - timedelta(minutes=1)
+        await db.execute(update(VocabItem).values(due_at=past))
+        await db.execute(update(ReviewItem).values(due_at=past - timedelta(minutes=1)))
+    item = (await client.get(f"/v1/learners/{pid}/practice/next")).json()
+    assert item["kind"] == "mistake" and item["mistake"]["wrong"] == "soy en"  # most overdue
+    assert item["mistakes_due"] == 1 and item["words_due"] == 1

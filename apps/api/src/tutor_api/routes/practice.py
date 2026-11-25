@@ -6,7 +6,10 @@ from fastapi import APIRouter, Response
 from tutor_contracts import (
     PlacementAnswerRequest,
     PlacementStepOut,
+    PracticeItemOut,
     ReminderClaimRequest,
+    SavedWordsOut,
+    SaveWordsRequest,
     WeeklySummaryOut,
     WordAnswerOut,
     WordAnswerRequest,
@@ -59,3 +62,15 @@ async def weekly(profile_id: UUID, ctx: Ctx) -> WeeklySummaryOut:
 async def claim_weekly(body: ReminderClaimRequest, ctx: Ctx) -> list[WeeklySummaryOut]:
     """Learners due their weekly summary now (each at most once a week)."""
     return await weekly_service.claim(ctx, body.provider, body.target_lang)
+
+
+@learner_router.post("/{profile_id}/words", response_model=SavedWordsOut, status_code=201)
+async def save_words(profile_id: UUID, body: SaveWordsRequest, ctx: Ctx) -> SavedWordsOut:
+    """Save words the learner picked (e.g. from a tutor message) as flashcards."""
+    return await words_service.save_words(ctx, profile_id, body.text, body.turn_id)
+
+
+@learner_router.get("/{profile_id}/practice/next", response_model=PracticeItemOut)
+async def practice_next(profile_id: UUID, ctx: Ctx) -> PracticeItemOut:
+    """Next item of a mixed practice round (mistake card or word card)."""
+    return await words_service.practice_next(ctx, profile_id)

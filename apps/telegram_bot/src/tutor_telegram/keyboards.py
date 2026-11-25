@@ -21,6 +21,8 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   pl:keep | pl:pick      after the test: keep my level / pick a level myself
   pl:<run>:<choice>:<q>  placement test: answer question <q> with option <choice>
   lf:<topic_id>          the same lesson with a newly written explanation
+  sw:<turn_id>           save words from a tutor message as word cards
+  pr:go                  start a mixed practice round (mistakes + words)
   menu:<action>          free | roleplay | resume | review | lessons | settings_level |
                          settings_native | settings_goal | settings_lang
 """
@@ -47,9 +49,15 @@ MENU_REVIEW = "🧠 Practise mistakes"
 MENU_ASK = "🙋 Ask a question"
 MENU_LESSONS = "📖 Grammar lessons"
 MENU_WORDS = "🃏 Word cards"
-MENU_LABELS = {
+# The compact menu (5 buttons). The labels above stay recognised: phones keep showing an old
+# menu until the bot sends the new one.
+MENU_CHAT_SHORT = "💬 Chat"
+MENU_PRACTICE = "🧠 Practice"
+MENU_LESSONS_SHORT = "📖 Lessons"
+MENU_MORE = "☰ More"
+MENU_LABELS = {MENU_CHAT_SHORT, MENU_ROLEPLAY, MENU_PRACTICE, MENU_LESSONS_SHORT, MENU_MORE}
+LEGACY_MENU_LABELS = {
     MENU_CHAT,
-    MENU_ROLEPLAY,
     MENU_REVIEW,
     MENU_ASK,
     MENU_LESSONS,
@@ -64,6 +72,7 @@ MENU_LABELS = {
 # reply by the quoted header, so it needs no memory of what it asked.
 ASK_PROMPT_HEADER = "🙋 Ask me anything"
 REVIEW_HEADER = "🧠 Practice #"  # followed by the card id
+SAVE_HEADER = "➕ Save words #"  # followed by the tutor turn id
 LESSON_HEADER = "📝 Lesson #"  # followed by "<lesson id> · <n>/<total>"
 
 LEVEL_ICONS = ["🌱", "🌿", "🌳", "🏔️", "🚀", "👑"]
@@ -73,11 +82,9 @@ GOAL_CHOICES = (5, 10, 20, 30)  # messages per day offered as buttons
 def main_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton(MENU_CHAT), KeyboardButton(MENU_ROLEPLAY)],
-            [KeyboardButton(MENU_LESSONS), KeyboardButton(MENU_REVIEW)],
-            [KeyboardButton(MENU_ASK), KeyboardButton(MENU_PROGRESS)],
-            [KeyboardButton(MENU_FINISH), KeyboardButton(MENU_SETTINGS)],
-            [KeyboardButton(MENU_WORDS), KeyboardButton(MENU_HELP)],
+            [KeyboardButton(MENU_CHAT_SHORT), KeyboardButton(MENU_ROLEPLAY)],
+            [KeyboardButton(MENU_PRACTICE), KeyboardButton(MENU_LESSONS_SHORT)],
+            [KeyboardButton(MENU_MORE)],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -105,6 +112,7 @@ def help_buttons(
     second = [
         InlineKeyboardButton("🔊", callback_data=f"sp:{turn_id}"),
         InlineKeyboardButton("🙋 Ask", callback_data=f"ask:{turn_id}"),
+        InlineKeyboardButton("➕ Word", callback_data=f"sw:{turn_id}"),
     ]
     if feedback_label:
         toggle = "▴ Hide feedback" if expanded else f"▾ {feedback_label}"
@@ -399,4 +407,42 @@ def weekly_keyboard(
     if words_due:
         rows.append([InlineKeyboardButton(f"🃏 {words_due} word cards", callback_data="wd:next")])
     rows.append([InlineKeyboardButton("💬 Chat now", callback_data="menu:free")])
+    return InlineKeyboardMarkup(rows)
+
+
+def more_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("📊 Progress", callback_data="menu:progress"),
+                InlineKeyboardButton("📅 My week", callback_data="menu:week"),
+            ],
+            [
+                InlineKeyboardButton("🙋 Ask a question", callback_data="menu:ask"),
+                InlineKeyboardButton("🏁 Finish session", callback_data="menu:finish"),
+            ],
+            [
+                InlineKeyboardButton("⚙️ Settings", callback_data="menu:settings"),
+                InlineKeyboardButton("❓ How it works", callback_data="menu:help"),
+            ],
+        ]
+    )
+
+
+def practice_keyboard(mistakes_due: int, words_due: int) -> InlineKeyboardMarkup:
+    rows = []
+    if mistakes_due + words_due:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    f"▶️ Practise now ({mistakes_due + words_due} due)", callback_data="pr:go"
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(f"🧠 Mistakes ({mistakes_due})", callback_data="menu:review"),
+            InlineKeyboardButton(f"🃏 Words ({words_due})", callback_data="wd:next"),
+        ]
+    )
     return InlineKeyboardMarkup(rows)

@@ -15,7 +15,7 @@ from typing import Any, Literal, Protocol
 
 import anthropic
 from pydantic import BaseModel, Field
-from tutor_contracts import TurnResult
+from tutor_contracts import NewVocab, TurnResult
 
 from tutor_api.config import Settings
 
@@ -130,6 +130,23 @@ class LessonContent(BaseModel):
     exercises: list[ExerciseSpec] = Field(description="Practice exercises, easiest first.")
 
 
+class VocabList(BaseModel):
+    """Structured output: dictionary entries for words the learner wants to keep."""
+
+    items: list[NewVocab] = Field(description="One entry per word or expression, in order.")
+
+
+@dataclass(frozen=True)
+class LLMVocabOutcome:
+    items: list[NewVocab] | None  # None when refused
+    refused: bool
+    model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+
+
 class ExerciseSet(BaseModel):
     """Structured output: fresh exercises for a lesson whose explanation is reused."""
 
@@ -186,6 +203,8 @@ class TurnLLM(Protocol):
     async def generate_exercises(
         self, system_prompt: str, user_content: str
     ) -> LLMExercisesOutcome: ...
+
+    async def generate_vocab(self, system_prompt: str, user_content: str) -> LLMVocabOutcome: ...
 
 
 class AnthropicTurnLLM:
@@ -346,3 +365,20 @@ class AnthropicTurnLLM:
         if parsed is None:
             raise LLMError(f"no parsed ExerciseSet (stop_reason={response.stop_reason})")
         return LLMExercisesOutcome(exercises=parsed.exercises, refused=False, **_usage(response))
+
+    async def generate_vocab(self, system_prompt: str, user_content: str) -> LLMVocabOutcome:
+        response = await self._parse(
+            system_prompt,
+            user_content,
+            VocabList,
+            self._help_effort,
+            cache_system=False,
+            model=self._help_model,
+            fallbacks=self._help_fallbacks,
+        )
+        if response.stop_reason == "refusal":
+            return LLMVocabOutcome(items=None, refused=True, **_usage(response))
+        parsed = response.parsed_output
+        if parsed is None:
+            raise LLMError(f"no parsed VocabList (stop_reason={response.stop_reason})")
+        return LLMVocabOutcome(items=parsed.items, refused=False, **_usage(response))

@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from tutor_contracts.review import ReviewCardOut
 from tutor_contracts.turns import TurnProgress
 
 
@@ -32,3 +34,22 @@ class WordAnswerOut(BaseModel):
     next_review_in_days: float
     due: int = Field(description="Words still due now.")
     progress: TurnProgress
+
+
+class SaveWordsRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=200, description="Word(s) the learner typed.")
+    turn_id: int | None = Field(default=None, description="Tutor message the words came from.")
+
+
+class SavedWordsOut(BaseModel):
+    words: list[WordCardOut]
+
+
+class PracticeItemOut(BaseModel):
+    """Next item of a mixed practice round: whichever card (mistake or word) is most overdue."""
+
+    kind: Literal["mistake", "word"] | None = Field(description="null when nothing is due.")
+    mistake: ReviewCardOut | None = None
+    word: WordCardOut | None = None
+    mistakes_due: int
+    words_due: int

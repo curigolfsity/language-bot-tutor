@@ -26,6 +26,7 @@ from tutor_contracts import (
     MistakeOut,
     PlacementAnswerRequest,
     PlacementStepOut,
+    PracticeItemOut,
     ReminderClaimRequest,
     ReminderOut,
     ResolveUserRequest,
@@ -33,6 +34,8 @@ from tutor_contracts import (
     ReviewAnswerOut,
     ReviewAnswerRequest,
     ReviewQueueOut,
+    SavedWordsOut,
+    SaveWordsRequest,
     ScenarioOut,
     SessionOut,
     SessionSummary,
@@ -105,6 +108,17 @@ class TutorApiClient:
 
     async def word_speech(self, word_id: int) -> tuple[bytes, str]:
         return await self._audio(f"/v1/words/{word_id}/speech")
+
+    async def save_words(
+        self, profile_id: UUID, text: str, turn_id: int | None = None
+    ) -> SavedWordsOut:
+        req = SaveWordsRequest(text=text, turn_id=turn_id)
+        return await self._request("POST", f"/v1/learners/{profile_id}/words", SavedWordsOut, req)
+
+    async def practice_next(self, profile_id: UUID) -> PracticeItemOut:
+        return await self._request(
+            "GET", f"/v1/learners/{profile_id}/practice/next", PracticeItemOut
+        )
 
     async def next_word(self, profile_id: UUID) -> WordQueueOut:
         return await self._request("GET", f"/v1/learners/{profile_id}/words/next", WordQueueOut)

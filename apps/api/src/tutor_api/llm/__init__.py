@@ -8,6 +8,7 @@ from tutor_api.llm.client import (
     LLMHelpOutcome,
     LLMLessonOutcome,
     LLMTurnOutcome,
+    LLMVocabOutcome,
     ReviewGrade,
     TurnLLM,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "LLMHelpOutcome",
     "LLMLessonOutcome",
     "LLMTurnOutcome",
+    "LLMVocabOutcome",
     "ReviewGrade",
     "TurnLLM",
 ]

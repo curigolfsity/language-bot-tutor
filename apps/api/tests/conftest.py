@@ -17,6 +17,7 @@ from tutor_api.llm import (
     LLMHelpOutcome,
     LLMLessonOutcome,
     LLMTurnOutcome,
+    LLMVocabOutcome,
     ReviewGrade,
 )
 from tutor_api.llm.client import FormLine, LessonExample, WatchOut
@@ -94,6 +95,7 @@ class FakeLLM:
         self.lesson_calls: list[tuple[str, str]] = []
         self.lesson: LessonContent | None = None
         self.exercise_calls: list[tuple[str, str]] = []
+        self.vocab_calls: list[tuple[str, str]] = []
 
     def push_result(self, result: TurnResult) -> None:
         self.queue.append(
@@ -144,6 +146,11 @@ class FakeLLM:
         self.exercise_calls.append((system_prompt, user_content))
         lesson = self.lesson or default_lesson()
         return LLMExercisesOutcome(exercises=lesson.exercises, refused=False, model="cheap-model")
+
+    async def generate_vocab(self, system_prompt: str, user_content: str) -> LLMVocabOutcome:
+        self.vocab_calls.append((system_prompt, user_content))
+        items = [NewVocab(lemma="perro", translation="dog", pos="noun")]
+        return LLMVocabOutcome(items=items, refused=False, model="cheap-model")
 
     async def generate_turn(self, system_prompt: str, user_content: str) -> LLMTurnOutcome:
         self.calls.append((system_prompt, user_content))
