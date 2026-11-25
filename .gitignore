@@ -1,19 +1,39 @@
-*.env
+# Secrets: never commit. Only the template is tracked.
 .env
+*.env
 !.env.example
 
+# Python
 .venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.ruff_cache/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.uv-cache/
 
-# background runner
+# Background runner (scripts/supervisor.py)
 .run/
 logs/
 
-# local model files (speech-to-text)
+# Local model files (speech-to-text, ~460 MB)
 .models/
+
+# Audio scratch files
+*.ogg
+*.oga
+*.wav
+*.mp3
+
+# Editors / OS / local tool settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+.claude/settings.local.json
