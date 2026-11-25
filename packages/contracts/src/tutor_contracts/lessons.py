@@ -37,10 +37,37 @@ class ExerciseOut(BaseModel):
     prompt: str
 
 
+class LessonFormOut(BaseModel):
+    label: str
+    forms: str = Field(description="Items separated by ' · '.")
+
+
+class LessonExampleOut(BaseModel):
+    sentence: str
+    translation: str
+
+
+class LessonWatchOutOut(BaseModel):
+    wrong: str
+    right: str
+    note: str
+
+
+class LessonPartsOut(BaseModel):
+    """The lesson in parts, so clients can lay it out (headings, bold, spacing)."""
+
+    summary: str
+    forms: list[LessonFormOut]
+    usage: list[str]
+    examples: list[LessonExampleOut]
+    watch_out: LessonWatchOutOut
+
+
 class LessonOut(BaseModel):
     id: int
     topic: LessonTopicOut
-    explanation: str
+    explanation: str = Field(description="The whole lesson as plain text (simple clients).")
+    parts: LessonPartsOut | None = Field(default=None, description="The lesson in parts.")
     exercise: ExerciseOut | None = Field(description="The first exercise.")
 
 

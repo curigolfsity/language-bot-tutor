@@ -23,7 +23,10 @@ class AppContext:
     # Conversation-turn LLMs routed per target language (TUTOR_LANG_OVERRIDES); others use llm.
     turn_llms: dict[str, TurnLLM] = field(default_factory=dict)
 
-    def turn_llm(self, lang: str) -> TurnLLM:
+    def turn_llm(self, lang: str, level: str | None = None) -> TurnLLM:
+        route = self.settings.tutor_lang_overrides.get(lang)
+        if route is not None and not route.applies_to(level):
+            return self.llm
         return self.turn_llms.get(lang, self.llm)
 
     def curriculum(self, lang: str) -> Curriculum:

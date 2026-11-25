@@ -18,6 +18,7 @@ from tutor_api.llm import (
     LLMTurnOutcome,
     ReviewGrade,
 )
+from tutor_api.llm.client import FormLine, LessonExample, WatchOut
 from tutor_api.main import create_app
 from tutor_api.services.context import AppContext
 from tutor_contracts import Correction, NewVocab, TurnResult
@@ -43,7 +44,11 @@ def settings() -> Settings:
 
 def default_lesson() -> LessonContent:
     return LessonContent(
-        explanation="Ser = what something is. Estar = where/how it is.",
+        summary="Ser = what something is. Estar = where/how it is.",
+        forms=[FormLine(label="estar", forms="estoy · estás · está")],
+        usage=["Location: estar", "Identity: ser"],
+        examples=[LessonExample(sentence="Estoy en casa.", translation="I'm at home.")],
+        watch_out=WatchOut(wrong="Soy en casa.", right="Estoy en casa.", note="Location."),
         exercises=[
             ExerciseSpec(
                 kind="fill_blank",

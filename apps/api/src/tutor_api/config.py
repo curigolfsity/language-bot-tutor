@@ -19,6 +19,11 @@ class LangRoute(BaseModel):
     model: str | None = None
     effort: Effort | None = None
     fallbacks: Literal["default", "off"] | None = None  # some models have no server fallback
+    # Only for these learner levels (level codes from levels.yaml); unset = every level.
+    levels: list[str] | None = None
+
+    def applies_to(self, level: str | None) -> bool:
+        return self.levels is None or level in self.levels
 
 
 class Settings(BaseSettings):
@@ -70,6 +75,13 @@ class Settings(BaseSettings):
         default_factory=dict, alias="TUTOR_LANG_OVERRIDES"
     )
 
+    # Model for the simple helper calls (hint, translate, suggest, explain, ask, answer
+    # checking). Unset: TUTOR_MODEL. Haiku has no server-side refusal fallback -> "off".
+    tutor_help_model: str | None = Field(default=None, alias="TUTOR_HELP_MODEL")
+    tutor_help_fallbacks: Literal["default", "off"] | None = Field(
+        default=None, alias="TUTOR_HELP_FALLBACKS"
+    )
+
     tutor_max_tokens: int = Field(default=16000, alias="TUTOR_MAX_TOKENS")
     # "default" = server-side refusal fallbacks routed by the API; "off" disables them.
     tutor_fallbacks: Literal["default", "off"] = Field(default="default", alias="TUTOR_FALLBACKS")
@@ -109,10 +121,11 @@ class Settings(BaseSettings):
             raise ValueError(f"unknown IANA timezone {v!r}") from e
         return v
 
-    def for_lang(self, lang: str) -> "Settings":
-        """These settings with `lang`'s turn route applied (unchanged if it has none)."""
+    def for_lang(self, lang: str, level: str | None = None) -> "Settings":
+        """These settings with `lang`'s turn route applied, if it covers `level` (with no
+        level given, a route limited to some levels still applies: used to build clients)."""
         route = self.tutor_lang_overrides.get(lang)
-        if route is None:
+        if route is None or (level is not None and not route.applies_to(level)):
             return self
         update = {
             k: v

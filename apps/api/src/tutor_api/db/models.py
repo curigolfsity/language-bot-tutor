@@ -250,7 +250,8 @@ class LessonRun(Base):
         ForeignKey("learner_profiles.id", ondelete="CASCADE")
     )
     topic_id: Mapped[str] = mapped_column(String(128))
-    explanation: Mapped[str] = mapped_column(Text)
+    explanation: Mapped[str] = mapped_column(Text)  # plain-text rendering of `parts`
+    parts: Mapped[dict[str, Any] | None] = mapped_column(JsonB, nullable=True)
     exercises: Mapped[list[dict[str, Any]]] = mapped_column(JsonB)
     answers: Mapped[list[dict[str, Any]]] = mapped_column(JsonB, default=list)
     correct: Mapped[int] = mapped_column(Integer, default=0)

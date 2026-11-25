@@ -94,10 +94,37 @@ class ExerciseSpec(BaseModel):
     why: str = Field(description="One short sentence explaining the answer.")
 
 
-class LessonContent(BaseModel):
-    """Structured output for a grammar lesson."""
+class FormLine(BaseModel):
+    label: str = Field(description="Short label, e.g. '-ar verbs (hablar)', 'ser', '把 pattern'.")
+    forms: str = Field(
+        description="The forms or pattern, items separated by ' · ', e.g. "
+        "'hablaba · hablabas · hablaba · hablábamos · hablabais · hablaban'."
+    )
 
-    explanation: str = Field(description="The lesson text shown to the learner, plain text.")
+
+class LessonExample(BaseModel):
+    sentence: str = Field(description="Example sentence in the target language.")
+    translation: str = Field(description="Its translation in the learner's native language.")
+
+
+class WatchOut(BaseModel):
+    wrong: str = Field(description="A typical wrong sentence (the learner's own if given).")
+    right: str = Field(description="The corrected sentence.")
+    note: str = Field(description="One short sentence: why.")
+
+
+class LessonContent(BaseModel):
+    """Structured output for a grammar lesson. Each part is laid out separately by clients."""
+
+    summary: str = Field(description="One or two short sentences: what this grammar is for.")
+    forms: list[FormLine] = Field(
+        description="0-4 lines of forms to learn (conjugations, patterns). Empty if none."
+    )
+    usage: list[str] = Field(
+        description="2-4 short points: when to use it, signal words. Each under 15 words."
+    )
+    examples: list[LessonExample] = Field(description="Exactly 3 examples, easiest first.")
+    watch_out: WatchOut
     exercises: list[ExerciseSpec] = Field(description="Practice exercises, easiest first.")
 
 
@@ -144,6 +171,9 @@ class AnthropicTurnLLM:
         self._effort = settings.tutor_effort
         self._help_effort = settings.tutor_help_effort
         self._lesson_effort = settings.lesson_effort
+        # Hint / translate / suggest / explain / ask / answer checking (simple, high-volume).
+        self._help_model = settings.tutor_help_model or settings.tutor_model
+        self._help_fallbacks = settings.tutor_help_fallbacks or settings.tutor_fallbacks
         self._max_tokens = settings.tutor_max_tokens
         self._fallbacks = settings.tutor_fallbacks
         self._client = client or anthropic.AsyncAnthropic(
@@ -164,12 +194,15 @@ class AnthropicTurnLLM:
         output_format: type[BaseModel],
         effort: str,
         cache_system: bool,
+        model: str | None = None,
+        fallbacks: str | None = None,
     ) -> Any:
+        """`model` / `fallbacks` default to the turn model and its fallback setting."""
         system_block: dict[str, Any] = {"type": "text", "text": system_prompt}
         if cache_system:
             system_block["cache_control"] = {"type": "ephemeral"}
         kwargs: dict[str, Any] = {
-            "model": self.model,
+            "model": model or self.model,
             "max_tokens": self._max_tokens,
             "system": [system_block],
             "messages": [{"role": "user", "content": user_content}],
@@ -177,7 +210,7 @@ class AnthropicTurnLLM:
             "thinking": {"type": "adaptive"},
             "output_config": {"effort": effort},
         }
-        if self._fallbacks == "default":
+        if (fallbacks or self._fallbacks) == "default":
             kwargs["betas"] = [FALLBACK_BETA]
             kwargs["fallbacks"] = "default"
         try:
@@ -220,7 +253,13 @@ class AnthropicTurnLLM:
 
     async def generate_help(self, system_prompt: str, user_content: str) -> LLMHelpOutcome:
         response = await self._parse(
-            system_prompt, user_content, HelpText, self._help_effort, cache_system=False
+            system_prompt,
+            user_content,
+            HelpText,
+            self._help_effort,
+            cache_system=False,
+            model=self._help_model,
+            fallbacks=self._help_fallbacks,
         )
         base = _usage(response)
         if response.stop_reason == "refusal":
@@ -233,7 +272,13 @@ class AnthropicTurnLLM:
 
     async def generate_grade(self, system_prompt: str, user_content: str) -> LLMGradeOutcome:
         response = await self._parse(
-            system_prompt, user_content, ReviewGrade, self._help_effort, cache_system=False
+            system_prompt,
+            user_content,
+            ReviewGrade,
+            self._help_effort,
+            cache_system=False,
+            model=self._help_model,
+            fallbacks=self._help_fallbacks,
         )
         if response.stop_reason == "refusal":
             log.warning("model refused review grading (model=%s)", response.model)

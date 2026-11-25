@@ -1,6 +1,6 @@
 - id: es.a2.preterite_regular
   level: A2
-  title: "Preterite of regular verbs"
+  title: "Past tense: regular verbs (hablé, comí) – the preterite"
   prerequisites: [es.a1.present_regular]
   description: "Completed past actions: hablé, comiste, vivió."
   examples:
@@ -8,7 +8,7 @@
 
 - id: es.a2.preterite_irregular
   level: A2
-  title: "Irregular preterites (ir/ser, tener, hacer, estar)"
+  title: "Past tense: irregular verbs (fui, tuve, hice, estuve)"
   prerequisites: [es.a2.preterite_regular]
   description: "fui, tuve, hice, estuve, pude, dije."
   examples:
@@ -16,7 +16,7 @@
 
 - id: es.a2.imperfect
   level: A2
-  title: "Imperfect tense"
+  title: "Imperfect: 'used to' and descriptions (hablaba, comía)"
   prerequisites: [es.a1.present_regular]
   description: "Habitual or ongoing past: hablaba, comía, era, iba."
   examples:
@@ -24,7 +24,7 @@
 
 - id: es.a2.preterite_vs_imperfect
   level: A2
-  title: "Preterite vs imperfect"
+  title: "Past tense vs imperfect: hablé or hablaba?"
   prerequisites: [es.a2.preterite_regular, es.a2.imperfect]
   description: "Preterite for completed events; imperfect for background, habits and descriptions."
   examples:

@@ -71,7 +71,12 @@ async def test_lesson_flow(client, fake_llm):
     )
     assert r.status_code == 201, r.text
     lesson = r.json()
-    assert lesson["explanation"].startswith("Ser =")
+    assert lesson["explanation"].startswith("Ser =")  # plain-text rendering
+    assert "estar: estoy · estás · está" in lesson["explanation"]
+    assert lesson["parts"]["examples"] == [
+        {"sentence": "Estoy en casa.", "translation": "I'm at home."}
+    ]
+    assert lesson["parts"]["watch_out"]["right"] == "Estoy en casa."
     assert lesson["exercise"] == {
         "index": 0,
         "total": 3,

@@ -440,3 +440,32 @@ def test_settings_and_reminders_carry_language():
     rem = kb.reminder_keyboard(3, "zh").inline_keyboard
     assert [r[0].callback_data for r in rem] == ["go:zh:resume", "go:zh:review", "rem:off"]
     assert kb.reminder_keyboard().inline_keyboard[0][0].callback_data == "menu:resume"
+
+
+def test_lesson_layout_with_parts_and_fallback():
+    from tutor_contracts import (
+        LessonExampleOut,
+        LessonFormOut,
+        LessonOut,
+        LessonPartsOut,
+        LessonWatchOutOut,
+    )
+
+    parts = LessonPartsOut(
+        summary="Past habits & descriptions.",
+        forms=[LessonFormOut(label="-ar (hablar)", forms="hablaba · hablabas")],
+        usage=["Habits: siempre, cada día"],
+        examples=[
+            LessonExampleOut(sentence="Vivía en <Madrid>.", translation="I lived in Madrid.")
+        ],
+        watch_out=LessonWatchOutOut(
+            wrong="Jugué cada día.", right="Jugaba cada día.", note="Habit."
+        ),
+    )
+    lesson = LessonOut(id=1, topic=_topic(), explanation="plain", parts=parts, exercise=None)
+    html = formatting.format_lesson(lesson)
+    assert html.startswith("📖 <b>Ser &amp; estar</b>\n\n<i>Past habits &amp; descriptions.</i>")
+    assert "<b>📐 Forms</b>\n<b>-ar (hablar)</b>\n<code>hablaba · hablabas</code>" in html
+    assert "▸ <b>Vivía en &lt;Madrid&gt;.</b>\n   <i>I lived in Madrid.</i>" in html
+    assert "❌ <s>Jugué cada día.</s>\n✅ <b>Jugaba cada día.</b>" in html
+    assert formatting.format_lesson(lesson.model_copy(update={"parts": None})).endswith("plain")

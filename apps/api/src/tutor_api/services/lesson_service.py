@@ -15,6 +15,7 @@ from tutor_contracts import (
     ExerciseOut,
     LessonAnswerOut,
     LessonOut,
+    LessonPartsOut,
     LessonSuggestionsOut,
     LessonTopicOut,
 )
@@ -24,7 +25,12 @@ from tutor_api.curriculum.models import GrammarTopic
 from tutor_api.db.models import LearnerProfile, LessonRun, utcnow
 from tutor_api.db.repositories import LessonRepo, MasteryRepo, MistakeRepo, ProfileRepo
 from tutor_api.domain import mastery as mastery_math
-from tutor_api.domain.lessons import TopicStats, check_exercise, suggest_topics
+from tutor_api.domain.lessons import (
+    TopicStats,
+    check_exercise,
+    lesson_plain_text,
+    suggest_topics,
+)
 from tutor_api.domain.policy import Policy, resolve_policy
 from tutor_api.domain.prompt import build_exercise_grade_prompt, build_lesson_prompt
 from tutor_api.llm import LLMError
@@ -140,6 +146,7 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
     ][: ctx.settings.lesson_exercises]
     if not exercises:
         raise UpstreamError("the generated lesson had no usable exercises")
+    parts = outcome.lesson.model_dump(exclude={"exercises"})
 
     # 3) Store.
     async with ctx.sessionmaker.begin() as db:
@@ -147,7 +154,8 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
             LessonRun(
                 profile_id=profile_id,
                 topic_id=topic_id,
-                explanation=outcome.lesson.explanation.strip(),
+                explanation=lesson_plain_text(parts),
+                parts=parts,
                 exercises=exercises,
                 answers=[],
                 correct=0,
@@ -159,6 +167,7 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
             id=run.id,
             topic=_topic_out(topic, stats, {**studied, topic_id: studied.get(topic_id, 0) + 1}),
             explanation=run.explanation,
+            parts=LessonPartsOut.model_validate(parts),
             exercise=_exercise_out(run, 0),
         )
 

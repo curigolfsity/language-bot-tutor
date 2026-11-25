@@ -388,3 +388,26 @@ async def test_non_turn_calls_are_logged(client, ctx, fake_llm):
         ("ask", "es", "fake-model"),
     ]
     assert rows[0].input_tokens == 10 and rows[0].output_tokens == 5
+
+
+async def test_level_limited_route(client, ctx, fake_llm):
+    from conftest import FakeLLM
+    from tutor_api.config import LangRoute
+
+    routed = FakeLLM()
+    ctx.settings = ctx.settings.model_copy(
+        update={"tutor_lang_overrides": {"es": LangRoute(model="cheap", levels=["A1", "A2"])}}
+    )
+    ctx.turn_llms = {"es": routed}
+    assert ctx.turn_llm("es", "A1") is routed and ctx.turn_llm("es", "B1") is ctx.llm
+    assert ctx.settings.for_lang("es", "B1").tutor_model == ctx.settings.tutor_model
+    assert ctx.settings.for_lang("es", "A2").tutor_model == "cheap"
+
+    pid = (await resolve(client))["profile"]["id"]  # new learners start at A1
+    sid = (await client.post("/v1/sessions", json={"profile_id": pid})).json()["id"]
+    await client.post(f"/v1/sessions/{sid}/turns", json={"text": "Hola"})
+    assert len(routed.calls) == 1
+    await client.patch(f"/v1/learners/{pid}", json={"cefr_level": "B1"})
+    sid = (await client.post("/v1/sessions", json={"profile_id": pid})).json()["id"]
+    await client.post(f"/v1/sessions/{sid}/turns", json={"text": "Hola"})
+    assert len(routed.calls) == 1 and len(fake_llm.calls) == 1  # B1 went to the default model

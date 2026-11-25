@@ -85,6 +85,7 @@
   expected:
     - { wrong: "quero", right: "quiero", rule_tag: es.a1.stem_changing_present }
     - { wrong: "Mi amigos", right: "Mis amigos", rule_tag: es.a1.possessive_agreement }
-    - { wrong: "no puede", right: "no pueden", rule_tag: es.a1.subject_verb_agreement }
+    - { wrong: "no puede", right: "no pueden", rule_tag: es.a1.subject_verb_agreement,
+        also_right: ["pueden venir"] }
     - { wrong: "soy solo", right: "estoy solo", rule_tag: es.a1.ser_vs_estar_basic }
   must_not_flag: ["hace calor"]

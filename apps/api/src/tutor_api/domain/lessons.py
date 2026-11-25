@@ -84,3 +84,21 @@ def check_exercise(answer: str, accepted: Sequence[str]) -> bool | None:
     if any(a == normalize_answer(x) for x in accepted if x.strip()):
         return True
     return None
+
+
+def lesson_plain_text(parts: dict) -> str:
+    """The lesson parts as readable plain text (for clients without rich layout)."""
+    lines = [parts["summary"].strip()]
+    if parts.get("forms"):
+        lines.append("")
+        lines += [f"{f['label']}: {f['forms']}" for f in parts["forms"]]
+    if parts.get("usage"):
+        lines.append("")
+        lines += [f"• {u}" for u in parts["usage"]]
+    if parts.get("examples"):
+        lines.append("")
+        lines += [f"{e['sentence']} ({e['translation']})" for e in parts["examples"]]
+    w = parts.get("watch_out")
+    if w:
+        lines += ["", f"Watch out: ✗ {w['wrong']} → ✓ {w['right']}. {w['note']}"]
+    return "\n".join(lines)

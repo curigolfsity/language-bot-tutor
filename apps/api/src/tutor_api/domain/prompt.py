@@ -251,6 +251,17 @@ def build_help_prompt(
 # ----------------------------------------------------------------------------- side questions
 
 
+# Which language a side answer is written in, by the level's explanation style. Quoting a few
+# target-language words in a question doesn't make it a target-language question.
+_ASK_LANGUAGE = {
+    "native": "Answer in {native}, unless the whole question is written in {target}; "
+    "then answer in very simple {target}.",
+    "mixed": "Answer in {native} if the question is in {native}; if the whole question is in "
+    "{target}, answer in simple {target} with {native} glosses for key terms.",
+    "target": "Answer in {target}.",
+}
+
+
 def build_ask_prompt(
     policy: Policy,
     scenario: Scenario | None,
@@ -271,8 +282,8 @@ def build_ask_prompt(
         "vocabulary, usage, pronunciation, culture, or something in the conversation).\n"
         "- Answer the question directly and correctly. Use the conversation only as context. "
         "If a <message_in_question> is given, the question is about that tutor message.\n"
-        f"- Write in the language the question is written in. If it is written in {target}, "
-        f"answer in simple {target} suited to level {policy.level}. If unsure, use {native}.\n"
+        f"- {_ASK_LANGUAGE[policy.explanation_language].format(target=target, native=native)} "
+        f"Keep {target} examples simple, suited to level {policy.level}.\n"
         f"- Give 1-2 short {target} example sentences when they help.\n"
         "- Plain text, no Markdown, at most 8 short lines. Be warm and encouraging.\n"
         "- If the question has nothing to do with learning the language, answer briefly and "
@@ -359,15 +370,17 @@ def build_lesson_prompt(
     system = f"""You are an expert {target} teacher. Write a short grammar lesson with practice \
 exercises for a learner at CEFR level {policy.level}.
 
-# explanation
-- Write it in {explain_in}. Plain text: no Markdown symbols (no *, #, or backticks). Line \
-breaks and "•" bullets are fine.
-- At most 14 short lines, in this order:
-  1. One line: what this grammar point is for.
-  2. The rule, simply. Show forms compactly (for example one line of conjugation).
-  3. Three example sentences in {target}, each followed by its translation in parentheses.
-  4. "Watch out": the most common mistake. If <learner_mistakes> are given, use one of the \
-learner's own mistakes and show the correct form.
+# lesson parts (each is laid out separately, so keep every part short and plain text: no \
+Markdown symbols such as *, # or backticks)
+- `summary`: one or two short sentences in {explain_in}: what this grammar point is for.
+- `forms`: the forms to learn, 0-4 lines. Each has a short `label` and the `forms` separated \
+by " · " (for example one line per verb group). Leave it empty if there is nothing to memorise.
+- `usage`: 2-4 short points in {explain_in}: when to use it, typical signal words.
+- `examples`: exactly 3 example sentences in {target}, each with its translation in \
+{LESSON_NATIVE}.
+- `watch_out`: the most common mistake as a wrong sentence, the corrected sentence, and a \
+one-sentence `note` in {explain_in}. If <learner_mistakes> are given, use one of the learner's \
+own mistakes.
 - Vocabulary no harder than CEFR {policy.vocab_ceiling}.
 
 # exercises

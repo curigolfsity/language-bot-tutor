@@ -77,3 +77,25 @@ async def test_unusable_output_raises(settings, stop):
     llm = AnthropicTurnLLM(settings, client=stub_client(response(stop, parsed=None)))
     with pytest.raises(LLMError):
         await llm.generate_turn("s", "u")
+
+
+async def test_helper_calls_use_the_help_model(settings):
+    from tutor_api.llm import ReviewGrade
+    from tutor_api.llm.client import HelpText
+
+    s = settings.model_copy(
+        update={"tutor_help_model": "cheap-model", "tutor_help_fallbacks": "off"}
+    )
+    client = stub_client(response("end_turn", HelpText(text="hi")))
+    llm = AnthropicTurnLLM(s, client=client)
+    await llm.generate_help("S", "U")
+    kw = client.beta.messages.kwargs
+    assert kw["model"] == "cheap-model" and "fallbacks" not in kw and "betas" not in kw
+    client.beta.messages.response = response("end_turn", ReviewGrade(correct=True, feedback="ok"))
+    out = await llm.generate_grade("S", "U")
+    assert client.beta.messages.kwargs["model"] == "cheap-model" and out.input_tokens == 10
+    # Turns keep the main model and its fallbacks.
+    client.beta.messages.response = response("end_turn", make_result())
+    await llm.generate_turn("S", "U")
+    kw = client.beta.messages.kwargs
+    assert kw["model"] == s.tutor_model and kw["fallbacks"] == "default"

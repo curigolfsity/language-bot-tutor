@@ -122,36 +122,44 @@ async def main() -> int:
     ap.add_argument("--label", default="", help="suffix for the report file name")
     args = ap.parse_args()
 
-    # The same per-language routing production uses (TUTOR_LANG_OVERRIDES); flags override it.
-    settings = get_settings().for_lang(args.lang)
-    if args.effort:
-        settings = settings.model_copy(update={"tutor_effort": args.effort})
-    if args.model:
-        settings = settings.model_copy(update={"tutor_model": args.model})
-    if args.fallbacks:
-        settings = settings.model_copy(update={"tutor_fallbacks": args.fallbacks})
-    in_price, out_price, read_mult = PRICES.get(settings.tutor_model, (4.0, 20.0, 0.1))
-    in_price = args.input_price if args.input_price is not None else in_price
-    out_price = args.output_price if args.output_price is not None else out_price
+    base = get_settings()
+
+    def settings_for(level: str) -> Any:
+        """The route production uses for this language and level (TUTOR_LANG_OVERRIDES),
+        with the command-line flags on top."""
+        s = base.for_lang(args.lang, level)
+        for flag, field in (
+            (args.effort, "tutor_effort"),
+            (args.model, "tutor_model"),
+            (args.fallbacks, "tutor_fallbacks"),
+        ):
+            if flag:
+                s = s.model_copy(update={field: flag})
+        return s
+
+    settings = base
     curriculum = load_curriculum(settings.curriculum_dir / args.lang)
     cases = load_cases(args.cases_dir or HERE / "cases" / args.lang, args.level)
     if not cases:
         print("no cases selected", file=sys.stderr)
         return 1
 
-    llm = AnthropicTurnLLM(settings)
+    llm = AnthropicTurnLLM(base)
     sem = asyncio.Semaphore(args.concurrency)
     report: dict[str, Any] = {
         "created_at": datetime.now(UTC).isoformat(),
-        "model": settings.tutor_model,
-        "effort": settings.tutor_effort,
         "lang": args.lang,
         "levels": {},
     }
     try:
         for level in sorted(cases, key=curriculum.rank):
+            routed = settings_for(level)
+            level_llm = llm.variant(routed)
+            in_price, out_price, read_mult = PRICES.get(routed.tutor_model, (4.0, 20.0, 0.1))
+            in_price = args.input_price if args.input_price is not None else in_price
+            out_price = args.output_price if args.output_price is not None else out_price
             results = await asyncio.gather(
-                *(run_case(llm, curriculum, c, sem) for c in cases[level])
+                *(run_case(level_llm, curriculum, c, sem) for c in cases[level])
             )
             ok = [r for r in results if "error" not in r]
             metrics = aggregate(
@@ -170,6 +178,8 @@ async def main() -> int:
             }
             secs = sorted(r["seconds"] for r in ok)
             report["levels"][level] = {
+                "model": routed.tutor_model,
+                "effort": routed.tutor_effort,
                 "metrics": asdict(metrics),
                 "latency_s": {
                     "median": round(statistics.median(secs), 2) if secs else None,
@@ -189,9 +199,8 @@ async def main() -> int:
     out_path = args.out / f"{stamp}_{args.lang}_{'-'.join(sorted(report['levels']))}{label}.json"
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"model={report['model']} effort={report['effort']}")
     print(
-        f"{'level':<6}{'cases':>6}{'recall':>8}{'prec':>8}{'tag_acc':>9}{'mnf_fp':>8}"
+        f"{'level':<6}{'model':<19}{'effort':<8}{'cases':>6}{'recall':>8}{'prec':>8}{'tag_acc':>9}{'mnf_fp':>8}"
         f"{'policy':>8}{'refuse':>8}{'errors':>8}{'cost$':>9}{'med_s':>7}{'p90_s':>7}"
     )
     for level, data in report["levels"].items():
@@ -201,7 +210,7 @@ async def main() -> int:
             return "-" if x is None else f"{x:.2f}"
 
         print(
-            f"{level:<6}{m['cases']:>6}{f(m['recall']):>8}{f(m['precision']):>8}"
+            f"{level:<6}{data['model'].removeprefix('claude-'):<19}{data['effort']:<8}{m['cases']:>6}{f(m['recall']):>8}{f(m['precision']):>8}"
             f"{f(m['rule_tag_accuracy']):>9}{m['must_not_flag_false_positives']:>8}"
             f"{m['policy_violations']:>8}{m['refusals']:>8}{len(data['errors']):>8}"
             f"{data['cost_usd']:>9.4f}"

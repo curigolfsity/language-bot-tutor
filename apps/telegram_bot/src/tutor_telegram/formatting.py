@@ -444,7 +444,32 @@ def format_level_topics(topics: list[LessonTopicOut]) -> str:
 
 
 def format_lesson(lesson: LessonOut) -> str:
-    return f"📖 <b>{escape(lesson.topic.title)}</b>\n\n{escape(lesson.explanation)}"
+    """Sections with headings and spacing; forms in monospace so they line up and copy."""
+    title = f"📖 <b>{escape(lesson.topic.title)}</b>"
+    p = lesson.parts
+    if p is None:  # lessons stored before parts existed
+        return f"{title}\n\n{escape(lesson.explanation)}"
+    out = [title, f"<i>{escape(p.summary)}</i>"]
+    if p.forms:
+        forms = ["<b>📐 Forms</b>"]
+        for f in p.forms:
+            forms.append(f"<b>{escape(f.label)}</b>\n<code>{escape(f.forms)}</code>")
+        out.append("\n".join(forms))
+    if p.usage:
+        out.append("<b>🕐 When to use it</b>\n" + "\n".join(f"• {escape(u)}" for u in p.usage))
+    if p.examples:
+        examples = [
+            f"▸ <b>{escape(e.sentence)}</b>\n   <i>{escape(e.translation)}</i>" for e in p.examples
+        ]
+        out.append("<b>💬 Examples</b>\n" + "\n".join(examples))
+    w = p.watch_out
+    out.append(
+        "<b>⚠️ Watch out</b>\n"
+        f"❌ <s>{escape(w.wrong)}</s>\n"
+        f"✅ <b>{escape(w.right)}</b>\n"
+        f"<i>{escape(w.note)}</i>"
+    )
+    return "\n\n".join(out)
 
 
 def format_exercise(lesson_id: int, ex: ExerciseOut) -> str:
