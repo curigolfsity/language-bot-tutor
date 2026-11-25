@@ -361,7 +361,6 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - web client
 - per-user auth
 - reading and writing exercises
-- a second target language
 
 ## 13. Layering guards
 `apps/api/tests/test_architecture.py` enforces the rules mechanically:
