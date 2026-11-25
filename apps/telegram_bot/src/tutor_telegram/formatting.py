@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import re
+from datetime import UTC, datetime
 from html import escape
 
 from tutor_contracts import (
+    AskOut,
     DailyProgressOut,
     HelpOut,
     LearnerProfileOut,
     LevelOut,
     MistakeOut,
     ReminderOut,
+    ReviewAnswerOut,
+    ReviewQueueOut,
     ScenarioOut,
     SessionOut,
     SessionSummary,
@@ -19,11 +24,15 @@ from tutor_contracts import (
 )
 
 from tutor_telegram.keyboards import (
+    ASK_PROMPT_HEADER,
+    MENU_ASK,
     MENU_CHAT,
     MENU_FINISH,
     MENU_PROGRESS,
+    MENU_REVIEW,
     MENU_ROLEPLAY,
     MENU_SETTINGS,
+    REVIEW_HEADER,
     level_icon,
 )
 
@@ -38,6 +47,9 @@ HOW_IT_WORKS = (
     "❓ <b>Explain</b>: more detail about your mistakes\n\n"
     f"{MENU_CHAT}: talk about anything\n"
     f"{MENU_ROLEPLAY}: practise a real situation (café, doctor, job interview…)\n"
+    f"{MENU_REVIEW}: fix your own past mistakes again until they stick\n"
+    f"{MENU_ASK}: ask about grammar or a word without interrupting the conversation. "
+    "Or just start any message with <b>?</b>\n"
     f"{MENU_PROGRESS}: your scores and recent mistakes\n"
     f"{MENU_FINISH}: wrap up and see what you learned\n"
     f"{MENU_SETTINGS}: level, explanation language, daily goal, reminders\n\n"
@@ -214,3 +226,105 @@ def format_reminder(r: ReminderOut) -> str:
             "Send me one message to keep it going."
         )
     return "👋 Time to practise? A few messages a day is all it takes."
+
+
+def format_reminder_with_reviews(r: ReminderOut) -> str:
+    text = format_reminder(r)
+    if r.reviews_due:
+        n = r.reviews_due
+        text += f"\n🧠 You also have {n} mistake{'s' if n != 1 else ''} to practise."
+    return text
+
+
+# ----------------------------------------------------------------------------- side questions
+
+ASK_PROMPT = (
+    f"<b>{ASK_PROMPT_HEADER}</b> about the language: grammar, a word, how to say something…\n"
+    "<i>Reply to this message. Our conversation stays where it is.</i>"
+)
+
+
+def format_answer(a: AskOut) -> str:
+    return f"🙋 <i>{escape(a.question)}</i>\n\n{escape(a.answer)}"
+
+
+# ----------------------------------------------------------------------------- practise mistakes
+
+SNIPPET_CONTEXT = 70  # characters of the original message shown on each side of the error
+
+
+def card_snippet(source: str, wrong: str) -> str:
+    """The learner's sentence with the error bold and underlined, trimmed around it. Escaped."""
+    i = source.casefold().find(wrong.casefold()) if wrong else -1
+    if i < 0:
+        limit = 2 * SNIPPET_CONTEXT
+        return escape(source if len(source) <= limit else source[:limit] + "…")
+    start, end = max(0, i - SNIPPET_CONTEXT), min(len(source), i + len(wrong) + SNIPPET_CONTEXT)
+    before = ("…" if start > 0 else "") + source[start:i]
+    after = source[i + len(wrong) : end] + ("…" if end < len(source) else "")
+    return f"{escape(before)}<b><u>{escape(source[i : i + len(wrong)])}</u></b>{escape(after)}"
+
+
+def format_card(q: ReviewQueueOut) -> str:
+    assert q.card is not None
+    c = q.card
+    topic = f"\n<i>{escape(c.rule_title)}</i>" if c.rule_title else ""
+    return (
+        f"<b>{REVIEW_HEADER}{c.id}</b> · {q.due} to go{topic}\n\n"
+        f"Fix the underlined part:\n{card_snippet(c.source_text, c.wrong)}\n\n"
+        "<i>Reply with the corrected words or the whole sentence.</i>"
+    )
+
+
+def parse_card_id(prompt_text: str | None) -> int | None:
+    """Card id from a practice prompt the learner replied to."""
+    m = re.match(re.escape(REVIEW_HEADER) + r"(\d+)", prompt_text or "")
+    return int(m.group(1)) if m else None
+
+
+def _when(due: datetime | None, now: datetime | None = None) -> str:
+    if due is None:
+        return "later"
+    hours = (due - (now or datetime.now(UTC))).total_seconds() / 3600
+    if hours < 1:
+        return "in a few minutes"
+    if hours < 24:
+        h = round(hours)
+        return f"in {h} hour{'s' if h != 1 else ''}"
+    d = round(hours / 24)
+    return f"in {d} day{'s' if d != 1 else ''}"
+
+
+def format_queue_empty(q: ReviewQueueOut, now: datetime | None = None) -> str:
+    if q.total == 0:
+        return (
+            "🧠 No mistakes to practise yet. Chat with me and I'll save your mistakes here, "
+            "so you can fix them again later."
+        )
+    return f"🎉 <b>All caught up!</b> Your next card is due {_when(q.next_due_at, now)}."
+
+
+def format_review_result(r: ReviewAnswerOut) -> str:
+    right = f"<b>{escape(r.right)}</b>"
+    fix = f"<s>{escape(r.wrong)}</s> → {right}"
+    if r.correct:
+        d = round(r.next_review_in_days)
+        when = f"in {d} day{'s' if d != 1 else ''}" if r.next_review_in_days >= 1 else "soon"
+        lines = ["✅ <b>Correct!</b>"]
+        if r.feedback:
+            lines.append(escape(r.feedback))
+        lines += [fix, f"<i>I'll check it again {when}.</i>"]
+    else:
+        lines = ["❌ <b>Not quite.</b>"]
+        if r.feedback:
+            lines.append(escape(r.feedback))
+        lines += [
+            fix,
+            f"<i>{escape(r.explanation)}</i>",
+            "<i>It'll come back in a few minutes.</i>",
+        ]
+    if milestone := format_milestone(r.progress):
+        lines.append(f"\n{milestone}")
+    if r.due == 0:
+        lines.append("\n🎉 That's all for now!")
+    return "\n".join(lines)

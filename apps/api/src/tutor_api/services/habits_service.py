@@ -11,7 +11,7 @@ from tutor_contracts import DailyProgressOut, ReminderOut, TurnProgress
 
 from tutor_api.config import Settings
 from tutor_api.db.models import LearnerProfile, utcnow
-from tutor_api.db.repositories import ActivityRepo, ProfileRepo
+from tutor_api.db.repositories import ActivityRepo, ProfileRepo, ReviewRepo
 from tutor_api.domain.streaks import current_streak, reminder_due, turn_milestones
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import InvalidRequestError, NotFoundError
@@ -110,6 +110,7 @@ async def claim_reminders(ctx: AppContext, provider: str, target_lang: str) -> l
                     external_id=external_id,
                     streak=current_streak(days, today),
                     goal=daily_goal(profile, settings),
+                    reviews_due=await ReviewRepo(db).count_due(profile.id, now),
                 )
             )
     return due

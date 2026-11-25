@@ -207,3 +207,33 @@ class Mistake(Base):
     explanation: Mapped[str] = mapped_column(Text)
     severity: Mapped[str] = mapped_column(String(8))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ReviewItem(Base):
+    """A spaced-repetition card made from a learner mistake (one per distinct wrong -> right).
+
+    `box` is the Leitner box (0 = new or just failed); `due_at` is when to show it next.
+    """
+
+    __tablename__ = "review_items"
+    __table_args__ = (
+        UniqueConstraint("profile_id", "wrong", "right"),
+        Index("ix_review_items_profile_due_at", "profile_id", "due_at"),
+    )
+    id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("learner_profiles.id", ondelete="CASCADE")
+    )
+    source_text: Mapped[str] = mapped_column(Text)  # the learner message the error came from
+    wrong: Mapped[str] = mapped_column(Text)
+    right: Mapped[str] = mapped_column(Text)
+    rule_tag: Mapped[str] = mapped_column(String(128))
+    explanation: Mapped[str] = mapped_column(Text)
+    box: Mapped[int] = mapped_column(Integer, default=0)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    reviews: Mapped[int] = mapped_column(Integer, default=0)
+    lapses: Mapped[int] = mapped_column(Integer, default=0)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

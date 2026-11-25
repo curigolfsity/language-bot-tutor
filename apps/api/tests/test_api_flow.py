@@ -274,3 +274,34 @@ async def test_help_errors(client, fake_llm, es):
     fake_llm.help_refuse = True
     r = await client.post(f"/v1/turns/{turn['turn_id']}/help", json={"kind": "hint"})
     assert r.json()["text"] == es.lang.refusal_reply
+
+
+async def test_ask_side_question_does_not_join_conversation(client, fake_llm):
+    pid = (await resolve(client))["profile"]["id"]
+    # Works with no conversation at all.
+    r = await client.post(f"/v1/learners/{pid}/ask", json={"question": "ser vs estar?"})
+    assert r.status_code == 200
+    assert r.json() == {"question": "ser vs estar?", "answer": "help text"}
+
+    session = (
+        await client.post(
+            "/v1/sessions", json={"profile_id": pid, "scenario_id": "es.a1.cafe_order"}
+        )
+    ).json()
+    r = await client.post(f"/v1/learners/{pid}/ask", json={"question": "what does 'tomar' mean?"})
+    assert r.status_code == 200
+    system, user = fake_llm.help_calls[-1]
+    assert "steps aside to ask" in system
+    assert "¡Buenos días! ¿Qué quieres tomar?" in user  # the conversation is context
+    assert "<question>" in user and "tomar" in user
+    summary = (await client.post(f"/v1/sessions/{session['id']}/end")).json()
+    assert summary["turn_count"] == 0  # the question was not stored as a turn
+    progress = (await client.get(f"/v1/learners/{pid}/progress")).json()
+    assert progress["today"] == 0  # and does not count as a practice message
+
+
+async def test_ask_unknown_profile_404(client):
+    r = await client.post(
+        "/v1/learners/00000000-0000-0000-0000-000000000000/ask", json={"question": "hola"}
+    )
+    assert r.status_code == 404

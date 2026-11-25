@@ -38,6 +38,7 @@ from tutor_api.llm import LLMError, LLMTurnOutcome, TurnLLM
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import ConflictError, NotFoundError, UpstreamError
 from tutor_api.services.habits_service import record_message
+from tutor_api.services.review_service import add_cards
 
 log = logging.getLogger(__name__)
 
@@ -208,6 +209,8 @@ async def _persist_learning(
         )
         for c in result.corrections
     )
+    # Spaced-repetition cards for "practise my mistakes".
+    await add_cards(db, profile_id, text, result.corrections)
 
     # Grammar mastery
     mrepo = MasteryRepo(db)

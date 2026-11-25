@@ -246,3 +246,76 @@ def build_help_prompt(
                 "<corrections>none: the learner's message had no corrections</corrections>"
             )
     return system, "\n\n".join(parts)
+
+
+# ----------------------------------------------------------------------------- side questions
+
+
+def build_ask_prompt(
+    policy: Policy,
+    scenario: Scenario | None,
+    recent_turns: Sequence[PriorTurn],
+    question: str,
+) -> tuple[str, str]:
+    """(system, user) for a question the learner asks outside the conversation ("aside").
+
+    The answer is not part of the conversation: it is not stored as a turn and not corrected.
+    """
+    target = policy.target_lang_name
+    native = f"the learner's native language (ISO 639-1 code '{policy.native_lang}')"
+    system = (
+        f"You are a friendly {target} teacher. A learner at level {policy.level} is in the "
+        "middle of a practice conversation and steps aside to ask you a question (grammar, "
+        "vocabulary, usage, pronunciation, culture, or something in the conversation).\n"
+        "- Answer the question directly and correctly. Use the conversation only as context.\n"
+        f"- Write in the language the question is written in. If it is written in {target}, "
+        f"answer in simple {target} suited to level {policy.level}. If unsure, use {native}.\n"
+        f"- Give 1-2 short {target} example sentences when they help.\n"
+        "- Plain text, no Markdown, at most 8 short lines. Be warm and encouraging.\n"
+        "- If the question has nothing to do with learning the language, answer briefly and "
+        "kindly invite them back to the conversation."
+    )
+    parts: list[str] = []
+    if scenario is not None:
+        parts.append(f"<scenario>{escape(scenario.title)}: {escape(scenario.setting)}</scenario>")
+    if recent_turns:
+        convo = "\n".join(f"{t.role}: {escape(t.text)}" for t in recent_turns)
+        parts.append(f"<conversation>\n{convo}\n</conversation>")
+    parts.append(f"<question>\n{escape(question)}\n</question>")
+    return system, "\n\n".join(parts)
+
+
+# ----------------------------------------------------------------------------- review grading
+
+
+def build_grade_prompt(
+    policy: Policy,
+    source_text: str,
+    wrong: str,
+    right: str,
+    explanation: str,
+    answer: str,
+) -> tuple[str, str]:
+    """(system, user) to grade the learner's fix of one of their past mistakes."""
+    target = policy.target_lang_name
+    native = f"the learner's native language (ISO 639-1 code '{policy.native_lang}')"
+    feedback_lang = _EXPLAIN_LANG[policy.explanation_language].format(native=native, target=target)
+    system = (
+        f"You grade a {target} learner (level {policy.level}) who is practising one of their own "
+        "past mistakes. They see the sentence they once wrote and must fix the error in it.\n"
+        "- `correct` is true if their answer fixes that error correctly. Accept any correct, "
+        "natural alternative, a full rewritten sentence, or just the fixed words. Ignore "
+        "capitalisation and punctuation.\n"
+        "- Missing or wrong accents, or a new error in the fixed part, make it incorrect.\n"
+        f"- `feedback` in {feedback_lang}, at most 2 short sentences, warm. If correct with a "
+        "different wording, say it also works. If incorrect, say what is still wrong and give "
+        "the correct form."
+    )
+    user = (
+        f"<original_sentence>{escape(source_text)}</original_sentence>\n"
+        f"<error>{escape(wrong)}</error>\n"
+        f"<a_correct_fix>{escape(right)}</a_correct_fix>\n"
+        f"<rule>{escape(explanation)}</rule>\n"
+        f"<learner_answer>{escape(answer)}</learner_answer>"
+    )
+    return system, user

@@ -131,6 +131,7 @@ The loader fails startup on any of these:
 | users | **id uuid**, display_name, created_at | one per human |
 | user_identities | **provider, external_id**, user_id | `provider` ∈ telegram/web/…; lets one human use many clients |
 | learner_profiles | **id uuid**, user_id, target_lang, native_lang, explanation_lang_override?, cefr_level, created_at, timezone?, daily_goal?, reminders_enabled, last_reminded_on?, streak_best | unique(user_id, target_lang): one profile per language learned. NULL timezone / daily_goal mean the configured default (`DEFAULT_TIMEZONE`, `DEFAULT_DAILY_GOAL`) |
+| review_items | **id**, profile_id, source_text, wrong, right, rule_tag, explanation, box, due_at, reviews, lapses, last_reviewed_at?, created_at | spaced-repetition card per distinct mistake; unique(profile_id, wrong, right), index(profile_id, due_at). Created by turns; migration 0003 backfilled existing mistakes |
 | daily_activity | **profile_id, day**, messages | learner messages per *local* day (learner's timezone); drives streaks and the daily goal |
 | skill_levels | **profile_id, skill**, cefr_level, score (0–1), updated_at | skill ∈ speaking, listening, reading, writing, grammar, vocab |
 | grammar_mastery | **profile_id, topic_id**, mastery (0–1), attempts, errors, last_seen_at | topic_id = curriculum id (text) |
@@ -149,6 +150,9 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 | GET | /healthz | liveness + curriculum loaded |
 | POST | /v1/users/resolve | `{provider, external_id, display_name, target_lang, native_lang}` → user + profile (idempotent) |
 | GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language, timezone, daily goal, reminders). Omitted PATCH fields are unchanged; `explanation_lang_override: null` / `timezone: null` reset to the default |
+| POST | /v1/learners/{id}/ask | `{question}` → `{question, answer}`: a side question answered with the open conversation as context; not stored as a turn, not corrected, not counted as practice |
+| GET | /v1/learners/{id}/review/next | `{card?, due, total, next_due_at?}`: next mistake card due (the correct form is not sent) |
+| POST | /v1/review/{card_id}/answer | `{answer}` → `{correct, wrong, right, explanation, feedback?, next_review_in_days, due, progress}` |
 | GET | /v1/learners/{id}/progress | `{streak, best_streak, today, goal, goal_met}` |
 | GET | /v1/learners/{id}/mistakes?topic=&limit= | recent mistakes |
 | GET | /v1/learners/{id}/vocab?limit= | vocab |
@@ -250,6 +254,12 @@ The result is a `Policy` object, and prompt assembly reads only that object:
 - Topics start at mastery 0. Each correction is one error on its `rule_tag`. A `grammar_tag` with no correction on the same topic is one correct use. `unknown` is never tracked.
 - **Skill levels.** These change only from aggregates, never on a single turn. Phase 1 updates only the `grammar` and `vocab` scores, at session end, as the mean mastery of practised topics and known words. A learner-confirmed level change (PATCH) moves every skill's `cefr_level` with it. CEFR level changes are proposed by the system and confirmed by the learner, not applied automatically.
 
+## 8b. Practise my mistakes (`domain/review.py`, `services/review_service.py`)
+- Every correction in a turn upserts a card keyed by (profile, wrong, right), holding the learner's original message. Repeating a known mistake in chat sends its card back to box 0.
+- Leitner boxes: a new or failed card is due again after 10 minutes. A correct answer moves it up one box, with intervals of 1, 3, 7, 16 and 35 days.
+- The learner sees their original sentence with the error underlined and replies with a fix. `quick_grade` accepts an answer that contains the stored fix and not the error, for free. Anything else is judged by the model (`build_grade_prompt`, `ReviewGrade` structured output, help effort), which accepts correct alternatives and gives feedback in the explanation language.
+- Each review answer counts toward the daily goal and streak. Reminders mention the number of cards due.
+
 ## 9. Evaluation (`evals/corrections`)
 `cases/<level>.yaml`:
 ```yaml
@@ -305,6 +315,10 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - `BOT_TARGET_LANG`
 - `BOT_NATIVE_LANG_CHOICES` (`code:label` list for the language buttons)
 
+**Side questions.** 🙋 Ask (a reply prompt), `/ask <question>`, or any message starting with `?` goes to `POST /v1/learners/{id}/ask` instead of the conversation. Messages starting with Spanish `¿` stay in the conversation. The answer comes in the language of the question.
+
+**Practise mistakes.** 🧠 Practise mistakes (or `/review`) shows the next card as a reply prompt headed `🧠 Practice #<card id>`. The learner's reply quotes that header, so the bot can route the answer to `POST /v1/review/{id}/answer` without keeping state. After each answer: ▶️ Next (`rv:next`) or 🏁 Stop (`rv:done`).
+
 **Habits (streaks, daily goal, reminders).** The API owns all of it (`domain/streaks.py` is pure, `services/habits_service.py` does the I/O); the bot only renders it.
 - Every learner message adds one to today's `daily_activity` row, using the learner's local day. The streak is the run of consecutive active days ending today or yesterday (today is not over yet).
 - After a turn, the bot adds one line only on the first message of the day (🔥 streak) or when the goal is reached (🎯), so ordinary turns stay clean. 📊 My progress shows the streak, best streak and today's goal bar. ⚙️ Settings changes the goal (`goal:<n>`) and toggles reminders (`rem:on|off`).
@@ -317,7 +331,7 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - **Different model per route** (e.g. a cheaper model for summaries): add config keys. The `llm/` wrapper is the only place that changes.
 
 ## 12. Roadmap after Phase 1
-- spaced-repetition review of mistakes and vocab
+- spaced-repetition review of vocab (mistakes: done, section 8b)
 - placement test
 - voice: speech-to-text in, text-to-speech out, plus speaking and listening skill updates
 - web client

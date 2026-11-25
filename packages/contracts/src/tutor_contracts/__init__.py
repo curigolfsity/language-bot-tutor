@@ -20,6 +20,12 @@ from tutor_contracts.learners import (
     VocabOut,
 )
 from tutor_contracts.reminders import ReminderClaimRequest, ReminderOut
+from tutor_contracts.review import (
+    ReviewAnswerOut,
+    ReviewAnswerRequest,
+    ReviewCardOut,
+    ReviewQueueOut,
+)
 from tutor_contracts.sessions import (
     CreateSessionRequest,
     MistakeCount,
@@ -27,6 +33,8 @@ from tutor_contracts.sessions import (
     SessionSummary,
 )
 from tutor_contracts.turns import (
+    AskOut,
+    AskRequest,
     Correction,
     HelpKind,
     HelpOut,
@@ -41,6 +49,12 @@ from tutor_contracts.turns import (
 from tutor_contracts.users import ResolveUserRequest, ResolveUserResponse
 
 __all__ = [
+    "ReviewAnswerOut",
+    "ReviewAnswerRequest",
+    "ReviewCardOut",
+    "ReviewQueueOut",
+    "AskOut",
+    "AskRequest",
     "DailyProgressOut",
     "ReminderClaimRequest",
     "ReminderOut",

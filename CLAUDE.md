@@ -75,11 +75,13 @@ Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive
 - level-aware corrections
 - persisting mistakes, vocab and mastery to Postgres
 - correction eval script
+- added on request (2026-11-25): streaks/daily goal/reminders, side questions ("ask"),
+  spaced-repetition practice of the learner's own mistakes, voice messages in (speech-to-text)
 
 **Not yet (do not build unless asked):**
-- voice and listening exercises
+- listening exercises and spoken replies (text-to-speech)
 - web or mobile clients
-- spaced-repetition review
+- spaced-repetition of vocabulary
 - placement test
 - multi-language content
 - billing and real auth

@@ -45,6 +45,8 @@ COMMANDS = [
     BotCommand("start", "Start or restart"),
     BotCommand("chat", "Free conversation"),
     BotCommand("roleplay", "Practise a real-life situation"),
+    BotCommand("review", "Practise your past mistakes"),
+    BotCommand("ask", "Ask a question without interrupting the conversation"),
     BotCommand("progress", "Your progress and recent mistakes"),
     BotCommand("end", "Finish the session and see a summary"),
     BotCommand("settings", "Level, language, daily goal, reminders"),
@@ -251,9 +253,67 @@ async def do_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _send(update, formatting.HOW_IT_WORKS, reply_markup=kb.main_menu())
 
 
+# ----------------------------------------------------------------------------- side questions
+
+
+async def answer_question(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, question: str
+) -> None:
+    """Answer outside the conversation: nothing is stored as a turn or corrected."""
+    msg = update.effective_message
+    assert msg is not None
+    profile, _ = await _resolve(update, context)
+    async with _typing(update, context):
+        answer = await _api(context).ask(profile.id, question)
+    await msg.reply_text(formatting.format_answer(answer), parse_mode=ParseMode.HTML)
+
+
+async def do_ask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _send(update, formatting.ASK_PROMPT, reply_markup=kb.reply_prompt("Your question…"))
+
+
+async def cmd_ask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    question = " ".join(context.args or []).strip()
+    if question:
+        await answer_question(update, context, question)
+    else:
+        await do_ask(update, context)
+
+
+# ----------------------------------------------------------------------------- practise mistakes
+
+
+async def do_review(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show the next due card as a reply prompt (the reply quotes the card id)."""
+    profile, _ = await _resolve(update, context)
+    queue = await _api(context).next_review(profile.id)
+    if queue.card is None:
+        await _send(
+            update, formatting.format_queue_empty(queue), reply_markup=kb.next_step_keyboard()
+        )
+        return
+    await _send(update, formatting.format_card(queue), reply_markup=kb.reply_prompt("Your fix…"))
+
+
+async def answer_card(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, card_id: int, answer: str
+) -> None:
+    msg = update.effective_message
+    assert msg is not None
+    async with _typing(update, context):
+        result = await _api(context).answer_review(card_id, answer)
+    await msg.reply_text(
+        formatting.format_review_result(result),
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb.review_next_keyboard(result.due) if result.due else kb.next_step_keyboard(),
+    )
+
+
 MENU_ACTIONS = {
     kb.MENU_CHAT: do_free_chat,
     kb.MENU_ROLEPLAY: do_roleplay,
+    kb.MENU_REVIEW: do_review,
+    kb.MENU_ASK: do_ask,
     kb.MENU_PROGRESS: do_progress,
     kb.MENU_FINISH: do_finish,
     kb.MENU_SETTINGS: do_settings,
@@ -368,6 +428,13 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         with contextlib.suppress(Exception):
             await query.edit_message_reply_markup(None)
         await _send(update, f"🎯 Daily goal set to <b>{updated.daily_goal} messages</b>.")
+    elif kind == "rv":
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        if rest == "next":
+            await do_review(update, context)
+        else:
+            await _send(update, "👍 Nice work. What next?", reply_markup=kb.next_step_keyboard())
     elif kind == "rem" and rest in ("on", "off"):
         profile, _ = await _resolve(update, context)
         await _api(context).patch_learner(profile.id, LearnerPatch(reminders_enabled=rest == "on"))
@@ -384,6 +451,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await do_free_chat(update, context)
         elif rest == "roleplay":
             await do_roleplay(update, context)
+        elif rest == "review":
+            await do_review(update, context)
         elif rest == "resume":
             await do_resume(update, context)
         elif rest == "settings_goal":
@@ -406,9 +475,26 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.effective_message
     if msg is None or not msg.text:
         return
-    action = MENU_ACTIONS.get(msg.text.strip())
+    text = msg.text.strip()
+    action = MENU_ACTIONS.get(text)
     if action is not None:
         await action(update, context)
+        return
+
+    # A reply to one of the bot's prompts (practice card or "ask me anything").
+    replied = msg.reply_to_message
+    if replied is not None and replied.from_user is not None and replied.from_user.is_bot:
+        card_id = formatting.parse_card_id(replied.text)
+        if card_id is not None:
+            await answer_card(update, context, card_id, text)
+            return
+        if (replied.text or "").startswith(kb.ASK_PROMPT_HEADER):
+            await answer_question(update, context, text)
+            return
+
+    # "?..." is a side question. Spanish questions start with "¿", so they stay in the chat.
+    if text.startswith("?") and len(text) > 1:
+        await answer_question(update, context, text[1:].strip())
         return
 
     profile, _ = await _resolve(update, context)
@@ -451,9 +537,9 @@ async def send_due_reminders(app: Application) -> int:
         try:
             await app.bot.send_message(
                 chat_id=int(r.external_id),
-                text=formatting.format_reminder(r),
+                text=formatting.format_reminder_with_reviews(r),
                 parse_mode=ParseMode.HTML,
-                reply_markup=kb.reminder_keyboard(),
+                reply_markup=kb.reminder_keyboard(r.reviews_due),
             )
             sent += 1
         except Forbidden:
@@ -516,6 +602,8 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler("settings", do_settings))
     app.add_handler(CommandHandler("level", cmd_level))
     app.add_handler(CommandHandler("native", cmd_native))
+    app.add_handler(CommandHandler("ask", cmd_ask))
+    app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_error_handler(on_error)

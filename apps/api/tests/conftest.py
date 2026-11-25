@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from tutor_api.config import REPO_ROOT, Settings
 from tutor_api.curriculum import Curriculum, load_curriculum
 from tutor_api.db import Base, make_engine, make_sessionmaker
-from tutor_api.llm import LLMHelpOutcome, LLMTurnOutcome
+from tutor_api.llm import LLMGradeOutcome, LLMHelpOutcome, LLMTurnOutcome, ReviewGrade
 from tutor_api.main import create_app
 from tutor_api.services.context import AppContext
 from tutor_contracts import Correction, NewVocab, TurnResult
@@ -43,6 +43,8 @@ class FakeLLM:
         self.queue: list[LLMTurnOutcome | Exception] = []
         self.help_calls: list[tuple[str, str]] = []
         self.help_refuse = False
+        self.grade_calls: list[tuple[str, str]] = []
+        self.grades: list[ReviewGrade] = []  # queued; default: incorrect
 
     def push_result(self, result: TurnResult) -> None:
         self.queue.append(
@@ -75,6 +77,11 @@ class FakeLLM:
         if self.help_refuse:
             return LLMHelpOutcome(None, True, self.model, 10, 0)
         return LLMHelpOutcome("help text", False, self.model, 10, 5)
+
+    async def generate_grade(self, system_prompt: str, user_content: str) -> LLMGradeOutcome:
+        self.grade_calls.append((system_prompt, user_content))
+        grade = self.grades.pop(0) if self.grades else ReviewGrade(correct=False, feedback="nope")
+        return LLMGradeOutcome(grade=grade, refused=False, model=self.model)
 
     async def generate_turn(self, system_prompt: str, user_content: str) -> LLMTurnOutcome:
         self.calls.append((system_prompt, user_content))

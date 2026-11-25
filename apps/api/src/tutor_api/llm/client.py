@@ -56,6 +56,23 @@ class LLMHelpOutcome:
     output_tokens: int
 
 
+class ReviewGrade(BaseModel):
+    """Structured output for grading a review answer."""
+
+    correct: bool = Field(
+        description="True if the learner's answer fixes the error correctly (any correct, "
+        "natural wording counts)."
+    )
+    feedback: str = Field(description="One or two short sentences for the learner, plain text.")
+
+
+@dataclass(frozen=True)
+class LLMGradeOutcome:
+    grade: ReviewGrade | None  # None when refused
+    refused: bool
+    model: str
+
+
 class TurnLLM(Protocol):
     """What services depend on. Tests provide a fake implementation."""
 
@@ -64,6 +81,8 @@ class TurnLLM(Protocol):
     async def generate_turn(self, system_prompt: str, user_content: str) -> LLMTurnOutcome: ...
 
     async def generate_help(self, system_prompt: str, user_content: str) -> LLMHelpOutcome: ...
+
+    async def generate_grade(self, system_prompt: str, user_content: str) -> LLMGradeOutcome: ...
 
 
 class AnthropicTurnLLM:
@@ -157,3 +176,15 @@ class AnthropicTurnLLM:
         if parsed is None:
             raise LLMError(f"no parsed HelpText (stop_reason={response.stop_reason})")
         return LLMHelpOutcome(text=parsed.text, refused=False, **base)
+
+    async def generate_grade(self, system_prompt: str, user_content: str) -> LLMGradeOutcome:
+        response = await self._parse(
+            system_prompt, user_content, ReviewGrade, self._help_effort, cache_system=False
+        )
+        if response.stop_reason == "refusal":
+            log.warning("model refused review grading (model=%s)", response.model)
+            return LLMGradeOutcome(grade=None, refused=True, model=response.model)
+        parsed = response.parsed_output
+        if parsed is None:
+            raise LLMError(f"no parsed ReviewGrade (stop_reason={response.stop_reason})")
+        return LLMGradeOutcome(grade=parsed, refused=False, model=response.model)

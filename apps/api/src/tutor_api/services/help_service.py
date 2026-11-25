@@ -1,14 +1,15 @@
-"""Learner help on a tutor message: hint, translate, suggest an answer, explain corrections."""
+"""Learner help: hint / translate / suggest / explain on a tutor message, and side questions."""
 
 from __future__ import annotations
 
 import logging
+import uuid
 
-from tutor_contracts import HelpKind, HelpOut
+from tutor_contracts import AskOut, HelpKind, HelpOut
 
 from tutor_api.db.repositories import ProfileRepo, SessionRepo, TurnRepo
 from tutor_api.domain.policy import resolve_policy
-from tutor_api.domain.prompt import PriorTurn, build_help_prompt
+from tutor_api.domain.prompt import PriorTurn, build_ask_prompt, build_help_prompt
 from tutor_api.llm import LLMError
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import InvalidRequestError, NotFoundError, UpstreamError
@@ -58,3 +59,36 @@ async def get_help(ctx: AppContext, turn_id: int, kind: HelpKind) -> HelpOut:
     if outcome.refused or not outcome.text:
         return HelpOut(kind=kind, text=curriculum.lang.refusal_reply)
     return HelpOut(kind=kind, text=outcome.text.strip())
+
+
+async def ask(ctx: AppContext, profile_id: uuid.UUID, question: str) -> AskOut:
+    """Answer a side question, using the open conversation (if any) as context."""
+    async with ctx.sessionmaker() as db:
+        profile = await ProfileRepo(db).get(profile_id)
+        if profile is None:
+            raise NotFoundError("learner profile not found")
+        curriculum = ctx.curriculum(profile.target_lang)
+        session = await SessionRepo(db).get_open(profile.id)
+        scenario = None
+        prior: list[PriorTurn] = []
+        if session is not None:
+            if session.scenario_id:
+                scenario = curriculum.scenarios.get(session.scenario_id)
+            recent = await TurnRepo(db).recent(session.id, CONTEXT_TURNS)
+            prior = [PriorTurn(role=t.role, text=t.text) for t in recent]
+        policy = resolve_policy(
+            curriculum,
+            profile.cefr_level,
+            profile.native_lang,
+            profile.explanation_lang_override,  # type: ignore[arg-type]
+            scenario,
+        )
+
+    system, user = build_ask_prompt(policy, scenario, prior, question)
+    try:
+        outcome = await ctx.llm.generate_help(system, user)
+    except LLMError as e:
+        log.error("LLM ask failed: %s", e)
+        raise UpstreamError(str(e)) from e
+    text = curriculum.lang.refusal_reply if outcome.refused or not outcome.text else outcome.text
+    return AskOut(question=question, answer=text.strip())

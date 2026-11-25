@@ -88,3 +88,14 @@ class HelpRequest(BaseModel):
 class HelpOut(BaseModel):
     kind: HelpKind
     text: str
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+
+
+class AskOut(BaseModel):
+    """Answer to a side question. Not part of the conversation: not stored as a turn."""
+
+    question: str
+    answer: str

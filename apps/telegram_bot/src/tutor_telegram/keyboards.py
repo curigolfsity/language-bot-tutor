@@ -7,12 +7,14 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   play:<scenario_id>     start a role-play
   goal:<n>               set the daily goal (messages per day)
   rem:<on|off>           practice reminders on / off
+  rv:<next|done>         practise-my-mistakes: next card / stop
   menu:<action>          free | roleplay | resume | settings_level | settings_native | settings_goal
 """
 
 from __future__ import annotations
 
 from telegram import (
+    ForceReply,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
@@ -27,7 +29,23 @@ MENU_PROGRESS = "📊 My progress"
 MENU_FINISH = "🏁 Finish session"
 MENU_SETTINGS = "⚙️ Settings"
 MENU_HELP = "❓ How it works"
-MENU_LABELS = {MENU_CHAT, MENU_ROLEPLAY, MENU_PROGRESS, MENU_FINISH, MENU_SETTINGS, MENU_HELP}
+MENU_REVIEW = "🧠 Practise mistakes"
+MENU_ASK = "🙋 Ask a question"
+MENU_LABELS = {
+    MENU_CHAT,
+    MENU_ROLEPLAY,
+    MENU_REVIEW,
+    MENU_ASK,
+    MENU_PROGRESS,
+    MENU_FINISH,
+    MENU_SETTINGS,
+    MENU_HELP,
+}
+
+# Headers of messages the learner answers with Telegram's "reply". The bot recognises the
+# reply by the quoted header, so it needs no memory of what it asked.
+ASK_PROMPT_HEADER = "🙋 Ask me anything"
+REVIEW_HEADER = "🧠 Practice #"  # followed by the card id
 
 LEVEL_ICONS = ["🌱", "🌿", "🌳", "🏔️", "🚀", "👑"]
 GOAL_CHOICES = (5, 10, 20, 30)  # messages per day offered as buttons
@@ -37,6 +55,7 @@ def main_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton(MENU_CHAT), KeyboardButton(MENU_ROLEPLAY)],
+            [KeyboardButton(MENU_REVIEW), KeyboardButton(MENU_ASK)],
             [KeyboardButton(MENU_PROGRESS), KeyboardButton(MENU_FINISH)],
             [KeyboardButton(MENU_SETTINGS), KeyboardButton(MENU_HELP)],
         ],
@@ -149,12 +168,27 @@ def goal_keyboard(current: int) -> InlineKeyboardMarkup:
     )
 
 
-def reminder_keyboard() -> InlineKeyboardMarkup:
+def reminder_keyboard(reviews_due: int = 0) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton("▶️ Practise now", callback_data="menu:resume")]]
+    if reviews_due:
+        rows.append(
+            [InlineKeyboardButton(f"🧠 Review {reviews_due} mistakes", callback_data="menu:review")]
+        )
+    rows.append([InlineKeyboardButton("🔕 Stop reminders", callback_data="rem:off")])
+    return InlineKeyboardMarkup(rows)
+
+
+def reply_prompt(placeholder: str) -> ForceReply:
+    """Opens the reply box on the prompt, so the answer quotes it."""
+    return ForceReply(selective=True, input_field_placeholder=placeholder)
+
+
+def review_next_keyboard(due: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("▶️ Practise now", callback_data="menu:resume"),
-                InlineKeyboardButton("🔕 Stop reminders", callback_data="rem:off"),
+                InlineKeyboardButton(f"▶️ Next ({due} left)", callback_data="rv:next"),
+                InlineKeyboardButton("🏁 Stop", callback_data="rv:done"),
             ]
         ]
     )

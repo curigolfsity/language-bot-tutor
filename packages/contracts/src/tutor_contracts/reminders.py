@@ -15,3 +15,4 @@ class ReminderOut(BaseModel):
     external_id: str
     streak: int = Field(description="Streak at risk (0 if it already lapsed).")
     goal: int
+    reviews_due: int = Field(default=0, description="Mistake cards due for review.")

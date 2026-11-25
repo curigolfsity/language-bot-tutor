@@ -18,6 +18,7 @@ from tutor_api.db.models import (
     GrammarMastery,
     LearnerProfile,
     Mistake,
+    ReviewItem,
     Session,
     SkillLevel,
     Turn,
@@ -339,3 +340,47 @@ class ActivityRepo:
             )
         )
         return [(p, ext) for p, ext in (await self.db.execute(stmt)).all()]
+
+
+class ReviewRepo:
+    """Spaced-repetition cards made from mistakes."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get(self, card_id: int) -> ReviewItem | None:
+        return await self.db.get(ReviewItem, card_id)
+
+    async def find(self, profile_id: uuid.UUID, wrong: str, right: str) -> ReviewItem | None:
+        stmt = select(ReviewItem).where(
+            ReviewItem.profile_id == profile_id,
+            ReviewItem.wrong == wrong,
+            ReviewItem.right == right,
+        )
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    def add(self, item: ReviewItem) -> None:
+        self.db.add(item)
+
+    async def next_due(self, profile_id: uuid.UUID, now: datetime) -> ReviewItem | None:
+        stmt = (
+            select(ReviewItem)
+            .where(ReviewItem.profile_id == profile_id, ReviewItem.due_at <= now)
+            .order_by(ReviewItem.due_at, ReviewItem.id)
+            .limit(1)
+        )
+        return (await self.db.execute(stmt)).scalar_one_or_none()
+
+    async def count_due(self, profile_id: uuid.UUID, now: datetime) -> int:
+        stmt = select(func.count()).where(
+            ReviewItem.profile_id == profile_id, ReviewItem.due_at <= now
+        )
+        return int((await self.db.execute(stmt)).scalar_one())
+
+    async def count_all(self, profile_id: uuid.UUID) -> int:
+        stmt = select(func.count()).where(ReviewItem.profile_id == profile_id)
+        return int((await self.db.execute(stmt)).scalar_one())
+
+    async def earliest_due(self, profile_id: uuid.UUID) -> datetime | None:
+        stmt = select(func.min(ReviewItem.due_at)).where(ReviewItem.profile_id == profile_id)
+        return (await self.db.execute(stmt)).scalar_one_or_none()

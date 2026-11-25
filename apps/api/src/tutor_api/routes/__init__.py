@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter, Depends
 
-from tutor_api.routes import curriculum, health, learners, reminders, sessions, turns, users
+from tutor_api.routes import (
+    curriculum,
+    health,
+    learners,
+    reminders,
+    review,
+    sessions,
+    turns,
+    users,
+)
 from tutor_api.routes.deps import require_client_key
 
 v1 = APIRouter(prefix="/v1", dependencies=[Depends(require_client_key)])
@@ -12,5 +21,6 @@ v1.include_router(curriculum.router)
 v1.include_router(sessions.router)
 v1.include_router(turns.router)
 v1.include_router(reminders.router)
+v1.include_router(review.router)
 
 __all__ = ["health", "v1"]

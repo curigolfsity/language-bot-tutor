@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from tutor_contracts import (
+    AskOut,
     Correction,
     DailyProgressOut,
     HelpOut,
@@ -11,6 +12,9 @@ from tutor_contracts import (
     MistakeOut,
     NewVocab,
     ReminderOut,
+    ReviewAnswerOut,
+    ReviewCardOut,
+    ReviewQueueOut,
     SessionOut,
     SessionSummary,
     SkillLevelOut,
@@ -134,6 +138,8 @@ def test_keyboards_callback_data_fits_telegram_limit():
         kb.settings_keyboard(reminders_enabled=False),
         kb.goal_keyboard(10),
         kb.reminder_keyboard(),
+        kb.reminder_keyboard(reviews_due=12),
+        kb.review_next_keyboard(3),
     ]
     for markup in markups:
         assert markup is not None
@@ -155,8 +161,10 @@ def test_native_keyboard_puts_detected_first():
     assert first.text.startswith("✓") and first.callback_data == "nat:th:s"
 
 
-def test_menu_labels_are_unique():
-    assert len(kb.MENU_LABELS) == 6
+def test_menu_labels_are_unique_and_all_shown():
+    shown = [b.text for row in kb.main_menu().keyboard for b in row]
+    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 8
+    assert set(shown) == kb.MENU_LABELS
 
 
 def progress(**kw) -> TurnProgress:
@@ -193,3 +201,68 @@ def test_reminder_text():
 def test_goal_keyboard_marks_current():
     labels = [b.text for b in kb.goal_keyboard(10).inline_keyboard[0]]
     assert "✓ 10 / day" in labels
+
+
+def test_card_snippet_highlights_and_trims():
+    assert formatting.card_snippet("Yo soy en la playa.", "SOY EN") == (
+        "Yo <b><u>soy en</u></b> la playa."
+    )
+    long = "a" * 200 + " soy en " + "b" * 200
+    snip = formatting.card_snippet(long, "soy en")
+    assert snip.startswith("…") and snip.endswith("…") and "<b><u>soy en</u></b>" in snip
+    assert formatting.card_snippet("<x> & y", "zzz") == "&lt;x&gt; &amp; y"  # not found: escaped
+
+
+def test_card_prompt_round_trip():
+    q = ReviewQueueOut(
+        card=ReviewCardOut(
+            id=42,
+            source_text="Yo soy en casa",
+            wrong="soy en",
+            rule_tag="t",
+            rule_title="Ser",
+            box=0,
+        ),
+        due=3,
+        total=5,
+        next_due_at=None,
+    )
+    html = formatting.format_card(q)
+    assert "3 to go" in html and "<i>Ser</i>" in html
+    # Telegram gives the bot the replied-to message as plain text (HTML tags removed).
+    plain = html.replace("<b>", "").replace("</b>", "")
+    assert formatting.parse_card_id(plain) == 42
+    assert formatting.parse_card_id("hello") is None and formatting.parse_card_id(None) is None
+
+
+def test_queue_empty_and_results():
+    now = datetime(2026, 11, 20, 12, tzinfo=UTC)
+    empty = ReviewQueueOut(card=None, due=0, total=0, next_due_at=None)
+    assert "No mistakes to practise yet" in formatting.format_queue_empty(empty)
+    later = empty.model_copy(
+        update={"total": 4, "next_due_at": datetime(2026, 11, 21, 12, tzinfo=UTC)}
+    )
+    assert "in 1 day" in formatting.format_queue_empty(later, now)
+
+    base = dict(
+        wrong="soy en", right="estoy en", explanation="Location uses estar.",
+        next_review_in_days=3.0, due=2, progress=progress(),
+    )  # fmt: skip
+    ok = formatting.format_review_result(ReviewAnswerOut(correct=True, feedback=None, **base))
+    assert "Correct" in ok and "<s>soy en</s> → <b>estoy en</b>" in ok and "in 3 days" in ok
+    bad = formatting.format_review_result(
+        ReviewAnswerOut(**{**base, "correct": False, "feedback": "Use estar.", "due": 0})
+    )
+    assert "Not quite" in bad and "Use estar." in bad and "That's all for now" in bad
+
+
+def test_answer_and_reminder_with_reviews():
+    a = formatting.format_answer(
+        AskOut(question="ser <> estar?", answer="Ser = what; estar = how.")
+    )
+    assert "ser &lt;&gt; estar?" in a and "estar = how" in a
+    r = ReminderOut(profile_id=uuid4(), external_id="1", streak=0, goal=10, reviews_due=3)
+    assert "3 mistakes to practise" in formatting.format_reminder_with_reviews(r)
+    assert "practise." not in formatting.format_reminder_with_reviews(
+        r.model_copy(update={"reviews_due": 0})
+    )

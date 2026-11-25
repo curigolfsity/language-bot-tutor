@@ -8,6 +8,8 @@ from uuid import UUID
 import httpx
 from pydantic import BaseModel, TypeAdapter
 from tutor_contracts import (
+    AskOut,
+    AskRequest,
     CreateSessionRequest,
     DailyProgressOut,
     HelpKind,
@@ -22,6 +24,9 @@ from tutor_contracts import (
     ReminderOut,
     ResolveUserRequest,
     ResolveUserResponse,
+    ReviewAnswerOut,
+    ReviewAnswerRequest,
+    ReviewQueueOut,
     ScenarioOut,
     SessionOut,
     SessionSummary,
@@ -101,6 +106,22 @@ class TutorApiClient:
     async def claim_reminders(self, provider: str, target_lang: str) -> list[ReminderOut]:
         req = ReminderClaimRequest(provider=provider, target_lang=target_lang)
         return await self._request("POST", "/v1/reminders/claim", list[ReminderOut], req)
+
+    async def ask(self, profile_id: UUID, question: str) -> AskOut:
+        return await self._request(
+            "POST", f"/v1/learners/{profile_id}/ask", AskOut, AskRequest(question=question)
+        )
+
+    async def next_review(self, profile_id: UUID) -> ReviewQueueOut:
+        return await self._request("GET", f"/v1/learners/{profile_id}/review/next", ReviewQueueOut)
+
+    async def answer_review(self, card_id: int, answer: str) -> ReviewAnswerOut:
+        return await self._request(
+            "POST",
+            f"/v1/review/{card_id}/answer",
+            ReviewAnswerOut,
+            ReviewAnswerRequest(answer=answer),
+        )
 
     async def mistakes(self, profile_id: UUID, limit: int = 10) -> list[MistakeOut]:
         return await self._request(
