@@ -21,6 +21,9 @@ class LearnerProfileOut(BaseModel):
     explanation_lang_override: ExplanationLanguage | None
     skills: list[SkillLevelOut]
     created_at: datetime
+    timezone: str = Field(description="IANA timezone used for daily streaks (effective value).")
+    daily_goal: int = Field(description="Messages per day for the daily goal (effective value).")
+    reminders_enabled: bool = True
 
 
 class LearnerPatch(BaseModel):
@@ -30,6 +33,17 @@ class LearnerPatch(BaseModel):
     cefr_level: str | None = None
     native_lang: str | None = Field(default=None, min_length=2, max_length=8)
     explanation_lang_override: ExplanationLanguage | None = None
+    timezone: str | None = Field(default=None, max_length=64, description="IANA name")
+    daily_goal: int | None = Field(default=None, ge=1, le=200)
+    reminders_enabled: bool | None = None
+
+
+class DailyProgressOut(BaseModel):
+    streak: int = Field(description="Consecutive days practised, ending today or yesterday.")
+    best_streak: int
+    today: int = Field(description="Messages sent today (learner's local day).")
+    goal: int
+    goal_met: bool
 
 
 class MistakeOut(BaseModel):

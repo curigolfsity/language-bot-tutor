@@ -9,6 +9,7 @@ import httpx
 from pydantic import BaseModel, TypeAdapter
 from tutor_contracts import (
     CreateSessionRequest,
+    DailyProgressOut,
     HelpKind,
     HelpOut,
     HelpRequest,
@@ -17,6 +18,8 @@ from tutor_contracts import (
     LearnerProfileOut,
     LevelOut,
     MistakeOut,
+    ReminderClaimRequest,
+    ReminderOut,
     ResolveUserRequest,
     ResolveUserResponse,
     ScenarioOut,
@@ -91,6 +94,13 @@ class TutorApiClient:
 
     async def patch_learner(self, profile_id: UUID, patch: LearnerPatch) -> LearnerProfileOut:
         return await self._request("PATCH", f"/v1/learners/{profile_id}", LearnerProfileOut, patch)
+
+    async def progress(self, profile_id: UUID) -> DailyProgressOut:
+        return await self._request("GET", f"/v1/learners/{profile_id}/progress", DailyProgressOut)
+
+    async def claim_reminders(self, provider: str, target_lang: str) -> list[ReminderOut]:
+        req = ReminderClaimRequest(provider=provider, target_lang=target_lang)
+        return await self._request("POST", "/v1/reminders/claim", list[ReminderOut], req)
 
     async def mistakes(self, profile_id: UUID, limit: int = 10) -> list[MistakeOut]:
         return await self._request(

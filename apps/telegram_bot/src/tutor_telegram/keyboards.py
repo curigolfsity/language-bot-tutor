@@ -5,7 +5,9 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   nat:<code>:<o|s>       set native language (o = onboarding step, s = from settings)
   lvl:<code>:<o|s>       set level
   play:<scenario_id>     start a role-play
-  menu:<action>          free | roleplay | settings_level | settings_native
+  goal:<n>               set the daily goal (messages per day)
+  rem:<on|off>           practice reminders on / off
+  menu:<action>          free | roleplay | resume | settings_level | settings_native | settings_goal
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ MENU_HELP = "❓ How it works"
 MENU_LABELS = {MENU_CHAT, MENU_ROLEPLAY, MENU_PROGRESS, MENU_FINISH, MENU_SETTINGS, MENU_HELP}
 
 LEVEL_ICONS = ["🌱", "🌿", "🌳", "🏔️", "🚀", "👑"]
+GOAL_CHOICES = (5, 10, 20, 30)  # messages per day offered as buttons
 
 
 def main_menu() -> ReplyKeyboardMarkup:
@@ -113,7 +116,12 @@ def next_step_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def settings_keyboard() -> InlineKeyboardMarkup:
+def settings_keyboard(reminders_enabled: bool = True) -> InlineKeyboardMarkup:
+    reminder = (
+        InlineKeyboardButton("🔕 Turn reminders off", callback_data="rem:off")
+        if reminders_enabled
+        else InlineKeyboardButton("🔔 Turn reminders on", callback_data="rem:on")
+    )
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("📶 Change my level", callback_data="menu:settings_level")],
@@ -122,5 +130,31 @@ def settings_keyboard() -> InlineKeyboardMarkup:
                     "🗣️ Change explanation language", callback_data="menu:settings_native"
                 )
             ],
+            [InlineKeyboardButton("🎯 Change daily goal", callback_data="menu:settings_goal")],
+            [reminder],
+        ]
+    )
+
+
+def goal_keyboard(current: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    ("✓ " if n == current else "") + f"{n} / day", callback_data=f"goal:{n}"
+                )
+                for n in GOAL_CHOICES
+            ]
+        ]
+    )
+
+
+def reminder_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("▶️ Practise now", callback_data="menu:resume"),
+                InlineKeyboardButton("🔕 Stop reminders", callback_data="rem:off"),
+            ]
         ]
     )

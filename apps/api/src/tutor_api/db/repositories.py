@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable, Sequence
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tutor_api.db.models import (
+    DailyActivity,
     GrammarMastery,
     LearnerProfile,
     Mistake,
@@ -292,3 +293,49 @@ class VocabRepo:
     async def all_masteries(self, profile_id: uuid.UUID) -> list[float]:
         stmt = select(VocabItem.mastery).where(VocabItem.profile_id == profile_id)
         return [float(x) for x in (await self.db.execute(stmt)).scalars().all()]
+
+
+class ActivityRepo:
+    """Learner messages per local day (streaks, daily goal)."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def count_on(self, profile_id: uuid.UUID, day: date) -> int:
+        row = await self.db.get(DailyActivity, (profile_id, day))
+        return row.messages if row else 0
+
+    async def bump(self, profile_id: uuid.UUID, day: date) -> int:
+        """Add one message to `day`; returns the new count."""
+        row = await self.db.get(DailyActivity, (profile_id, day))
+        if row is None:
+            row = DailyActivity(profile_id=profile_id, day=day, messages=0)
+            self.db.add(row)
+        row.messages += 1
+        await self.db.flush()
+        return row.messages
+
+    async def recent_days(self, profile_id: uuid.UUID, limit: int) -> list[date]:
+        """Active days, newest first."""
+        stmt = (
+            select(DailyActivity.day)
+            .where(DailyActivity.profile_id == profile_id, DailyActivity.messages > 0)
+            .order_by(DailyActivity.day.desc())
+            .limit(limit)
+        )
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def reminder_candidates(
+        self, provider: str, target_lang: str
+    ) -> list[tuple[LearnerProfile, str]]:
+        """Profiles with reminders on, with the external id of their `provider` identity."""
+        stmt = (
+            select(LearnerProfile, UserIdentity.external_id)
+            .join(UserIdentity, UserIdentity.user_id == LearnerProfile.user_id)
+            .where(
+                UserIdentity.provider == provider,
+                LearnerProfile.target_lang == target_lang,
+                LearnerProfile.reminders_enabled.is_(True),
+            )
+        )
+        return [(p, ext) for p, ext in (await self.db.execute(stmt)).all()]

@@ -37,6 +37,7 @@ from tutor_api.domain.tags import apply_policy, for_display, sanitize_tags, well
 from tutor_api.llm import LLMError, LLMTurnOutcome, TurnLLM
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import ConflictError, NotFoundError, UpstreamError
+from tutor_api.services.habits_service import record_message
 
 log = logging.getLogger(__name__)
 
@@ -173,6 +174,7 @@ async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> Turn
             )
             if not run.refused:
                 await _persist_learning(ctx, db, profile_id, learner_turn, text, final)
+            progress = await record_message(db, profile_id, ctx.settings)
     except IntegrityError as e:
         raise ConflictError("another turn for this session was saved at the same time") from e
 
@@ -181,6 +183,7 @@ async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> Turn
         **run.shown.model_dump(),
         turn_id=tutor_turn.id,
         well_done=[TopicRef(id=t, title=curriculum.topics[t].title) for t in praised],
+        progress=progress,
     )
 
 

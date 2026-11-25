@@ -6,11 +6,14 @@ from collections.abc import Sequence
 
 from tutor_contracts import LearnerProfileOut, MistakeOut, SessionOut, SkillLevelOut, VocabOut
 
+from tutor_api.config import Settings
 from tutor_api.curriculum import Curriculum
 from tutor_api.db.models import LearnerProfile, Mistake, Session, SkillLevel, VocabItem
 
 
-def profile_out(p: LearnerProfile, skills: Sequence[SkillLevel]) -> LearnerProfileOut:
+def profile_out(
+    p: LearnerProfile, skills: Sequence[SkillLevel], settings: Settings
+) -> LearnerProfileOut:
     return LearnerProfileOut(
         id=p.id,
         user_id=p.user_id,
@@ -23,6 +26,9 @@ def profile_out(p: LearnerProfile, skills: Sequence[SkillLevel]) -> LearnerProfi
             for s in skills
         ],
         created_at=p.created_at,
+        timezone=p.timezone or settings.default_timezone,
+        daily_goal=p.daily_goal or settings.default_daily_goal,
+        reminders_enabled=p.reminders_enabled,
     )
 
 

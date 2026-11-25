@@ -5,13 +5,16 @@ from __future__ import annotations
 from html import escape
 
 from tutor_contracts import (
+    DailyProgressOut,
     HelpOut,
     LearnerProfileOut,
     LevelOut,
     MistakeOut,
+    ReminderOut,
     ScenarioOut,
     SessionOut,
     SessionSummary,
+    TurnProgress,
     TurnResponse,
 )
 
@@ -37,7 +40,8 @@ HOW_IT_WORKS = (
     f"{MENU_ROLEPLAY}: practise a real situation (café, doctor, job interview…)\n"
     f"{MENU_PROGRESS}: your scores and recent mistakes\n"
     f"{MENU_FINISH}: wrap up and see what you learned\n"
-    f"{MENU_SETTINGS}: change your level or explanation language"
+    f"{MENU_SETTINGS}: level, explanation language, daily goal, reminders\n\n"
+    "🔥 Practise a little every day to build a streak. Each message counts toward your daily goal."
 )
 
 HELP_TITLES = {
@@ -70,7 +74,29 @@ def format_turn(result: TurnResponse) -> str:
             f"<b>{escape(v.lemma)}</b> = {escape(v.translation)}" for v in result.new_vocab
         )
         parts.append(f"\n📚 {vocab}")
+    if milestone := format_milestone(result.progress):
+        parts.append(f"\n{milestone}")
     return "\n".join(parts)
+
+
+def _days(n: int) -> str:
+    return f"{n} day{'s' if n != 1 else ''}"
+
+
+def format_milestone(p: TurnProgress | None) -> str:
+    """One celebratory line on the first message of the day or when the goal is reached;
+    empty otherwise, so ordinary turns stay uncluttered."""
+    if p is None:
+        return ""
+    if p.goal_just_met:
+        return f"🎯 <b>Daily goal reached!</b> {p.today}/{p.goal} · 🔥 {_days(p.streak)}"
+    if p.first_today:
+        if p.streak <= 1:
+            return (
+                f"🔥 <b>Day 1!</b> Come back tomorrow to build a streak. Today: {p.today}/{p.goal}"
+            )
+        return f"🔥 <b>{p.streak}-day streak!</b> Today: {p.today}/{p.goal}"
+    return ""
 
 
 def format_help(help_: HelpOut) -> str:
@@ -128,16 +154,26 @@ def _level_text(cefr_level: str, levels: list[LevelOut] | None) -> str:
     return f"{level_icon(level.rank)} {escape(level.label)} ({escape(level.code)})"
 
 
+def format_streak(d: DailyProgressOut) -> list[str]:
+    done = " ✅" if d.goal_met else ""
+    return [
+        f"🔥 Streak: <b>{_days(d.streak)}</b> (best {_days(d.best_streak)})",
+        f"🎯 Today {_bar(min(1.0, d.today / d.goal))} {d.today}/{d.goal}{done}",
+    ]
+
+
 def format_progress(
     profile: LearnerProfileOut,
     levels: list[LevelOut],
     word_count: int,
     mistakes: list[MistakeOut],
+    daily: DailyProgressOut | None = None,
 ) -> str:
     skills = {s.skill: s.score for s in profile.skills}
     grammar, vocab = skills.get("grammar", 0.0), skills.get("vocab", 0.0)
     lines = [
         "📊 <b>Your progress</b>",
+        *(format_streak(daily) if daily else []),
         f"Level: {_level_text(profile.cefr_level, levels)}",
         f"Words met: <b>{word_count}</b>",
         "",
@@ -161,3 +197,20 @@ def format_profile(p: LearnerProfileOut, levels: list[LevelOut] | None = None) -
         f"Level: <b>{_level_text(p.cefr_level, levels)}</b> · "
         f"explanations in: <b>{escape(p.native_lang)}</b>"
     )
+
+
+def format_settings(p: LearnerProfileOut, levels: list[LevelOut] | None = None) -> str:
+    return (
+        f"⚙️ {format_profile(p, levels)}\n"
+        f"🎯 Daily goal: <b>{p.daily_goal} messages</b> · "
+        f"🔔 Reminders: <b>{'on' if p.reminders_enabled else 'off'}</b>"
+    )
+
+
+def format_reminder(r: ReminderOut) -> str:
+    if r.streak > 0:
+        return (
+            f"🔥 Your <b>{_days(r.streak)}</b> streak ends at midnight! "
+            "Send me one message to keep it going."
+        )
+    return "👋 Time to practise? A few messages a day is all it takes."

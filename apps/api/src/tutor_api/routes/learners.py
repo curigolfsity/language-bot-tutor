@@ -1,10 +1,17 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Query
-from tutor_contracts import LearnerPatch, LearnerProfileOut, MistakeOut, SessionOut, VocabOut
+from tutor_contracts import (
+    DailyProgressOut,
+    LearnerPatch,
+    LearnerProfileOut,
+    MistakeOut,
+    SessionOut,
+    VocabOut,
+)
 
 from tutor_api.routes.deps import Ctx
-from tutor_api.services import learner_service
+from tutor_api.services import habits_service, learner_service
 
 router = APIRouter(prefix="/learners", tags=["learners"])
 
@@ -17,6 +24,12 @@ async def get_learner(profile_id: UUID, ctx: Ctx) -> LearnerProfileOut:
 @router.patch("/{profile_id}", response_model=LearnerProfileOut)
 async def patch_learner(profile_id: UUID, body: LearnerPatch, ctx: Ctx) -> LearnerProfileOut:
     return await learner_service.patch_profile(ctx, profile_id, body)
+
+
+@router.get("/{profile_id}/progress", response_model=DailyProgressOut)
+async def get_progress(profile_id: UUID, ctx: Ctx) -> DailyProgressOut:
+    """Streak and today's progress toward the daily goal."""
+    return await habits_service.get_progress(ctx, profile_id)
 
 
 @router.get("/{profile_id}/mistakes", response_model=list[MistakeOut])

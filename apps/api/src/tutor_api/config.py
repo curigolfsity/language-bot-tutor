@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -29,6 +30,13 @@ class Settings(BaseSettings):
     tutor_help_effort: Literal["low", "medium", "high", "xhigh", "max"] = Field(
         default="low", alias="TUTOR_HELP_EFFORT"
     )
+    # Habits (streaks, daily goal, reminders). Day boundaries use the learner's timezone,
+    # falling back to DEFAULT_TIMEZONE (IANA name, e.g. Asia/Bangkok).
+    default_timezone: str = Field(default="UTC", alias="DEFAULT_TIMEZONE")
+    default_daily_goal: int = Field(default=10, ge=1, le=200, alias="DEFAULT_DAILY_GOAL")
+    reminder_hour: int = Field(default=19, ge=0, le=23, alias="REMINDER_HOUR")
+    reminder_max_idle_days: int = Field(default=7, ge=1, alias="REMINDER_MAX_IDLE_DAYS")
+
     tutor_max_tokens: int = Field(default=16000, alias="TUTOR_MAX_TOKENS")
     # "default" = server-side refusal fallbacks routed by the API; "off" disables them.
     tutor_fallbacks: Literal["default", "off"] = Field(default="default", alias="TUTOR_FALLBACKS")
@@ -50,6 +58,15 @@ class Settings(BaseSettings):
     def _split_keys(cls, v: object) -> object:
         if isinstance(v, str):
             return [k.strip() for k in v.split(",") if k.strip()]
+        return v
+
+    @field_validator("default_timezone")
+    @classmethod
+    def _valid_timezone(cls, v: str) -> str:
+        try:
+            ZoneInfo(v)
+        except (ZoneInfoNotFoundError, ValueError) as e:
+            raise ValueError(f"unknown IANA timezone {v!r}") from e
         return v
 
 

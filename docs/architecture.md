@@ -130,12 +130,13 @@ The loader fails startup on any of these:
 |---|---|---|
 | users | **id uuid**, display_name, created_at | one per human |
 | user_identities | **provider, external_id**, user_id | `provider` ∈ telegram/web/…; lets one human use many clients |
-| learner_profiles | **id uuid**, user_id, target_lang, native_lang, explanation_lang_override?, cefr_level, created_at | unique(user_id, target_lang): one profile per language learned |
+| learner_profiles | **id uuid**, user_id, target_lang, native_lang, explanation_lang_override?, cefr_level, created_at, timezone?, daily_goal?, reminders_enabled, last_reminded_on?, streak_best | unique(user_id, target_lang): one profile per language learned. NULL timezone / daily_goal mean the configured default (`DEFAULT_TIMEZONE`, `DEFAULT_DAILY_GOAL`) |
+| daily_activity | **profile_id, day**, messages | learner messages per *local* day (learner's timezone); drives streaks and the daily goal |
 | skill_levels | **profile_id, skill**, cefr_level, score (0–1), updated_at | skill ∈ speaking, listening, reading, writing, grammar, vocab |
 | grammar_mastery | **profile_id, topic_id**, mastery (0–1), attempts, errors, last_seen_at | topic_id = curriculum id (text) |
 | vocab_items | **id**, profile_id, lemma, translation, pos, seen_count, mastery, first_seen_at, last_seen_at | unique(profile_id, lemma) |
 | sessions | **id uuid**, profile_id, mode (free/roleplay), scenario_id?, level_at_start, started_at, ended_at? | at most one open session per profile |
-| turns | **id**, session_id, seq, role (learner/tutor), text, grammar_tags text[], llm_model, result_json jsonb, input_tokens, output_tokens, created_at | unique(session_id, seq). The opening line is tutor turn seq 0. On tutor turns `result_json` = `{raw, final, refused, refusal_category, unknown_tags, policy_violations, cache_*_tokens}`: the raw model TurnResult is kept for audit/re-scoring |
+| turns | **id**, session_id, seq, role (learner/tutor), text, grammar_tags text[], llm_model, result_json jsonb, input_tokens, output_tokens, created_at | unique(session_id, seq). The opening line is tutor turn seq 0. On tutor turns `result_json` = `{raw, final, shown, refused, refusal_category, unknown_tags, policy_violations, cache_*_tokens}`: the raw model TurnResult is kept for audit/re-scoring |
 | mistakes | **id**, profile_id, turn_id, wrong, right, rule_tag, explanation, severity, created_at | index(profile_id, rule_tag), index(profile_id, created_at) |
 
 Curriculum ids are stored as text, not as FKs. The YAML is the authority, and startup validation keeps the data consistent.
@@ -147,7 +148,8 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 |---|---|---|
 | GET | /healthz | liveness + curriculum loaded |
 | POST | /v1/users/resolve | `{provider, external_id, display_name, target_lang, native_lang}` → user + profile (idempotent) |
-| GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language). Omitted PATCH fields are unchanged; `explanation_lang_override: null` clears it |
+| GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language, timezone, daily goal, reminders). Omitted PATCH fields are unchanged; `explanation_lang_override: null` / `timezone: null` reset to the default |
+| GET | /v1/learners/{id}/progress | `{streak, best_streak, today, goal, goal_met}` |
 | GET | /v1/learners/{id}/mistakes?topic=&limit= | recent mistakes |
 | GET | /v1/learners/{id}/vocab?limit= | vocab |
 | GET | /v1/learners/{id}/active-session | open session or 404 (clients stay stateless) |
@@ -156,7 +158,8 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 | GET | /v1/curriculum/{lang}/grammar?level= | topics (exactly at `level` if given) |
 | GET | /v1/curriculum/{lang}/scenarios?level= | scenarios within one level of `level` (all if omitted) |
 | POST | /v1/sessions | `{profile_id, scenario_id?}` → session + tutor opening line + `opening_turn_id` (closes any open session) |
-| POST | /v1/sessions/{id}/turns | `{text}` → `TurnResponse` = `TurnResult` + `turn_id` + `well_done[]` |
+| POST | /v1/sessions/{id}/turns | `{text}` → `TurnResponse` = `TurnResult` + `turn_id` + `well_done[]` + `progress` (streak/goal after this message, with `first_today` and `goal_just_met`) |
+| POST | /v1/reminders/claim | `{provider, target_lang}` → learners of that client due a practice reminder now; each is marked reminded for their local day |
 | POST | /v1/turns/{turn_id}/help | `{kind: hint\|translate\|suggest\|explain}` on a **tutor** turn → `{kind, text}` |
 | POST | /v1/sessions/{id}/end | close session → summary (turn count, top mistakes, new vocab) |
 
@@ -294,13 +297,18 @@ Button-first, so nobody needs to type commands. Modules:
 
 The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it offers next-step buttons.
 
-**Stateless:** each step's choice travels in callback data (`h:<kind>:<turn_id>`, `nat:<code>:<o|s>`, `lvl:<code>:<o|s>`, `play:<id>`, `menu:<action>`, all ≤ 64 bytes). The active session comes from the API.
+**Stateless:** each step's choice travels in callback data (`h:<kind>:<turn_id>`, `nat:<code>:<o|s>`, `lvl:<code>:<o|s>`, `play:<id>`, `goal:<n>`, `rem:<on|off>`, `menu:<action>`, all ≤ 64 bytes). The active session comes from the API.
 
 **Config:**
 - `TELEGRAM_TOKEN`, `TUTOR_API_URL`
 - `TUTOR_API_KEY` (defaults to the first `CLIENT_API_KEYS` entry)
 - `BOT_TARGET_LANG`
 - `BOT_NATIVE_LANG_CHOICES` (`code:label` list for the language buttons)
+
+**Habits (streaks, daily goal, reminders).** The API owns all of it (`domain/streaks.py` is pure, `services/habits_service.py` does the I/O); the bot only renders it.
+- Every learner message adds one to today's `daily_activity` row, using the learner's local day. The streak is the run of consecutive active days ending today or yesterday (today is not over yet).
+- After a turn, the bot adds one line only on the first message of the day (🔥 streak) or when the goal is reached (🎯), so ordinary turns stay clean. 📊 My progress shows the streak, best streak and today's goal bar. ⚙️ Settings changes the goal (`goal:<n>`) and toggles reminders (`rem:on|off`).
+- Reminders: the bot polls `POST /v1/reminders/claim` every `BOT_REMINDER_POLL_SECONDS` (300). The API returns learners whose local time is past `REMINDER_HOUR`, who have not practised today, who practised within `REMINDER_MAX_IDLE_DAYS`, and who have not been reminded today, and marks them reminded. A learner who blocked the bot gets reminders switched off.
 
 ## 11. Extensibility
 - **New language:** add `curriculum/<lang>/` with `language.yaml`, `levels.yaml`, grammar and scenarios, then add eval cases. No code change is needed. The code takes `lang` as a parameter everywhere.

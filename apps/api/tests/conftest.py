@@ -132,9 +132,7 @@ def make_result(
             Correction(wrong=w, right=r, rule_tag=t, explanation="x", severity=s)  # type: ignore[arg-type]
             for w, r, t, s in (corrections or [])
         ],
-        new_vocab=[
-            NewVocab(lemma=v, translation="t", pos="noun") for v in vocab or []
-        ],
+        new_vocab=[NewVocab(lemma=v, translation="t", pos="noun") for v in vocab or []],
         grammar_tags=tags or [],
     )
 

@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from tutor_contracts.common import Severity
+from tutor_contracts.learners import DailyProgressOut
 
 
 class Correction(BaseModel):
@@ -52,6 +53,11 @@ class TopicRef(BaseModel):
     title: str
 
 
+class TurnProgress(DailyProgressOut):
+    first_today: bool = Field(description="This was the first message of the day.")
+    goal_just_met: bool = Field(description="This message reached the daily goal.")
+
+
 class TurnResponse(TurnResult):
     """API response for a turn: the validated TurnResult plus server-computed extras.
 
@@ -62,6 +68,9 @@ class TurnResponse(TurnResult):
     well_done: list[TopicRef] = Field(
         default_factory=list,
         description="Topics the learner used correctly in this message (for praise).",
+    )
+    progress: TurnProgress | None = Field(
+        default=None, description="Streak and daily-goal state after this message."
     )
 
 

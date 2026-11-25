@@ -3,16 +3,19 @@ from uuid import uuid4
 
 from tutor_contracts import (
     Correction,
+    DailyProgressOut,
     HelpOut,
     LearnerProfileOut,
     LevelOut,
     MistakeCount,
     MistakeOut,
     NewVocab,
+    ReminderOut,
     SessionOut,
     SessionSummary,
     SkillLevelOut,
     TopicRef,
+    TurnProgress,
     TurnResponse,
 )
 from tutor_telegram import formatting
@@ -97,6 +100,8 @@ def test_progress_and_mistakes():
         explanation_lang_override=None,
         created_at=datetime.now(UTC),
         skills=[SkillLevelOut(skill="grammar", cefr_level="A1", score=0.42)],
+        timezone="UTC",
+        daily_goal=10,
     )
     m = MistakeOut(
         id=1,
@@ -126,6 +131,9 @@ def test_keyboards_callback_data_fits_telegram_limit():
         kb.native_keyboard([("en", "English"), ("th", "ไทย")], "th", onboarding=True),
         kb.next_step_keyboard(),
         kb.settings_keyboard(),
+        kb.settings_keyboard(reminders_enabled=False),
+        kb.goal_keyboard(10),
+        kb.reminder_keyboard(),
     ]
     for markup in markups:
         assert markup is not None
@@ -149,3 +157,39 @@ def test_native_keyboard_puts_detected_first():
 
 def test_menu_labels_are_unique():
     assert len(kb.MENU_LABELS) == 6
+
+
+def progress(**kw) -> TurnProgress:
+    base = dict(
+        streak=3, best_streak=5, today=1, goal=10, goal_met=False,
+        first_today=False, goal_just_met=False,
+    )  # fmt: skip
+    return TurnProgress(**{**base, **kw})
+
+
+def test_milestones_only_on_first_message_or_goal():
+    assert "🔥" not in formatting.format_turn(turn(progress=progress()))
+    assert formatting.format_milestone(None) == ""
+    text = formatting.format_turn(turn(progress=progress(first_today=True)))
+    assert "3-day streak" in text and "1/10" in text
+    assert "Day 1" in formatting.format_milestone(progress(first_today=True, streak=1))
+    goal = formatting.format_milestone(progress(goal_just_met=True, today=10, goal_met=True))
+    assert "Daily goal reached" in goal and "10/10" in goal
+
+
+def test_progress_shows_streak_and_today():
+    daily = DailyProgressOut(streak=1, best_streak=4, today=10, goal=10, goal_met=True)
+    lines = formatting.format_streak(daily)
+    assert "1 day</b>" in lines[0] and "best 4 days" in lines[0]
+    assert "10/10 ✅" in lines[1]
+
+
+def test_reminder_text():
+    r = ReminderOut(profile_id=uuid4(), external_id="1", streak=4, goal=10)
+    assert "4 days" in formatting.format_reminder(r)
+    assert "🔥" not in formatting.format_reminder(r.model_copy(update={"streak": 0}))
+
+
+def test_goal_keyboard_marks_current():
+    labels = [b.text for b in kb.goal_keyboard(10).inline_keyboard[0]]
+    assert "✓ 10 / day" in labels

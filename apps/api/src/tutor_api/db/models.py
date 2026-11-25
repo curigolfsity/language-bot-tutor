@@ -9,13 +9,15 @@ Postgres-specific types have SQLite variants only so the test suite can run in-m
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -71,7 +73,12 @@ class UserIdentity(Base):
 
 class LearnerProfile(Base):
     __tablename__ = "learner_profiles"
-    __table_args__ = (UniqueConstraint("user_id", "target_lang"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "target_lang"),
+        CheckConstraint(
+            "daily_goal IS NULL OR (daily_goal BETWEEN 1 AND 200)", name="daily_goal_range"
+        ),
+    )
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     target_lang: Mapped[str] = mapped_column(String(8))
@@ -79,6 +86,25 @@ class LearnerProfile(Base):
     explanation_lang_override: Mapped[str | None] = mapped_column(String(8), nullable=True)
     cefr_level: Mapped[str] = mapped_column(String(8))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Habit features. NULL timezone / daily_goal mean "use the configured default".
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    daily_goal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reminders_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("true")
+    )
+    last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    streak_best: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+
+
+class DailyActivity(Base):
+    """Learner messages per local calendar day (the learner's timezone). Drives streaks."""
+
+    __tablename__ = "daily_activity"
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("learner_profiles.id", ondelete="CASCADE"), primary_key=True
+    )
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    messages: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class SkillLevel(Base):

@@ -25,6 +25,7 @@ from tutor_api.db.repositories import (
 )
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import InvalidRequestError, NotFoundError
+from tutor_api.services.habits_service import parse_timezone
 from tutor_api.services.mappers import mistake_out, profile_out, session_out, vocab_out
 
 SKILLS: tuple[str, ...] = get_args(Skill)
@@ -53,7 +54,9 @@ async def resolve_user(ctx: AppContext, req: ResolveUserRequest) -> ResolveUserR
                         await profiles.upsert_skill(profile.id, skill, level)
                 skills = await profiles.skills(profile.id)
                 return ResolveUserResponse(
-                    user_id=user.id, profile=profile_out(profile, skills), created=created
+                    user_id=user.id,
+                    profile=profile_out(profile, skills, ctx.settings),
+                    created=created,
                 )
         except IntegrityError:
             # A concurrent resolve created the same identity/profile; the retry will find it.
@@ -68,7 +71,7 @@ async def get_profile(ctx: AppContext, profile_id: uuid.UUID) -> LearnerProfileO
         profile = await profiles.get(profile_id)
         if profile is None:
             raise NotFoundError("learner profile not found")
-        return profile_out(profile, await profiles.skills(profile.id))
+        return profile_out(profile, await profiles.skills(profile.id), ctx.settings)
 
 
 async def patch_profile(
@@ -95,8 +98,16 @@ async def patch_profile(
             profile.native_lang = patch.native_lang
         if "explanation_lang_override" in fields:
             profile.explanation_lang_override = patch.explanation_lang_override
+        if "timezone" in fields:
+            if patch.timezone is not None:
+                parse_timezone(patch.timezone)
+            profile.timezone = patch.timezone  # null resets to the configured default
+        if "daily_goal" in fields:
+            profile.daily_goal = patch.daily_goal
+        if "reminders_enabled" in fields and patch.reminders_enabled is not None:
+            profile.reminders_enabled = patch.reminders_enabled
         await db.flush()
-        return profile_out(profile, await profiles.skills(profile.id))
+        return profile_out(profile, await profiles.skills(profile.id), ctx.settings)
 
 
 async def list_mistakes(

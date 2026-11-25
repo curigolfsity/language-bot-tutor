@@ -31,6 +31,8 @@ class BotSettings(BaseSettings):
         alias="BOT_NATIVE_LANG_CHOICES",
     )
     request_timeout_seconds: float = Field(default=180.0, alias="BOT_REQUEST_TIMEOUT_SECONDS")
+    # How often to ask the API who is due a practice reminder (the API decides who and when).
+    reminder_poll_seconds: float = Field(default=300.0, ge=30, alias="BOT_REMINDER_POLL_SECONDS")
 
     def native_choices(self) -> list[tuple[str, str]]:
         out = []

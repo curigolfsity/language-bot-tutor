@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 
 from telegram import BotCommand, CallbackQuery, Message, Update
 from telegram.constants import ChatAction, ParseMode
-from telegram.error import BadRequest
+from telegram.error import BadRequest, Forbidden, TelegramError
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -47,7 +47,7 @@ COMMANDS = [
     BotCommand("roleplay", "Practise a real-life situation"),
     BotCommand("progress", "Your progress and recent mistakes"),
     BotCommand("end", "Finish the session and see a summary"),
-    BotCommand("settings", "Change level or explanation language"),
+    BotCommand("settings", "Level, language, daily goal, reminders"),
     BotCommand("help", "How it works"),
 ]
 
@@ -208,7 +208,8 @@ async def do_progress(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     levels = await _levels(context)
     words = await api.vocab(profile.id)
     mistakes = await api.mistakes(profile.id, limit=5)
-    await _send(update, formatting.format_progress(profile, levels, len(words), mistakes))
+    daily = await api.progress(profile.id)
+    await _send(update, formatting.format_progress(profile, levels, len(words), mistakes, daily))
 
 
 async def do_finish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -227,8 +228,22 @@ async def do_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     profile, _ = await _resolve(update, context)
     await _send(
         update,
-        "⚙️ " + formatting.format_profile(profile, await _levels(context)),
-        reply_markup=kb.settings_keyboard(),
+        formatting.format_settings(profile, await _levels(context)),
+        reply_markup=kb.settings_keyboard(profile.reminders_enabled),
+    )
+
+
+async def do_resume(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """From a reminder: continue the open conversation, or start a free chat."""
+    profile, _ = await _resolve(update, context)
+    session = await _api(context).active_session(profile.id)
+    if session is None:
+        await do_free_chat(update, context)
+        return
+    await _send(
+        update,
+        "Let's go! Reply to my last message to continue, or start something new:",
+        reply_markup=kb.next_step_keyboard(),
     )
 
 
@@ -347,11 +362,37 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     elif kind == "play":
         profile, _ = await _resolve(update, context)
         await _show_session(update, await _api(context).start_session(profile.id, rest))
+    elif kind == "goal" and rest.isdigit():
+        profile, _ = await _resolve(update, context)
+        updated = await _api(context).patch_learner(profile.id, LearnerPatch(daily_goal=int(rest)))
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await _send(update, f"🎯 Daily goal set to <b>{updated.daily_goal} messages</b>.")
+    elif kind == "rem" and rest in ("on", "off"):
+        profile, _ = await _resolve(update, context)
+        await _api(context).patch_learner(profile.id, LearnerPatch(reminders_enabled=rest == "on"))
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await _send(
+            update,
+            "🔔 Reminders on. I'll nudge you in the evening if you haven't practised."
+            if rest == "on"
+            else "🔕 Reminders off. Turn them back on any time in ⚙️ Settings.",
+        )
     elif kind == "menu":
         if rest == "free":
             await do_free_chat(update, context)
         elif rest == "roleplay":
             await do_roleplay(update, context)
+        elif rest == "resume":
+            await do_resume(update, context)
+        elif rest == "settings_goal":
+            profile, _ = await _resolve(update, context)
+            await _send(
+                update,
+                "<b>How many messages a day?</b> Each message you send counts.",
+                reply_markup=kb.goal_keyboard(profile.daily_goal),
+            )
         elif rest == "settings_level":
             await _ask_level(update, context, onboarding=False)
         elif rest == "settings_native":
@@ -401,6 +442,42 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ----------------------------------------------------------------------------- app
 
 
+async def send_due_reminders(app: Application) -> int:
+    """Ask the API who is due a reminder and message them. Returns how many were sent."""
+    api: TutorApiClient = app.bot_data["api"]
+    settings: BotSettings = app.bot_data["settings"]
+    sent = 0
+    for r in await api.claim_reminders(PROVIDER, settings.target_lang):
+        try:
+            await app.bot.send_message(
+                chat_id=int(r.external_id),
+                text=formatting.format_reminder(r),
+                parse_mode=ParseMode.HTML,
+                reply_markup=kb.reminder_keyboard(),
+            )
+            sent += 1
+        except Forbidden:
+            # The learner blocked the bot: stop reminding them.
+            log.info("reminder: chat %s blocked the bot; disabling reminders", r.external_id)
+            await api.patch_learner(r.profile_id, LearnerPatch(reminders_enabled=False))
+        except TelegramError as e:
+            log.warning("reminder to %s failed: %s", r.external_id, e)
+    return sent
+
+
+async def _reminder_loop(app: Application) -> None:
+    settings: BotSettings = app.bot_data["settings"]
+    while True:
+        try:
+            if sent := await send_due_reminders(app):
+                log.info("sent %d practice reminder(s)", sent)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("reminder check failed; will retry")
+        await asyncio.sleep(settings.reminder_poll_seconds)
+
+
 def build_application(settings: BotSettings) -> Application:
     async def post_init(app: Application) -> None:
         assert settings.api_key is not None
@@ -409,8 +486,14 @@ def build_application(settings: BotSettings) -> Application:
             settings.api_base_url, settings.api_key, settings.request_timeout_seconds
         )
         await app.bot.set_my_commands(COMMANDS)
+        app.bot_data["reminders"] = asyncio.create_task(_reminder_loop(app))
 
     async def post_shutdown(app: Application) -> None:
+        task: asyncio.Task[None] | None = app.bot_data.get("reminders")
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         api: TutorApiClient | None = app.bot_data.get("api")
         if api is not None:
             await api.aclose()

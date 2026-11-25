@@ -175,6 +175,7 @@ async def test_refusal_returns_polite_reply(client, fake_llm, es):
     assert r.status_code == 200
     body = r.json()
     assert isinstance(body.pop("turn_id"), int)
+    assert body.pop("progress")["today"] == 1  # a refused message still counts as practice
     assert body == {
         "reply": es.lang.refusal_reply,
         "corrections": [],

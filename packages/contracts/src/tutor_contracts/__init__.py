@@ -12,12 +12,14 @@ from tutor_contracts.common import (
 )
 from tutor_contracts.curriculum import GrammarTopicOut, LanguageOut, LevelOut, ScenarioOut
 from tutor_contracts.learners import (
+    DailyProgressOut,
     LearnerPatch,
     LearnerProfileOut,
     MistakeOut,
     SkillLevelOut,
     VocabOut,
 )
+from tutor_contracts.reminders import ReminderClaimRequest, ReminderOut
 from tutor_contracts.sessions import (
     CreateSessionRequest,
     MistakeCount,
@@ -31,6 +33,7 @@ from tutor_contracts.turns import (
     HelpRequest,
     NewVocab,
     TopicRef,
+    TurnProgress,
     TurnRequest,
     TurnResponse,
     TurnResult,
@@ -38,6 +41,10 @@ from tutor_contracts.turns import (
 from tutor_contracts.users import ResolveUserRequest, ResolveUserResponse
 
 __all__ = [
+    "DailyProgressOut",
+    "ReminderClaimRequest",
+    "ReminderOut",
+    "TurnProgress",
     "TurnResponse",
     "TopicRef",
     "LanguageOut",
