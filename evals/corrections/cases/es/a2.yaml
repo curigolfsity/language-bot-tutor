@@ -66,3 +66,11 @@
         also_right: ["durante ocho horas", "trabajé ocho horas"] }
     - { wrong: "hací", right: "hice", rule_tag: es.a2.preterite_irregular }
   must_not_flag: ["para mi familia", "Por la mañana"]
+
+# Present perfect, taught at A2 (Spain: the usual past for today's events).
+- id: a2-010
+  level: A2
+  text: "Hoy he ido al mercado y he comprado fruta. Después he escribido un mensaje a mi madre."
+  expected:
+    - { wrong: "he escribido", right: "he escrito", rule_tag: es.a2.present_perfect }
+  must_not_flag: ["he ido", "he comprado"]

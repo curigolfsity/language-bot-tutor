@@ -60,7 +60,7 @@ def test_system_prompt_is_stable_and_learner_free(es):
     s1, s2 = build_system_prompt(es, p1), build_system_prompt(es, p2)
     assert s1 == s2, "native language / scenario must not leak into the cached prefix"
     assert "es.a1.ser_vs_estar_basic" in s1
-    assert "es.b1.present_perfect" not in s1  # above level at at_or_below_level
+    assert "es.b1.future_simple" not in s1  # above level at at_or_below_level
     for note in es.lang.prompt_notes:
         assert note in s1
 
@@ -108,7 +108,7 @@ def test_apply_policy_drops_above_level_and_orders_majors_first(es):
     r = make_result(
         corrections=[
             ("x1", "y1", "es.a1.gender_agreement", "minor"),
-            ("x2", "y2", "es.b1.present_perfect", "major"),  # above A1 -> dropped
+            ("x2", "y2", "es.b1.future_simple", "major"),  # above A1 -> dropped
             ("x3", "y3", "es.a1.ser_vs_estar_basic", "major"),
             ("x4", "y4", "unknown", "major"),
             ("same", "same", "es.a1.gender_agreement", "minor"),  # no-op -> dropped

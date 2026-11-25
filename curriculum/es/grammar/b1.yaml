@@ -22,11 +22,14 @@
   examples:
     - { wrong: "No creo que es verdad.", right: "No creo que sea verdad." }
 
+# Moved to A2 as es.a2.present_perfect (2026-11-25): in Spain "he comido" is the everyday past
+# for today's events and is taught at A2. Kept (deprecated) so stored data keeps its title.
 - id: es.b1.present_perfect
   level: B1
   title: "Present perfect: 'I have done' (he hablado)"
   prerequisites: [es.a2.preterite_regular]
   description: "haber + past participle; irregular participles hecho, dicho, visto, escrito."
+  deprecated: true
   examples:
     - { wrong: "He hacido la tarea.", right: "He hecho la tarea." }
 

@@ -16,8 +16,8 @@
   level: B1
   text: "Esta mañana he hacido la compra y he escribido un correo."
   expected:
-    - { wrong: "he hacido", right: "he hecho", rule_tag: es.b1.present_perfect }
-    - { wrong: "he escribido", right: "he escrito", rule_tag: es.b1.present_perfect }
+    - { wrong: "he hacido", right: "he hecho", rule_tag: es.a2.present_perfect }
+    - { wrong: "he escribido", right: "he escrito", rule_tag: es.a2.present_perfect }
   must_not_flag: []
 
 - id: b1-004

@@ -33,7 +33,7 @@
 - id: es.b2.pluperfect
   level: B2
   title: "Pluperfect (había hecho)"
-  prerequisites: [es.b1.present_perfect, es.a2.imperfect]
+  prerequisites: [es.a2.present_perfect, es.a2.imperfect]
   description: "An action completed before another past action."
   examples:
     - { wrong: "Cuando llegué, ya se fue.", right: "Cuando llegué, ya se había ido." }

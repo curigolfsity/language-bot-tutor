@@ -14,6 +14,15 @@
   examples:
     - { wrong: "Ayer yo hací la tarea.", right: "Ayer hice la tarea." }
 
+- id: es.a2.present_perfect
+  level: A2
+  title: "Present perfect: 'I have done' (he comido, he ido)"
+  prerequisites: [es.a1.present_regular]
+  description: "haber + past participle (hablado, comido, vivido). In Spain the usual past for today, this week, ever/never (hoy he comido, nunca he estado). Irregular participles: hecho, dicho, visto, escrito, puesto, vuelto, abierto."
+  examples:
+    - { wrong: "Hoy he hacido la compra.", right: "Hoy he hecho la compra." }
+    - { wrong: "Esta mañana yo comí paella. (Spain, same day)", right: "Esta mañana he comido paella." }
+
 - id: es.a2.imperfect
   level: A2
   title: "Imperfect: 'used to' and descriptions (hablaba, comía)"
