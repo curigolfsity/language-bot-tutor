@@ -80,10 +80,11 @@ Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive
 - added on request (2026-11-25): streaks/daily goal/reminders, side questions ("ask"),
   spaced-repetition practice of the learner's own mistakes, voice messages in (speech-to-text),
   grammar lessons with generated exercises, Chinese (zh) and Japanese (ja) curricula (2026-11-25)
+- added on request (2026-11-25): spoken replies (edge-tts; voice per language in language.yaml,
+  speed per level in levels.yaml), lesson explanations reused via `lesson_cache`, placement test
+  (curriculum/<lang>/placement.yaml, a suggestion only), word flashcards (self-graded), weekly summary
 
 **Not yet (do not build unless asked):**
-- listening exercises and spoken replies (text-to-speech)
+- listening exercises
 - web or mobile clients
-- spaced-repetition of vocabulary
-- placement test
 - billing and real auth

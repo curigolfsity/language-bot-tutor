@@ -26,7 +26,7 @@ async def suggested_lessons(profile_id: UUID, ctx: Ctx) -> LessonSuggestionsOut:
 @learner_router.post("/{profile_id}/lessons", response_model=LessonOut, status_code=201)
 async def start_lesson(profile_id: UUID, body: StartLessonRequest, ctx: Ctx) -> LessonOut:
     """Generate a short lesson with exercises on one grammar topic."""
-    return await lesson_service.start_lesson(ctx, profile_id, body.topic_id)
+    return await lesson_service.start_lesson(ctx, profile_id, body.topic_id, body.fresh)
 
 
 @router.post("/{lesson_id}/answer", response_model=LessonAnswerOut)

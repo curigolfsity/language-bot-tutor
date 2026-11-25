@@ -11,7 +11,7 @@ A1:
   explanation_language: native
   max_corrections_per_turn: 2
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very short polite です/ます sentences, mostly hiragana. After every kanji word, add its hiragana reading in parentheses, e.g. 学生（がくせい）" }
+  tutor_reply: { speech_rate: -25, max_sentences: 2, vocab_ceiling: A1, speed_note: "very short polite です/ます sentences, mostly hiragana. After every kanji word, add its hiragana reading in parentheses, e.g. 学生（がくせい）" }
   free_opening: "こんにちは！お元気（げんき）ですか？"
   starter_scenario: ja.a1.meet_new_friend
 
@@ -22,7 +22,7 @@ A2:
   explanation_language: native
   max_corrections_per_turn: 3
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple polite sentences. After every kanji word, add its hiragana reading in parentheses" }
+  tutor_reply: { speech_rate: -15, max_sentences: 3, vocab_ceiling: A2, speed_note: "simple polite sentences. After every kanji word, add its hiragana reading in parentheses" }
   free_opening: "こんにちは！今日（きょう）はどんな一日（いちにち）でしたか？"
   starter_scenario: ja.a2.restaurant_order
 
@@ -33,7 +33,7 @@ B1:
   explanation_language: mixed
   max_corrections_per_turn: 4
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural polite Japanese. Add hiragana readings in parentheses only after less common kanji" }
+  tutor_reply: { speech_rate: -5, max_sentences: 4, vocab_ceiling: B1, speed_note: "natural polite Japanese. Add hiragana readings in parentheses only after less common kanji" }
   free_opening: "こんにちは！最近、何か面白いことはありましたか？"
   starter_scenario: ja.b1.doctor_visit
 

@@ -33,6 +33,7 @@ from tutor_api.domain.prompt import (
     build_system_prompt,
     build_user_content,
 )
+from tutor_api.domain.review import new_card
 from tutor_api.domain.tags import apply_policy, for_display, sanitize_tags, well_done_topics
 from tutor_api.llm import LLMError, LLMTurnOutcome, TurnLLM
 from tutor_api.services.context import AppContext
@@ -257,6 +258,8 @@ async def _persist_learning(
                 mastery=0.0,
                 first_seen_at=now,
                 last_seen_at=now,
+                box=0,
+                due_at=new_card(now).due_at,  # joins the word flashcards
             )
             vrepo.add(item)
             known[lemma] = item

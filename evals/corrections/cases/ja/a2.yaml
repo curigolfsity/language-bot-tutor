@@ -25,3 +25,45 @@
   text: "週末は京都に行って、お寺を見ました。"
   expected: []
   must_not_flag: ["京都に行って", "お寺を見ました"]
+
+- id: ja-a2-005
+  level: A2
+  text: "わたしは北海道に行くたことがあります。"
+  expected:
+    - { wrong: "行くた", right: "行った", rule_tag: ja.a2.ta_koto_ga_aru }
+  must_not_flag: ["北海道に"]
+
+- id: ja-a2-006
+  level: A2
+  text: "見て！いま、雨がふります。"
+  expected:
+    - { wrong: "ふります", right: "ふっています", also_right: ["降っています"], rule_tag: ja.a2.te_iru }
+  must_not_flag: []
+
+- id: ja-a2-007
+  level: A2
+  text: "おなかがすきました。なにか食べたです。"
+  expected:
+    - { wrong: "食べたです", right: "食べたいです", rule_tag: ja.a2.tai_want }
+  must_not_flag: ["おなかがすきました"]
+
+- id: ja-a2-008
+  level: A2
+  text: "すみません、このペンを使うもいいですか。"
+  expected:
+    - { wrong: "使うも", right: "使っても", rule_tag: ja.a2.temo_ii }
+  must_not_flag: ["すみません"]
+
+- id: ja-a2-009
+  level: A2
+  text: "きのうはとても忙しいでした。"
+  expected:
+    - { wrong: "忙しいでした", right: "忙しかったです", rule_tag: ja.a1.i_na_adjectives }
+  must_not_flag: []
+
+# No errors: くれました is right when someone gives to me.
+- id: ja-a2-010
+  level: A2
+  text: "先生はわたしに本をくれました。うれしかったです。"
+  expected: []
+  must_not_flag: ["くれました", "うれしかったです"]

@@ -100,5 +100,5 @@ def lesson_plain_text(parts: dict) -> str:
         lines += [f"{e['sentence']} ({e['translation']})" for e in parts["examples"]]
     w = parts.get("watch_out")
     if w:
-        lines += ["", f"Watch out: ✗ {w['wrong']} → ✓ {w['right']}. {w['note']}"]
+        lines += ["", f"Watch out: ✗ {w['wrong']} → ✓ {w['right']}. {w['note']}".rstrip()]
     return "\n".join(lines)

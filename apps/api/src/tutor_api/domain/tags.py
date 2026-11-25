@@ -25,13 +25,22 @@ class PolicyReport:
 def sanitize_tags(
     result: TurnResult, known_ids: Collection[str]
 ) -> tuple[TurnResult, SanitizeReport]:
-    """Map any rule_tag / grammar_tag that is not a curriculum id to "unknown"."""
+    """Map any rule_tag / grammar_tag that is not a curriculum id to "unknown".
+
+    A bare slug (e.g. "wo_object", which smaller models sometimes emit for grammar_tags) is
+    accepted when exactly one curriculum id ends with it."""
     unknown: list[str] = []
+    by_slug: dict[str, list[str]] = {}
+    for tid in known_ids:
+        by_slug.setdefault(tid.rsplit(".", 1)[-1], []).append(tid)
 
     def fix(tag: str) -> str:
         tag = tag.strip()
         if tag in known_ids or tag == UNKNOWN_TAG:
             return tag
+        matches = by_slug.get(tag, []) if "." not in tag else []
+        if len(matches) == 1:
+            return matches[0]
         unknown.append(tag)
         return UNKNOWN_TAG
 

@@ -382,3 +382,19 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - there are no CEFR level literals in API code
 
 Tests use an in-memory SQLite DB (Postgres types have SQLite variants) and a fake `TurnLLM`. Migrations target Postgres only.
+
+
+## Additions (2026-11-25, second batch)
+- **Spoken replies**: `tts/` is the only package importing edge-tts (only reply text is sent).
+  `GET /v1/turns/{id}/speech`, `GET /v1/words/{id}/speech` return OGG/Opus. Voice and
+  `speech_drop` regexes per language (`language.yaml`); `speech_rate` per level (`levels.yaml`).
+- **Lesson reuse**: `lesson_cache` keyed by (topic, level, native language, explanation style).
+  Repeat lessons only generate exercises (`LESSON_EXERCISE_MODEL`, default the help model).
+  `fresh: true` rewrites the explanation. A watch-out built from a learner's mistakes is never
+  stored in the shared copy.
+- **Placement test**: `curriculum/<lang>/placement.yaml` (validated at startup), pure logic in
+  `domain/placement.py`, runs in `placement_runs`. Result is a suggestion; the learner chooses.
+- **Word flashcards**: `vocab_items.box/due_at`, same Leitner schedule as mistake cards,
+  self-graded (no model call).
+- **Weekly summary**: `GET /v1/learners/{id}/weekly`; `POST /v1/reminders/weekly/claim` once a
+  week per learner (`WEEKLY_SUMMARY_WEEKDAY`, after `REMINDER_HOUR`), sent by the bot loop.

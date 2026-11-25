@@ -152,7 +152,7 @@ def test_help_buttons():
     assert kb.help_buttons(None) is None
     rows = kb.help_buttons(5).inline_keyboard
     assert [b.callback_data for b in rows[0]] == ["h:hint:5", "h:translate:5", "h:suggest:5"]
-    assert [b.callback_data for b in rows[1]] == ["ask:5"]
+    assert [b.callback_data for b in rows[1]] == ["sp:5", "ask:5"]
 
 
 def test_native_keyboard_puts_detected_first():
@@ -163,7 +163,7 @@ def test_native_keyboard_puts_detected_first():
 
 def test_menu_labels_are_unique_and_all_shown():
     shown = [b.text for row in kb.main_menu().keyboard for b in row]
-    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 9
+    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 10
     assert set(shown) == kb.MENU_LABELS
 
 
@@ -277,12 +277,13 @@ def test_voice_turn_shows_transcript_first():
 def test_fold_toggle_and_explain_button():
     folded = kb.help_buttons(5, True, "✏️ 2 fixes", expanded=False).inline_keyboard
     assert [(b.text, b.callback_data) for b in folded[1]] == [
+        ("🔊", "sp:5"),
         ("🙋 Ask", "ask:5"),
         ("▾ ✏️ 2 fixes", "fb:5"),
     ]
     assert len(folded) == 2  # "Explain my mistakes" waits until the fixes are visible
     unfolded = kb.help_buttons(5, True, "✏️ 2 fixes", expanded=True).inline_keyboard
-    assert unfolded[1][1].text == "▴ Hide feedback"
+    assert unfolded[1][2].text == "▴ Hide feedback"
     assert [b.callback_data for b in unfolded[2]] == ["h:explain:5"]
     # Corrections but nothing to fold (unforeseen): Explain stays reachable.
     assert kb.help_buttons(5, True).inline_keyboard[2][0].callback_data == "h:explain:5"
@@ -320,7 +321,7 @@ def test_views_fold_and_extras():
     )
     v = views.from_turn(t)
     assert views.render(v) == "¡Hola!"
-    assert views.markup(v).inline_keyboard[1][1].callback_data == "fb:7"
+    assert views.markup(v).inline_keyboard[1][2].callback_data == "fb:7"
     v["expanded"] = True
     assert "<s>soy</s>" in views.render(v)
     v["extras"].append(["translate", formatting.help_block("translate", "Hello!")])
@@ -332,7 +333,7 @@ def test_views_fold_and_extras():
 
     # A plain view (no feedback) has no fold button.
     plain = views.new_view(9, "Opening line")
-    assert [b.callback_data for b in views.markup(plain).inline_keyboard[1]] == ["ask:9"]
+    assert [b.callback_data for b in views.markup(plain).inline_keyboard[1]] == ["sp:9", "ask:9"]
 
 
 def test_views_memory_is_bounded():
@@ -465,7 +466,16 @@ def test_lesson_layout_with_parts_and_fallback():
     lesson = LessonOut(id=1, topic=_topic(), explanation="plain", parts=parts, exercise=None)
     html = formatting.format_lesson(lesson)
     assert html.startswith("📖 <b>Ser &amp; estar</b>\n\n<i>Past habits &amp; descriptions.</i>")
-    assert "<b>📐 Forms</b>\n<b>-ar (hablar)</b>\n<code>hablaba · hablabas</code>" in html
+    assert "<b>📐 Forms</b>\n<b>-ar (hablar)</b>\n<pre>hablaba\nhablabas</pre>" in html
+
     assert "▸ <b>Vivía en &lt;Madrid&gt;.</b>\n   <i>I lived in Madrid.</i>" in html
     assert "❌ <s>Jugué cada día.</s>\n✅ <b>Jugaba cada día.</b>" in html
     assert formatting.format_lesson(lesson.model_copy(update={"parts": None})).endswith("plain")
+
+
+def test_forms_with_persons_become_a_table():
+    from tutor_telegram.formatting import _forms_block
+
+    assert _forms_block("yo: hablé · tú: hablaste · nosotros: hablamos") == (
+        "<pre>yo        hablé\ntú        hablaste\nnosotros  hablamos</pre>"
+    )

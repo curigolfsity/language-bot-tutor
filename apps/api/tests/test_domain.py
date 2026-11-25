@@ -103,6 +103,13 @@ def test_sanitize_maps_unknown(es):
     assert set(report.unknown_tags) == {"made.up", "bogus", "also.bogus"}
 
 
+def test_sanitize_accepts_unique_bare_slug(es):
+    r = make_result(corrections=[], tags=["gender_agreement", " gender_agreement "])
+    clean, report = sanitize_tags(r, es.topic_ids())
+    assert clean.grammar_tags == ["es.a1.gender_agreement"]
+    assert report.unknown_tags == ()
+
+
 def test_apply_policy_drops_above_level_and_orders_majors_first(es):
     p = resolve_policy(es, "A1", "en")  # max 2, at_or_below_level
     r = make_result(

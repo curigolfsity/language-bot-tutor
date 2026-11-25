@@ -25,6 +25,7 @@ from tutor_api.services.errors import (
     UpstreamError,
 )
 from tutor_api.stt import WhisperSTT
+from tutor_api.tts import EdgeTTS
 
 log = logging.getLogger("tutor_api")
 
@@ -63,6 +64,7 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
             )
             # Load (first time: download) in the background so the first voice note is fast.
             app.state.stt_warmup = asyncio.create_task(asyncio.to_thread(stt.load))
+        tts = EdgeTTS(settings.tts_timeout_seconds) if settings.tts_enabled else None
         turn_llms = {
             lang: llm.variant(settings.for_lang(lang)) for lang in settings.tutor_lang_overrides
         }
@@ -72,6 +74,7 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
             sessionmaker=make_sessionmaker(engine),
             llm=llm,
             stt=stt,
+            tts=tts,
             turn_llms=turn_llms,  # type: ignore[arg-type]
         )
         for lang, routed in turn_llms.items():

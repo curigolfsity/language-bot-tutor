@@ -11,6 +11,7 @@ import logging
 import uuid
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from tutor_contracts import (
     ExerciseOut,
     LessonAnswerOut,
@@ -22,8 +23,14 @@ from tutor_contracts import (
 
 from tutor_api.curriculum import Curriculum
 from tutor_api.curriculum.models import GrammarTopic
-from tutor_api.db.models import LearnerProfile, LessonRun, utcnow
-from tutor_api.db.repositories import LessonRepo, MasteryRepo, MistakeRepo, ProfileRepo
+from tutor_api.db.models import LearnerProfile, LessonCache, LessonRun, utcnow
+from tutor_api.db.repositories import (
+    LessonCacheRepo,
+    LessonRepo,
+    MasteryRepo,
+    MistakeRepo,
+    ProfileRepo,
+)
 from tutor_api.domain import mastery as mastery_math
 from tutor_api.domain.lessons import (
     TopicStats,
@@ -32,7 +39,11 @@ from tutor_api.domain.lessons import (
     suggest_topics,
 )
 from tutor_api.domain.policy import Policy, resolve_policy
-from tutor_api.domain.prompt import build_exercise_grade_prompt, build_lesson_prompt
+from tutor_api.domain.prompt import (
+    build_exercise_grade_prompt,
+    build_exercises_prompt,
+    build_lesson_prompt,
+)
 from tutor_api.llm import LLMError
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import (
@@ -111,7 +122,12 @@ async def suggestions(ctx: AppContext, profile_id: uuid.UUID) -> LessonSuggestio
     )
 
 
-async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) -> LessonOut:
+async def start_lesson(
+    ctx: AppContext, profile_id: uuid.UUID, topic_id: str, fresh: bool = False
+) -> LessonOut:
+    """A lesson on `topic_id`. The explanation is written once per (topic, level, native
+    language, explanation style) and reused; later lessons only get fresh exercises (a cheaper
+    model). `fresh` writes a new explanation and replaces the stored one."""
     # 1) Context.
     async with ctx.sessionmaker() as db:
         profile = await ProfileRepo(db).get(profile_id)
@@ -125,30 +141,63 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
         state = (await MasteryRepo(db).get_many(profile_id, {topic_id})).get(topic_id)
         studied = await LessonRepo(db).topics_studied(profile_id)
         policy = _policy(curriculum, profile)
+        key = (topic_id, policy.level, policy.native_lang, policy.explanation_language)
+        cached = None if fresh else await LessonCacheRepo(db).get(*key)
     own = list(dict.fromkeys((m.wrong, m.right) for m in mistakes))[:MISTAKES_IN_LESSON]
+    n = ctx.settings.lesson_exercises
 
     # 2) Generate (no transaction held across the model call).
-    system, user = build_lesson_prompt(
-        curriculum, policy, topic, own, ctx.settings.lesson_exercises
-    )
-    try:
-        outcome = await ctx.llm.generate_lesson(system, user)
-    except LLMError as e:
-        log.error("LLM lesson failed: %s", e)
-        raise UpstreamError(str(e)) from e
-    await record_call(ctx, "lesson", curriculum.code, outcome)
-    if outcome.refused or outcome.lesson is None:
-        raise UpstreamError("the model declined to write this lesson")
+    if cached is not None:
+        parts = dict(cached.parts)
+        if mistakes:  # the learner's own latest mistake is the best "watch out"
+            m = mistakes[0]
+            parts["watch_out"] = {"wrong": m.wrong, "right": m.right, "note": m.explanation}
+        elif parts.get("watch_out") is None and topic.examples:
+            e = topic.examples[0]
+            parts["watch_out"] = {"wrong": e.wrong, "right": e.right, "note": ""}
+        system, user = build_exercises_prompt(
+            curriculum, policy, topic, own, n, lesson_plain_text(parts)
+        )
+        try:
+            ex_outcome = await ctx.llm.generate_exercises(system, user)
+        except LLMError as e:
+            log.error("LLM exercises failed: %s", e)
+            raise UpstreamError(str(e)) from e
+        await record_call(ctx, "exercises", curriculum.code, ex_outcome)
+        if ex_outcome.refused or ex_outcome.exercises is None:
+            raise UpstreamError("the model declined to write exercises for this lesson")
+        specs, model = ex_outcome.exercises, ex_outcome.model
+    else:
+        system, user = build_lesson_prompt(curriculum, policy, topic, own, n)
+        try:
+            outcome = await ctx.llm.generate_lesson(system, user)
+        except LLMError as e:
+            log.error("LLM lesson failed: %s", e)
+            raise UpstreamError(str(e)) from e
+        await record_call(ctx, "lesson", curriculum.code, outcome)
+        if outcome.refused or outcome.lesson is None:
+            raise UpstreamError("the model declined to write this lesson")
+        parts = outcome.lesson.model_dump(exclude={"exercises"})
+        specs, model = outcome.lesson.exercises, outcome.model
     exercises: list[dict[str, Any]] = [
-        ex.model_dump()
-        for ex in outcome.lesson.exercises
-        if ex.prompt.strip() and ex.answer.strip()
-    ][: ctx.settings.lesson_exercises]
+        ex.model_dump() for ex in specs if ex.prompt.strip() and ex.answer.strip()
+    ][:n]
     if not exercises:
         raise UpstreamError("the generated lesson had no usable exercises")
-    parts = outcome.lesson.model_dump(exclude={"exercises"})
 
-    # 3) Store.
+    # 3) Store (and remember a newly written explanation for next time).
+    if cached is None:
+        try:
+            async with ctx.sessionmaker.begin() as db:
+                repo = LessonCacheRepo(db)
+                if fresh:
+                    await repo.delete(*key)
+                    await db.flush()
+                # A "watch out" built from this learner's mistakes stays out of the shared copy.
+                shared = {**parts, "watch_out": None} if own else parts
+                await repo.add(LessonCache(**_cache_key(key), parts=shared, llm_model=model))
+        except IntegrityError:  # stored concurrently by another lesson: fine
+            pass
     async with ctx.sessionmaker.begin() as db:
         run = await LessonRepo(db).add(
             LessonRun(
@@ -159,7 +208,7 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
                 exercises=exercises,
                 answers=[],
                 correct=0,
-                llm_model=outcome.model,
+                llm_model=model,
             )
         )
         stats = {topic_id: TopicStats(state.mastery, state.attempts, state.errors)} if state else {}
@@ -169,7 +218,18 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
             explanation=run.explanation,
             parts=LessonPartsOut.model_validate(parts),
             exercise=_exercise_out(run, 0),
+            reused=cached is not None,
         )
+
+
+def _cache_key(key: tuple[str, str, str, str]) -> dict[str, str]:
+    topic_id, level, native_lang, explanation_language = key
+    return {
+        "topic_id": topic_id,
+        "level": level,
+        "native_lang": native_lang,
+        "explanation_language": explanation_language,
+    }
 
 
 async def answer(ctx: AppContext, run_id: int, index: int, answer_text: str) -> LessonAnswerOut:

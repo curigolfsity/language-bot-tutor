@@ -7,6 +7,7 @@ from tutor_api.routes import (
     health,
     learners,
     lessons,
+    practice,
     reminders,
     review,
     sessions,
@@ -25,5 +26,7 @@ v1.include_router(reminders.router)
 v1.include_router(review.router)
 v1.include_router(lessons.learner_router)
 v1.include_router(lessons.router)
+v1.include_router(practice.learner_router)
+v1.include_router(practice.router)
 
 __all__ = ["health", "v1"]

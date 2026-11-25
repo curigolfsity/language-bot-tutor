@@ -8,10 +8,15 @@ flag: "🇯🇵"
 refusal_reply: "すみません、それにはお答えできません。ほかの話をしましょうか？"
 # Steers speech-to-text towards standard Japanese script.
 stt_prompt: "以下は日本語の会話です。"
+# Spoken replies (text-to-speech voice). Readings in brackets after kanji are not spoken.
+tts_voice: ja-JP-NanamiNeural
+speech_drop:
+  - '[（(][ぁ-ゖァ-ヺー・\s]+[）)]'
 # Language-specific guidance appended to the tutor's system prompt.
 prompt_notes:
   - "Learners may write in hiragana only, mix in katakana, or type romaji. Do not flag the script choice (kana instead of kanji is fine); reply in Japanese script following the level style."
   - "Default to polite です/ます form. Do not flag plain form in casual chats unless the scenario calls for polite or honorific speech."
+  - "ある/あります is for things and plants; いる/います is for people and animals (猫がいます, not 猫があります). Flag ある used with living beings at every level."
   - "Particle errors (は/が, を, に/で, へ) are core errors at every level; flag them."
   - "Do not flag punctuation style (。、 vs . ,) or spacing."
   - "In new_vocab, `lemma` is the word as normally written (kanji or kana). Start `translation` with its reading in hiragana, then the meaning, for example: 'がくせい — student'."

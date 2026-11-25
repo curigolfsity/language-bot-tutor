@@ -1,0 +1,30 @@
+# Placement test: multiple choice, asked level by level from the lowest.
+# A level is passed with `pass_mark` right out of `per_level`; the test stops at the first
+# level that is not passed and suggests the last level passed. Learners can still pick any level.
+# `answer` is the 0-based index of the correct option. Ids are never renamed.
+per_level: 3
+pass_mark: 2
+questions:
+  - { id: es.place.a1_ser, level: A1, prompt: "Yo ___ de México.", options: ["estoy", "soy", "tengo", "es"], answer: 1 }
+  - { id: es.place.a1_estar, level: A1, prompt: "¿Dónde ___ el baño?", options: ["es", "hay", "está", "tiene"], answer: 2 }
+  - { id: es.place.a1_gustar, level: A1, prompt: "Me ___ el chocolate.", options: ["gusta", "gustan", "gusto", "gustas"], answer: 0 }
+
+  - { id: es.place.a2_preterite, level: A2, prompt: "Ayer ___ al cine con mis amigos.", options: ["voy", "fui", "iba", "iré"], answer: 1 }
+  - { id: es.place.a2_imperfect, level: A2, prompt: "Cuando era niño, ___ en el parque todos los días.", options: ["jugué", "juego", "jugaba", "jugaré"], answer: 2 }
+  - { id: es.place.a2_perfect, level: A2, prompt: "¿Has ___ paella alguna vez?", options: ["comido", "comer", "comiendo", "comí"], answer: 0 }
+
+  - { id: es.place.b1_espero, level: B1, prompt: "Espero que ___ buen tiempo mañana.", options: ["hace", "hará", "haga", "hizo"], answer: 2 }
+  - { id: es.place.b1_cuando, level: B1, prompt: "Cuando ___ a casa, te llamaré.", options: ["llegue", "llego", "llegaré", "llegué"], answer: 0 }
+  - { id: es.place.b1_pret_vs_perf, level: B1, prompt: "Te lo ___ ayer, pero no me escuchaste.", options: ["he dicho", "dije", "decía", "diré"], answer: 1 }
+
+  - { id: es.place.b2_si_imperfect, level: B2, prompt: "Si ___ más tiempo, viajaría por todo el mundo.", options: ["tengo", "tuviera", "tendría", "tenga"], answer: 1 }
+  - { id: es.place.b2_no_creo, level: B2, prompt: "No creo que ellos ___ la verdad ayer.", options: ["dijeron", "dicen", "hayan dicho", "digan"], answer: 2 }
+  - { id: es.place.b2_relative, level: B2, prompt: "No hay ningún piso que ___ cerca del centro.", options: ["esté", "está", "estará", "estuvo"], answer: 0 }
+
+  - { id: es.place.c1_pluperfect_si, level: C1, prompt: "Si me lo ___ dicho antes, habría venido.", options: ["habías", "hubieras", "habrías", "hayas"], answer: 1 }
+  - { id: es.place.c1_por_mucho, level: C1, prompt: "Por mucho que ___, no conseguirás convencerla.", options: ["insistirás", "insististe", "insistas", "insistiendo"], answer: 2 }
+  - { id: es.place.c1_no_es_que, level: C1, prompt: "No es que no ___ ir, es que no puedo.", options: ["quiera", "quiero", "querré", "quise"], answer: 0 }
+
+  - { id: es.place.c2_de_haber, level: C2, prompt: "De ___ sabido, no habría venido.", options: ["lo haber", "haberlo", "habiéndolo", "haber lo"], answer: 1 }
+  - { id: es.place.c2_quienquiera, level: C2, prompt: "Quienquiera que ___, dile que no estoy.", options: ["es", "será", "sea", "fue"], answer: 2 }
+  - { id: es.place.c2_mal_que, level: C2, prompt: "Mal que te ___, tendrás que aceptarlo.", options: ["pesa", "pese", "pesará", "pesaría"], answer: 1 }

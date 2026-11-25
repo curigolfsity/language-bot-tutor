@@ -1,0 +1,30 @@
+# Placement test: multiple choice, asked level by level from the lowest.
+# A level is passed with `pass_mark` right out of `per_level`; the test stops at the first
+# level that is not passed and suggests the last level passed. Learners can still pick any level.
+# `answer` is the 0-based index of the correct option. Ids are never renamed.
+per_level: 3
+pass_mark: 2
+questions:
+  - { id: ja.place.a1_wa, level: A1, prompt: "わたし ___ 学生です。", options: ["を", "は", "に", "で"], answer: 1 }
+  - { id: ja.place.a1_wo, level: A1, prompt: "毎朝コーヒー ___ 飲みます。", options: ["を", "が", "に", "の"], answer: 0 }
+  - { id: ja.place.a1_iru, level: A1, prompt: "公園に犬が ___。", options: ["あります", "です", "います", "します"], answer: 2 }
+
+  - { id: ja.place.a2_temoii, level: A2, prompt: "ここで写真を ___ もいいですか。", options: ["とって", "とる", "とった", "とり"], answer: 0 }
+  - { id: ja.place.a2_takoto, level: A2, prompt: "今までに日本へ ___ ことがありますか。", options: ["行く", "行った", "行って", "行き"], answer: 1 }
+  - { id: ja.place.a2_suki, level: A2, prompt: "わたしはすしが ___ です。", options: ["好きな", "好く", "好き", "好きに"], answer: 2 }
+
+  - { id: ja.place.b1_passive, level: B1, prompt: "わたしは電車でだれかに財布を ___。", options: ["盗みました", "盗まれました", "盗ませました", "盗めました"], answer: 1 }
+  - { id: ja.place.b1_youni, level: B1, prompt: "毎日練習して、日本語が話せる ___ なりました。", options: ["ように", "ために", "そうに", "らしく"], answer: 0 }
+  - { id: ja.place.b1_relative_ga, level: B1, prompt: "わたし ___ 買った本はとてもおもしろいです。", options: ["を", "で", "が", "へ"], answer: 2 }
+
+  - { id: ja.place.b2_nimokakawarazu, level: B2, prompt: "彼は忙しい ___ 、毎日ジムに通っている。", options: ["にもかかわらず", "ために", "おかげで", "ように"], answer: 0 }
+  - { id: ja.place.b2_wotowazu, level: B2, prompt: "この仕事は経験 ___ 、だれでも応募できます。", options: ["によって", "を問わず", "に対して", "について"], answer: 1 }
+  - { id: ja.place.b2_sonkeigo, level: B2, prompt: "（部長が部下に）社長は明日、大阪に ___ 予定です。", options: ["まいる", "うかがう", "いらっしゃる", "おる"], answer: 2 }
+
+  - { id: ja.place.c1_ijou, level: C1, prompt: "一度約束した ___ 、守らなければならない。", options: ["以上", "うちに", "とたん", "あげく"], answer: 0 }
+  - { id: ja.place.c1_hatomokaku, level: C1, prompt: "結果 ___ 、全力を尽くしたことに意味がある。", options: ["にとって", "はともかく", "によって", "として"], answer: 1 }
+  - { id: ja.place.c1_yoginaku, level: C1, prompt: "台風のため、試合は中止 ___。", options: ["を余儀なくした", "に余儀なくされた", "を余儀なくされた", "を余儀なくさせた"], answer: 2 }
+
+  - { id: ja.place.c2_nakushiteha, level: C2, prompt: "彼の才能は、長年の努力 ___ 開花しなかっただろう。", options: ["なくしては", "ながらも", "ならでは", "なりに"], answer: 0 }
+  - { id: ja.place.c2_kinjienai, level: C2, prompt: "被害者の話を聞いて、同情 ___。", options: ["をものともしない", "を禁じ得ない", "にかたくない", "にはおよばない"], answer: 1 }
+  - { id: ja.place.c2_nagara, level: C2, prompt: "恐縮 ___ 、もう一度ご説明いただけますか。", options: ["ものの", "ばかりに", "ながら", "とたん"], answer: 2 }

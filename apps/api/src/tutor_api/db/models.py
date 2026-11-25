@@ -94,6 +94,8 @@ class LearnerProfile(Base):
     )
     last_reminded_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     streak_best: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    # Local date of the last weekly summary sent (one per week).
+    last_weekly_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 class DailyActivity(Base):
@@ -132,7 +134,10 @@ class GrammarMastery(Base):
 
 class VocabItem(Base):
     __tablename__ = "vocab_items"
-    __table_args__ = (UniqueConstraint("profile_id", "lemma"),)
+    __table_args__ = (
+        UniqueConstraint("profile_id", "lemma"),
+        Index("ix_vocab_items_profile_due_at", "profile_id", "due_at"),
+    )
     id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
     profile_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("learner_profiles.id", ondelete="CASCADE")
@@ -144,6 +149,9 @@ class VocabItem(Base):
     mastery: Mapped[float] = mapped_column(Float, default=0.0)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Flashcard review (Leitner box, same schedule as mistake cards). NULL due_at: not queued.
+    box: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Session(Base):
@@ -256,6 +264,37 @@ class LessonRun(Base):
     answers: Mapped[list[dict[str, Any]]] = mapped_column(JsonB, default=list)
     correct: Mapped[int] = mapped_column(Integer, default=0)
     llm_model: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class LessonCache(Base):
+    """A lesson's explanation parts, reused for every learner with the same level, native
+    language and explanation style (only the exercises are written fresh each time)."""
+
+    __tablename__ = "lesson_cache"
+    __table_args__ = (UniqueConstraint("topic_id", "level", "native_lang", "explanation_language"),)
+    id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
+    topic_id: Mapped[str] = mapped_column(String(128))
+    level: Mapped[str] = mapped_column(String(8))
+    native_lang: Mapped[str] = mapped_column(String(8))
+    explanation_language: Mapped[str] = mapped_column(String(8))
+    parts: Mapped[dict[str, Any]] = mapped_column(JsonB)
+    llm_model: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PlacementRun(Base):
+    """A placement test: questions asked (ids from curriculum/<lang>/placement.yaml) and the
+    learner's answers, in order. `result_level` is set when the test ends."""
+
+    __tablename__ = "placement_runs"
+    id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("learner_profiles.id", ondelete="CASCADE")
+    )
+    answers: Mapped[list[dict[str, Any]]] = mapped_column(JsonB, default=list)
+    result_level: Mapped[str | None] = mapped_column(String(8), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

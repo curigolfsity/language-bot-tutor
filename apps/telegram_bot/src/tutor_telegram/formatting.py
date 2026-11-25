@@ -18,6 +18,7 @@ from tutor_contracts import (
     LessonTopicOut,
     LevelOut,
     MistakeOut,
+    PlacementStepOut,
     ReminderOut,
     ReviewAnswerOut,
     ReviewQueueOut,
@@ -26,6 +27,10 @@ from tutor_contracts import (
     SessionSummary,
     TurnProgress,
     TurnResponse,
+    WeeklySummaryOut,
+    WordAnswerOut,
+    WordCardOut,
+    WordQueueOut,
 )
 
 from tutor_telegram.keyboards import (
@@ -443,6 +448,18 @@ def format_level_topics(topics: list[LessonTopicOut]) -> str:
     return "\n".join(lines)
 
 
+def _forms_block(forms: str) -> str:
+    """One form per line in monospace. "person: form" items become an aligned table."""
+    items = [i.strip() for i in forms.split("·") if i.strip()]
+    pairs = [i.split(":", 1) for i in items]
+    if len(items) > 1 and all(len(pair) == 2 for pair in pairs):
+        width = max(len(person.strip()) for person, _ in pairs)
+        lines = [f"{person.strip():<{width}}  {form.strip()}" for person, form in pairs]
+    else:
+        lines = items
+    return "<pre>" + escape("\n".join(lines)) + "</pre>"
+
+
 def format_lesson(lesson: LessonOut) -> str:
     """Sections with headings and spacing; forms in monospace so they line up and copy."""
     title = f"📖 <b>{escape(lesson.topic.title)}</b>"
@@ -453,7 +470,7 @@ def format_lesson(lesson: LessonOut) -> str:
     if p.forms:
         forms = ["<b>📐 Forms</b>"]
         for f in p.forms:
-            forms.append(f"<b>{escape(f.label)}</b>\n<code>{escape(f.forms)}</code>")
+            forms.append(f"<b>{escape(f.label)}</b>\n{_forms_block(f.forms)}")
         out.append("\n".join(forms))
     if p.usage:
         out.append("<b>🕐 When to use it</b>\n" + "\n".join(f"• {escape(u)}" for u in p.usage))
@@ -463,12 +480,11 @@ def format_lesson(lesson: LessonOut) -> str:
         ]
         out.append("<b>💬 Examples</b>\n" + "\n".join(examples))
     w = p.watch_out
-    out.append(
-        "<b>⚠️ Watch out</b>\n"
-        f"❌ <s>{escape(w.wrong)}</s>\n"
-        f"✅ <b>{escape(w.right)}</b>\n"
-        f"<i>{escape(w.note)}</i>"
-    )
+    if w is not None:
+        note = f"\n<i>{escape(w.note)}</i>" if w.note.strip() else ""
+        out.append(
+            f"<b>⚠️ Watch out</b>\n❌ <s>{escape(w.wrong)}</s>\n✅ <b>{escape(w.right)}</b>{note}"
+        )
     return "\n\n".join(out)
 
 
@@ -510,4 +526,104 @@ def format_lesson_answer(lesson_id: int, r: LessonAnswerOut) -> str:
             f"Topic mastery: {_bar(r.mastery, 5)} {round(r.mastery * 100)}%",
             "Now try it for real in a conversation, or take another lesson.",
         ]
+    return "\n".join(lines)
+
+
+# ----------------------------------------------------------------------------- word cards
+
+
+def format_word_front(q: WordQueueOut) -> str:
+    c = q.card
+    assert c is not None
+    return f"🃏 <b>Word card</b> · {q.due} due\n\n<b>{escape(c.word)}</b>\n\n<i>Do you know it?</i>"
+
+
+def format_word_back(c: WordCardOut) -> str:
+    pos = f" <i>({escape(c.pos)})</i>" if c.pos else ""
+    return f"🃏 <b>{escape(c.word)}</b>{pos}\n\n{escape(c.translation)}\n\n<i>Did you know it?</i>"
+
+
+def format_word_result(word: str, r: WordAnswerOut) -> str:
+    if r.knew:
+        d = round(r.next_review_in_days)
+        return f"✅ <b>{escape(word)}</b>: next time in {d} day{'s' if d != 1 else ''}."
+    return f"🔁 <b>{escape(word)}</b>: I'll show it again soon."
+
+
+def format_words_empty(q: WordQueueOut, now: datetime | None = None) -> str:
+    if q.total == 0:
+        return (
+            "🃏 No word cards yet. New words from our chats are saved here, "
+            "so you can review them later."
+        )
+    return f"🎉 <b>All caught up!</b> Your next word is due {_when(q.next_due_at, now)}."
+
+
+# ----------------------------------------------------------------------------- placement
+
+
+def format_placement_question(step: PlacementStepOut) -> str:
+    q = step.question
+    assert q is not None
+    head = ""
+    if step.last is not None:
+        head = (
+            "✅ Right!\n\n"
+            if step.last.correct
+            else f"❌ It was <b>{escape(step.last.right_option)}</b>.\n\n"
+        )
+    return (
+        f"{head}🧭 <b>Question {q.number}</b>\n\n"
+        f"Choose what fits the gap:\n\n<b>{escape(q.prompt)}</b>"
+    )
+
+
+def format_placement_result(step: PlacementStepOut) -> str:
+    r = step.result
+    assert r is not None
+    last = ""
+    if step.last is not None:
+        last = (
+            "✅ Right!\n\n"
+            if step.last.correct
+            else f"❌ It was <b>{escape(step.last.right_option)}</b>.\n\n"
+        )
+    scores = " · ".join(f"{s.level} {s.right}/{s.asked}" for s in r.scores)
+    can_do = f"\n<i>{escape(r.can_do)}</i>" if r.can_do else ""
+    same = "\n\nThat's your current level. 👍" if r.level == r.current_level else ""
+    return (
+        f"{last}🧭 <b>Suggested level: {escape(r.level)}</b> · {escape(r.label)}{can_do}\n\n"
+        f"Your answers: {scores}{same}\n\n"
+        "<i>It's only a suggestion: you can study at any level you like.</i>"
+    )
+
+
+# ----------------------------------------------------------------------------- weekly summary
+
+
+def format_weekly(w: WeeklySummaryOut) -> str:
+    lines = [
+        "📅 <b>Your week</b>",
+        f"<i>{w.first_day:%d %b} – {w.last_day:%d %b}</i>",
+        "",
+        f"🗓️ Active on <b>{w.days_active}/7</b> days · <b>{w.messages}</b> messages",
+        f"🔥 Streak: <b>{w.streak}</b> (best {w.best_streak})",
+    ]
+    if w.lessons:
+        lines.append(
+            f"📖 Lessons: <b>{w.lessons}</b> · "
+            f"exercises {w.exercises_right}/{w.exercises_done} right"
+        )
+    if w.new_words:
+        lines.append(f"🆕 New words: <b>{w.new_words}</b>")
+    lines.append(f"✏️ Mistakes fixed: <b>{w.mistakes}</b>")
+    if w.top_mistakes:
+        lines += ["", "<b>Most frequent mistakes</b>"]
+        lines += [f"• {escape(t.title)} ×{t.count}" for t in w.top_mistakes]
+    if w.suggested_lesson:
+        lines += ["", f"👉 Next lesson idea: <b>{escape(w.suggested_lesson.title)}</b>"]
+    if w.days_active == 0:
+        lines += ["", "No practice this week. A few minutes today gets you going again! 💪"]
+    elif w.days_active >= 5:
+        lines += ["", "Fantastic consistency! 🌟"]
     return "\n".join(lines)

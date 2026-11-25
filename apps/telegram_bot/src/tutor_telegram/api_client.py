@@ -24,6 +24,8 @@ from tutor_contracts import (
     LessonSuggestionsOut,
     LevelOut,
     MistakeOut,
+    PlacementAnswerRequest,
+    PlacementStepOut,
     ReminderClaimRequest,
     ReminderOut,
     ResolveUserRequest,
@@ -38,6 +40,10 @@ from tutor_contracts import (
     TurnRequest,
     TurnResponse,
     VocabOut,
+    WeeklySummaryOut,
+    WordAnswerOut,
+    WordAnswerRequest,
+    WordQueueOut,
 )
 
 T = TypeVar("T")
@@ -87,6 +93,44 @@ class TutorApiClient:
             raise cls(resp.status_code, detail)
         return TypeAdapter(out).validate_python(resp.json())
 
+    async def _audio(self, url: str) -> tuple[bytes, str]:
+        resp = await self._http.get(url)
+        if resp.status_code >= 400:
+            self._parse(resp, object)
+        return resp.content, resp.headers.get("content-type", "audio/ogg")
+
+    async def turn_speech(self, turn_id: int) -> tuple[bytes, str]:
+        """The tutor message read aloud: (audio bytes, mime type)."""
+        return await self._audio(f"/v1/turns/{turn_id}/speech")
+
+    async def word_speech(self, word_id: int) -> tuple[bytes, str]:
+        return await self._audio(f"/v1/words/{word_id}/speech")
+
+    async def next_word(self, profile_id: UUID) -> WordQueueOut:
+        return await self._request("GET", f"/v1/learners/{profile_id}/words/next", WordQueueOut)
+
+    async def answer_word(self, word_id: int, knew: bool) -> WordAnswerOut:
+        req = WordAnswerRequest(knew=knew)
+        return await self._request("POST", f"/v1/words/{word_id}/answer", WordAnswerOut, req)
+
+    async def start_placement(self, profile_id: UUID) -> PlacementStepOut:
+        return await self._request("POST", f"/v1/learners/{profile_id}/placement", PlacementStepOut)
+
+    async def answer_placement(
+        self, run_id: int, question_id: str, choice: int
+    ) -> PlacementStepOut:
+        req = PlacementAnswerRequest(question_id=question_id, choice=choice)
+        return await self._request("POST", f"/v1/placement/{run_id}/answer", PlacementStepOut, req)
+
+    async def weekly(self, profile_id: UUID) -> WeeklySummaryOut:
+        return await self._request("GET", f"/v1/learners/{profile_id}/weekly", WeeklySummaryOut)
+
+    async def claim_weekly(self, provider: str, target_lang: str) -> list[WeeklySummaryOut]:
+        req = ReminderClaimRequest(provider=provider, target_lang=target_lang)
+        return await self._request(
+            "POST", "/v1/reminders/weekly/claim", list[WeeklySummaryOut], req
+        )
+
     async def resolve_user(self, req: ResolveUserRequest) -> ResolveUserResponse:
         return await self._request("POST", "/v1/users/resolve", ResolveUserResponse, req)
 
@@ -125,8 +169,8 @@ class TutorApiClient:
             "GET", f"/v1/learners/{profile_id}/lessons", LessonSuggestionsOut
         )
 
-    async def start_lesson(self, profile_id: UUID, topic_id: str) -> LessonOut:
-        req = StartLessonRequest(topic_id=topic_id)
+    async def start_lesson(self, profile_id: UUID, topic_id: str, fresh: bool = False) -> LessonOut:
+        req = StartLessonRequest(topic_id=topic_id, fresh=fresh)
         return await self._request("POST", f"/v1/learners/{profile_id}/lessons", LessonOut, req)
 
     async def answer_lesson(self, lesson_id: int, index: int, answer: str) -> LessonAnswerOut:

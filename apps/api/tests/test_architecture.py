@@ -78,3 +78,9 @@ def test_only_stt_package_imports_whisper():
     for path, mods in imported_modules(API_SRC).items():
         if "faster_whisper" in mods:
             assert "stt" in path.relative_to(API_SRC).parts, f"{path} imports faster_whisper"
+
+
+def test_only_tts_package_imports_edge_tts():
+    for path, mods in imported_modules(API_SRC).items():
+        if "edge_tts" in mods:
+            assert "tts" in path.relative_to(API_SRC).parts, f"{path} imports edge_tts"

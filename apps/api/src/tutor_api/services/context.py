@@ -9,6 +9,7 @@ from tutor_api.curriculum import Curriculum
 from tutor_api.llm import TurnLLM
 from tutor_api.services.errors import InvalidRequestError
 from tutor_api.stt import SpeechToText
+from tutor_api.tts import TextToSpeech
 
 
 @dataclass
@@ -20,6 +21,7 @@ class AppContext:
     sessionmaker: async_sessionmaker[AsyncSession]
     llm: TurnLLM
     stt: SpeechToText | None = None  # None: voice messages disabled
+    tts: TextToSpeech | None = None  # None: spoken replies disabled
     # Conversation-turn LLMs routed per target language (TUTOR_LANG_OVERRIDES); others use llm.
     turn_llms: dict[str, TurnLLM] = field(default_factory=dict)
 

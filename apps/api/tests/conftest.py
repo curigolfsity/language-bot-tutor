@@ -12,6 +12,7 @@ from tutor_api.db import Base, make_engine, make_sessionmaker
 from tutor_api.llm import (
     ExerciseSpec,
     LessonContent,
+    LLMExercisesOutcome,
     LLMGradeOutcome,
     LLMHelpOutcome,
     LLMLessonOutcome,
@@ -92,6 +93,7 @@ class FakeLLM:
         self.grades: list[ReviewGrade] = []  # queued; default: incorrect
         self.lesson_calls: list[tuple[str, str]] = []
         self.lesson: LessonContent | None = None
+        self.exercise_calls: list[tuple[str, str]] = []
 
     def push_result(self, result: TurnResult) -> None:
         self.queue.append(
@@ -135,6 +137,13 @@ class FakeLLM:
         return LLMLessonOutcome(
             lesson=self.lesson or default_lesson(), refused=False, model=self.model
         )
+
+    async def generate_exercises(
+        self, system_prompt: str, user_content: str
+    ) -> LLMExercisesOutcome:
+        self.exercise_calls.append((system_prompt, user_content))
+        lesson = self.lesson or default_lesson()
+        return LLMExercisesOutcome(exercises=lesson.exercises, refused=False, model="cheap-model")
 
     async def generate_turn(self, system_prompt: str, user_content: str) -> LLMTurnOutcome:
         self.calls.append((system_prompt, user_content))

@@ -8,6 +8,10 @@ flag: "🇨🇳"
 refusal_reply: "不好意思，这个我不能回答。我们聊点别的吧？"
 # Steers speech-to-text towards Simplified characters and Mandarin punctuation.
 stt_prompt: "以下是普通话的句子，使用简体中文。"
+# Spoken replies (text-to-speech voice). Pinyin in brackets is not spoken.
+tts_voice: zh-CN-XiaoxiaoNeural
+speech_drop:
+  - '[（(][^（）()一-鿿]*[A-Za-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü][^（）()一-鿿]*[）)]'
 # Language-specific guidance appended to the tutor's system prompt.
 prompt_notes:
   - "This is Mandarin Chinese written in Simplified characters. Accept Traditional characters from the learner without flagging them."

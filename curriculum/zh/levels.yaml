@@ -11,7 +11,7 @@ A1:
   explanation_language: native
   max_corrections_per_turn: 2
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very short, simple sentences. After every sentence, add its full pinyin with tone marks in parentheses" }
+  tutor_reply: { speech_rate: -25, max_sentences: 2, vocab_ceiling: A1, speed_note: "very short, simple sentences. After every sentence, add its full pinyin with tone marks in parentheses" }
   free_opening: "你好！你今天怎么样？(Nǐ hǎo! Nǐ jīntiān zěnmeyàng?)"
   starter_scenario: zh.a1.meet_new_friend
 
@@ -22,7 +22,7 @@ A2:
   explanation_language: native
   max_corrections_per_turn: 3
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple everyday sentences. After every sentence, add its pinyin with tone marks in parentheses" }
+  tutor_reply: { speech_rate: -15, max_sentences: 3, vocab_ceiling: A2, speed_note: "simple everyday sentences. After every sentence, add its pinyin with tone marks in parentheses" }
   free_opening: "你好！今天过得怎么样？(Nǐ hǎo! Jīntiān guò de zěnmeyàng?)"
   starter_scenario: zh.a2.restaurant_order
 
@@ -33,7 +33,7 @@ B1:
   explanation_language: mixed
   max_corrections_per_turn: 4
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural everyday Chinese. Add pinyin in parentheses only after less common words" }
+  tutor_reply: { speech_rate: -5, max_sentences: 4, vocab_ceiling: B1, speed_note: "natural everyday Chinese. Add pinyin in parentheses only after less common words" }
   free_opening: "嗨！最近忙什么呢？"
   starter_scenario: zh.b1.renting_apartment
 

@@ -25,6 +25,9 @@ class LessonSuggestionsOut(BaseModel):
 
 class StartLessonRequest(BaseModel):
     topic_id: str = Field(min_length=1, max_length=128)
+    fresh: bool = Field(
+        default=False, description="Write a new explanation instead of reusing the stored one."
+    )
 
 
 class ExerciseOut(BaseModel):
@@ -60,7 +63,7 @@ class LessonPartsOut(BaseModel):
     forms: list[LessonFormOut]
     usage: list[str]
     examples: list[LessonExampleOut]
-    watch_out: LessonWatchOutOut
+    watch_out: LessonWatchOutOut | None = None
 
 
 class LessonOut(BaseModel):
@@ -69,6 +72,9 @@ class LessonOut(BaseModel):
     explanation: str = Field(description="The whole lesson as plain text (simple clients).")
     parts: LessonPartsOut | None = Field(default=None, description="The lesson in parts.")
     exercise: ExerciseOut | None = Field(description="The first exercise.")
+    reused: bool = Field(
+        default=False, description="The explanation was reused; the exercises are new."
+    )
 
 
 class LessonAnswerRequest(BaseModel):

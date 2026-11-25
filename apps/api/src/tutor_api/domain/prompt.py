@@ -359,14 +359,6 @@ def build_lesson_prompt(
     explain_in = _EXPLAIN_LANG[policy.explanation_language].format(
         native=LESSON_NATIVE, target=target
     )
-    notes = ""
-    if curriculum.lang.prompt_notes:
-        notes = (
-            "\n# Notes for "
-            + target
-            + "\n"
-            + "\n".join(f"- {n}" for n in curriculum.lang.prompt_notes)
-        )
     system = f"""You are an expert {target} teacher. Write a short grammar lesson with practice \
 exercises for a learner at CEFR level {policy.level}.
 
@@ -374,7 +366,9 @@ exercises for a learner at CEFR level {policy.level}.
 Markdown symbols such as *, # or backticks)
 - `summary`: one or two short sentences in {explain_in}: what this grammar point is for.
 - `forms`: the forms to learn, 0-4 lines. Each has a short `label` and the `forms` separated \
-by " · " (for example one line per verb group). Leave it empty if there is nothing to memorise.
+by " · " (for example one line per verb group). For forms that change by person, write every \
+item as "person: form" with the {target} pronoun, in the usual order (for example \
+"yo: hablé · tú: hablaste · él/ella/usted: habló"). Leave it empty if there is nothing to memorise.
 - `usage`: 2-4 short points in {explain_in}: when to use it, typical signal words.
 - `examples`: exactly 3 example sentences in {target}, each with its translation in \
 {LESSON_NATIVE}.
@@ -383,7 +377,22 @@ one-sentence `note` in {explain_in}. If <learner_mistakes> are given, use one of
 own mistakes.
 - Vocabulary no harder than CEFR {policy.vocab_ceiling}.
 
-# exercises
+{_exercise_rules(policy, n_exercises, explain_in)}{_lang_notes(curriculum, target)}
+"""
+    parts = _lesson_context(policy, topic, learner_mistakes)
+    parts.append("Write the lesson and the exercises.")
+    return system, "\n\n".join(parts)
+
+
+def _lang_notes(curriculum: Curriculum, target: str) -> str:
+    if not curriculum.lang.prompt_notes:
+        return ""
+    return f"\n# Notes for {target}\n" + "\n".join(f"- {n}" for n in curriculum.lang.prompt_notes)
+
+
+def _exercise_rules(policy: Policy, n_exercises: int, explain_in: str) -> str:
+    target = policy.target_lang_name
+    return f"""# exercises
 - Exactly {n_exercises} exercises on THIS topic only, easiest first. Mix the kinds: at least one \
 fill_blank, one fix and one translate.
 - `instruction` and `why` in {explain_in}. `prompt` in {target}, except for translate, whose \
@@ -394,8 +403,12 @@ prompt is a short sentence in {LESSON_NATIVE}.
 - Each exercise needs one clearly correct answer. Put genuinely acceptable alternatives in \
 `also_accept` (for example with or without the subject pronoun).
 - Vocabulary no harder than CEFR {policy.vocab_ceiling}. Check that every answer is correct \
-{target}.{notes}
-"""
+{target}."""
+
+
+def _lesson_context(
+    policy: Policy, topic: GrammarTopic, learner_mistakes: Sequence[tuple[str, str]]
+) -> list[str]:
     examples = "\n".join(f"- {escape(e.wrong)} → {escape(e.right)}" for e in topic.examples)
     parts = [
         f"<learner>native language: ISO 639-1 code '{policy.native_lang}'</learner>",
@@ -408,7 +421,36 @@ prompt is a short sentence in {LESSON_NATIVE}.
     if learner_mistakes:
         lines = "\n".join(f"- {escape(w)} → {escape(r)}" for w, r in learner_mistakes)
         parts.append(f"<learner_mistakes>\n{lines}\n</learner_mistakes>")
-    parts.append("Write the lesson and the exercises.")
+    return parts
+
+
+def build_exercises_prompt(
+    curriculum: Curriculum,
+    policy: Policy,
+    topic: GrammarTopic,
+    learner_mistakes: Sequence[tuple[str, str]],
+    n_exercises: int,
+    lesson_text: str,
+) -> tuple[str, str]:
+    """(system, user) to write fresh exercises for a lesson whose explanation is reused.
+
+    lesson_text: the explanation the learner sees, so the exercises match it. The learner's
+    own mistakes steer the exercises towards what they get wrong."""
+    target = policy.target_lang_name
+    explain_in = _EXPLAIN_LANG[policy.explanation_language].format(
+        native=LESSON_NATIVE, target=target
+    )
+    system = f"""You are an expert {target} teacher. Write practice exercises for a learner at \
+CEFR level {policy.level}, on the grammar lesson they have just read. Plain text only: no \
+Markdown symbols such as *, # or backticks.
+
+{_exercise_rules(policy, n_exercises, explain_in)}
+- Use new sentences, not the lesson's examples. If <learner_mistakes> are given, base at least \
+one exercise on them.{_lang_notes(curriculum, target)}
+"""
+    parts = _lesson_context(policy, topic, learner_mistakes)
+    parts.append(f"<lesson>\n{escape(lesson_text)}\n</lesson>")
+    parts.append("Write the exercises.")
     return system, "\n\n".join(parts)
 
 

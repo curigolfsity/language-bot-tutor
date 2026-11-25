@@ -60,3 +60,26 @@ def reminder_due(
         and local_now.hour >= reminder_hour
         and last_reminded != today
     )
+
+
+def weekly_due(
+    *,
+    enabled: bool,
+    local_now: datetime,
+    weekday: int,
+    hour: int,
+    last_active: date | None,
+    last_sent: date | None,
+    max_idle_days: int,
+) -> bool:
+    """Weekly summary: once on `weekday` (0 = Monday) after `hour`, for learners active
+    within `max_idle_days`."""
+    today = local_now.date()
+    return (
+        enabled
+        and local_now.weekday() == weekday
+        and local_now.hour >= hour
+        and last_active is not None
+        and (today - last_active).days <= max_idle_days
+        and last_sent != today
+    )

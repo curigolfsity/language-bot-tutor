@@ -1,7 +1,7 @@
 """Grammar lessons: topic suggestions, answer checking, and the HTTP flow (LLM faked)."""
 
 from conftest import make_result
-from test_api_flow import resolve
+from test_api_flow import RESOLVE, resolve
 from tutor_api.domain.lessons import TopicStats, check_exercise, suggest_topics
 from tutor_api.llm import ReviewGrade
 
@@ -133,3 +133,54 @@ async def test_lesson_errors(client):
     assert r.status_code == 404
     r = await client.post("/v1/lessons/999/answer", json={"index": 0, "answer": "x"})
     assert r.status_code == 404
+
+
+async def test_second_lesson_reuses_explanation_with_fresh_exercises(client, fake_llm):
+    pid = (await resolve(client))["profile"]["id"]
+    url = f"/v1/learners/{pid}/lessons"
+    topic = {"topic_id": "es.a1.ser_vs_estar_basic"}
+
+    first = (await client.post(url, json=topic)).json()
+    assert first["reused"] is False
+    assert len(fake_llm.lesson_calls) == 1 and fake_llm.exercise_calls == []
+
+    second = (await client.post(url, json=topic)).json()
+    assert second["reused"] is True
+    assert len(fake_llm.lesson_calls) == 1  # no new explanation
+    assert len(fake_llm.exercise_calls) == 1  # only exercises, from the cheap model
+    assert second["parts"]["summary"] == first["parts"]["summary"]
+    assert second["id"] != first["id"] and second["exercise"]["index"] == 0
+    # The exercise prompt carries the explanation the learner sees.
+    assert first["parts"]["summary"] in fake_llm.exercise_calls[0][1]
+
+    third = (await client.post(url, json={**topic, "fresh": True})).json()
+    assert third["reused"] is False and len(fake_llm.lesson_calls) == 2
+
+    # Answers on a reused lesson work as usual.
+    r = await client.post(
+        f"/v1/lessons/{second['id']}/answer", json={"index": 0, "answer": "estoy"}
+    )
+    assert r.status_code == 200 and r.json()["correct"] is True
+
+
+async def test_cached_lesson_keeps_learner_mistakes_private(client, fake_llm):
+    """A lesson written with one learner's mistakes is stored without their 'watch out'."""
+    pid = (await resolve(client))["profile"]["id"]
+    sid = (await client.post("/v1/sessions", json={"profile_id": pid})).json()["id"]
+    fake_llm.push_result(
+        make_result(corrections=[("soy en", "estoy en", "es.a1.ser_vs_estar_basic", "major")])
+    )
+    await client.post(f"/v1/sessions/{sid}/turns", json={"text": "Yo soy en casa"})
+    url = f"/v1/learners/{pid}/lessons"
+    await client.post(url, json={"topic_id": "es.a1.ser_vs_estar_basic"})
+
+    r = await client.post("/v1/users/resolve", json={**RESOLVE, "external_id": "someone-else"})
+    other = r.json()["profile"]["id"]
+    lesson = (
+        await client.post(
+            f"/v1/learners/{other}/lessons", json={"topic_id": "es.a1.ser_vs_estar_basic"}
+        )
+    ).json()
+    assert lesson["reused"] is True
+    w = lesson["parts"]["watch_out"]
+    assert w is None or w["note"] != "Location."  # not the one written for the first learner

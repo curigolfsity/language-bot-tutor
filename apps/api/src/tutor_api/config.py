@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     default_daily_goal: int = Field(default=10, ge=1, le=200, alias="DEFAULT_DAILY_GOAL")
     reminder_hour: int = Field(default=19, ge=0, le=23, alias="REMINDER_HOUR")
     reminder_max_idle_days: int = Field(default=7, ge=1, alias="REMINDER_MAX_IDLE_DAYS")
+    # Weekly summary: sent on this local weekday (0 = Monday, 6 = Sunday) after REMINDER_HOUR.
+    weekly_summary_weekday: int = Field(default=6, ge=0, le=6, alias="WEEKLY_SUMMARY_WEEKDAY")
 
     # Voice messages: local speech-to-text (faster-whisper). Model files go to STT_MODEL_DIR.
     stt_enabled: bool = Field(default=True, alias="STT_ENABLED")
@@ -61,11 +63,22 @@ class Settings(BaseSettings):
     stt_max_seconds: float = Field(default=120.0, gt=0, alias="STT_MAX_SECONDS")
     stt_cpu_threads: int = Field(default=0, ge=0, alias="STT_CPU_THREADS")  # 0 = automatic
 
+    # Spoken replies: edge-tts (online voices; only the reply text is sent). Voice per
+    # language and speed per level come from the curriculum (language.yaml, levels.yaml).
+    tts_enabled: bool = Field(default=True, alias="TTS_ENABLED")
+    tts_timeout_seconds: float = Field(default=30.0, gt=0, alias="TTS_TIMEOUT_SECONDS")
+
     # Grammar lessons: correctness of generated exercises matters, so a notch more effort.
     lesson_effort: Literal["low", "medium", "high", "xhigh", "max"] = Field(
         default="medium", alias="LESSON_EFFORT"
     )
     lesson_exercises: int = Field(default=5, ge=1, le=10, alias="LESSON_EXERCISES")
+    # A topic's explanation is written once (TUTOR_MODEL) and reused; repeat lessons only get
+    # fresh exercises, from this model (unset: TUTOR_HELP_MODEL, then TUTOR_MODEL).
+    lesson_exercise_model: str | None = Field(default=None, alias="LESSON_EXERCISE_MODEL")
+    lesson_exercise_fallbacks: Literal["default", "off"] | None = Field(
+        default=None, alias="LESSON_EXERCISE_FALLBACKS"
+    )
 
     # Per-language routing for conversation turns, as JSON, e.g.
     # {"es": {"model": "claude-haiku-5-5", "effort": "medium", "fallbacks": "off"}}.

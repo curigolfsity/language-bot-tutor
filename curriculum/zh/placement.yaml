@@ -1,0 +1,30 @@
+# Placement test: multiple choice, asked level by level from the lowest.
+# A level is passed with `pass_mark` right out of `per_level`; the test stops at the first
+# level that is not passed and suggests the last level passed. Learners can still pick any level.
+# `answer` is the 0-based index of the correct option. Ids are never renamed.
+per_level: 3
+pass_mark: 2
+questions:
+  - { id: zh.place.a1_shi, level: A1, prompt: "我 ___ 学生。", options: ["是", "有", "在", "很"], answer: 0 }
+  - { id: zh.place.a1_zai, level: A1, prompt: "你家 ___ 哪儿？", options: ["是", "在", "有", "去"], answer: 1 }
+  - { id: zh.place.a1_measure, level: A1, prompt: "我有三 ___ 书。", options: ["个", "张", "本", "只"], answer: 2 }
+
+  - { id: zh.place.a2_le, level: A2, prompt: "我昨天 ___ 一本书。", options: ["买", "买了", "在买", "要买"], answer: 1 }
+  - { id: zh.place.a2_de_complement, level: A2, prompt: "他汉语说 ___ 很好。", options: ["的", "地", "得", "了"], answer: 2 }
+  - { id: zh.place.a2_guo, level: A2, prompt: "我 ___ 去过北京。", options: ["没", "不", "别", "无"], answer: 0 }
+
+  - { id: zh.place.b1_ba, level: B1, prompt: "请 ___ 门关上。", options: ["把", "被", "给", "让"], answer: 0 }
+  - { id: zh.place.b1_bei, level: B1, prompt: "我的自行车 ___ 偷了。", options: ["把", "被", "和", "对"], answer: 1 }
+  - { id: zh.place.b1_potential, level: B1, prompt: "这本书太长了，我今天看不 ___。", options: ["起", "完", "见", "过"], answer: 1 }
+
+  - { id: zh.place.b2_jishi, level: B2, prompt: "___ 明天下雨，比赛也会照常进行。", options: ["即使", "因为", "既然", "所以"], answer: 0 }
+  - { id: zh.place.b2_budan, level: B2, prompt: "他不但没来，___ 连电话也没打。", options: ["但是", "而且", "所以", "或者"], answer: 1 }
+  - { id: zh.place.b2_dui_laishuo, level: B2, prompt: "这件事 ___ 我来说非常重要。", options: ["跟", "给", "对", "把"], answer: 2 }
+
+  - { id: zh.place.c1_chengyu, level: C1, prompt: "他说话总是 ___，让人摸不着头脑。", options: ["拐弯抹角", "一帆风顺", "半途而废", "井井有条"], answer: 0 }
+  - { id: zh.place.c1_buguan, level: C1, prompt: "___ 天气多么恶劣，他都坚持每天跑步。", options: ["尽管", "不管", "虽然", "即使"], answer: 1 }
+  - { id: zh.place.c1_jiushi, level: C1, prompt: "这个方案可行是可行，___ 成本太高。", options: ["而且", "于是", "就是", "何况"], answer: 2 }
+
+  - { id: zh.place.c2_wuji, level: C2, prompt: "他这番话简直是 ___，没有任何根据。", options: ["无稽之谈", "肺腑之言", "金玉良言", "至理名言"], answer: 0 }
+  - { id: zh.place.c2_wujiyushi, level: C2, prompt: "事已至此，后悔也 ___。", options: ["无可厚非", "无济于事", "不言而喻", "名副其实"], answer: 1 }
+  - { id: zh.place.c2_zuoyidaibi, level: C2, prompt: "面对困难，我们不能 ___，要积极想办法。", options: ["迫在眉睫", "雪中送炭", "坐以待毙", "锦上添花"], answer: 2 }

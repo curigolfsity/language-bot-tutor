@@ -97,8 +97,10 @@ class ExerciseSpec(BaseModel):
 class FormLine(BaseModel):
     label: str = Field(description="Short label, e.g. '-ar verbs (hablar)', 'ser', '把 pattern'.")
     forms: str = Field(
-        description="The forms or pattern, items separated by ' · ', e.g. "
-        "'hablaba · hablabas · hablaba · hablábamos · hablabais · hablaban'."
+        description="The forms or pattern, items separated by ' · '. Forms that change by "
+        "person are written 'person: form', e.g. 'yo: hablaba · tú: hablabas · "
+        "él/ella/usted: hablaba · nosotros: hablábamos · vosotros: hablabais · "
+        "ellos/ustedes: hablaban'."
     )
 
 
@@ -126,6 +128,23 @@ class LessonContent(BaseModel):
     examples: list[LessonExample] = Field(description="Exactly 3 examples, easiest first.")
     watch_out: WatchOut
     exercises: list[ExerciseSpec] = Field(description="Practice exercises, easiest first.")
+
+
+class ExerciseSet(BaseModel):
+    """Structured output: fresh exercises for a lesson whose explanation is reused."""
+
+    exercises: list[ExerciseSpec] = Field(description="Practice exercises, easiest first.")
+
+
+@dataclass(frozen=True)
+class LLMExercisesOutcome:
+    exercises: list[ExerciseSpec] | None  # None when refused
+    refused: bool
+    model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
 
 
 @dataclass(frozen=True)
@@ -164,6 +183,10 @@ class TurnLLM(Protocol):
 
     async def generate_lesson(self, system_prompt: str, user_content: str) -> LLMLessonOutcome: ...
 
+    async def generate_exercises(
+        self, system_prompt: str, user_content: str
+    ) -> LLMExercisesOutcome: ...
+
 
 class AnthropicTurnLLM:
     def __init__(self, settings: Settings, client: anthropic.AsyncAnthropic | None = None) -> None:
@@ -174,6 +197,9 @@ class AnthropicTurnLLM:
         # Hint / translate / suggest / explain / ask / answer checking (simple, high-volume).
         self._help_model = settings.tutor_help_model or settings.tutor_model
         self._help_fallbacks = settings.tutor_help_fallbacks or settings.tutor_fallbacks
+        # Fresh exercises for a reused lesson explanation: the help model unless set.
+        self._exercise_model = settings.lesson_exercise_model or self._help_model
+        self._exercise_fallbacks = settings.lesson_exercise_fallbacks or self._help_fallbacks
         self._max_tokens = settings.tutor_max_tokens
         self._fallbacks = settings.tutor_fallbacks
         self._client = client or anthropic.AsyncAnthropic(
@@ -300,3 +326,23 @@ class AnthropicTurnLLM:
         if parsed is None:
             raise LLMError(f"no parsed LessonContent (stop_reason={response.stop_reason})")
         return LLMLessonOutcome(lesson=parsed, refused=False, **_usage(response))
+
+    async def generate_exercises(
+        self, system_prompt: str, user_content: str
+    ) -> LLMExercisesOutcome:
+        response = await self._parse(
+            system_prompt,
+            user_content,
+            ExerciseSet,
+            self._lesson_effort,
+            cache_system=False,
+            model=self._exercise_model,
+            fallbacks=self._exercise_fallbacks,
+        )
+        if response.stop_reason == "refusal":
+            log.warning("model refused exercise generation (model=%s)", response.model)
+            return LLMExercisesOutcome(exercises=None, refused=True, **_usage(response))
+        parsed = response.parsed_output
+        if parsed is None:
+            raise LLMError(f"no parsed ExerciseSet (stop_reason={response.stop_reason})")
+        return LLMExercisesOutcome(exercises=parsed.exercises, refused=False, **_usage(response))

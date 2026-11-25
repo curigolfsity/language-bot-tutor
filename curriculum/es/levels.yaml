@@ -22,7 +22,7 @@ A1:
   explanation_language: native
   max_corrections_per_turn: 2
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very simple, present tense only, short sentences" }
+  tutor_reply: { speech_rate: -25, max_sentences: 2, vocab_ceiling: A1, speed_note: "very simple, present tense only, short sentences" }
   free_opening: "¡Hola! ¿Cómo estás?"
   starter_scenario: es.a1.meet_new_friend
 
@@ -33,7 +33,7 @@ A2:
   explanation_language: native
   max_corrections_per_turn: 3
   correct_topics: at_or_below_level
-  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple sentences, present and past tenses" }
+  tutor_reply: { speech_rate: -15, max_sentences: 3, vocab_ceiling: A2, speed_note: "simple sentences, present and past tenses" }
   free_opening: "¡Hola! ¿Qué tal tu día?"
   starter_scenario: es.a2.restaurant_order
 
@@ -44,7 +44,7 @@ B1:
   explanation_language: mixed
   max_corrections_per_turn: 4
   correct_topics: all
-  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural but clear, everyday topics" }
+  tutor_reply: { speech_rate: -5, max_sentences: 4, vocab_ceiling: B1, speed_note: "natural but clear, everyday topics" }
   free_opening: "¡Hola! ¿Qué has hecho esta semana?"
   starter_scenario: es.b1.giving_advice
 

@@ -26,3 +26,45 @@
   expected:
     - { wrong: "猫があります", right: "猫がいます", rule_tag: ja.a1.aru_iru }
   must_not_flag: ["かわいいです"]
+
+- id: ja-a1-005
+  level: A1
+  text: "きのう映画を見ます。おもしろかったです。"
+  expected:
+    - { wrong: "見ます", right: "見ました", rule_tag: ja.a1.masu_verbs }
+  must_not_flag: ["おもしろかったです"]
+
+- id: ja-a1-006
+  level: A1
+  text: "この部屋はしずかいです。"
+  expected:
+    - { wrong: "しずかい", right: "しずか", rule_tag: ja.a1.i_na_adjectives }
+  must_not_flag: ["この部屋"]
+
+- id: ja-a1-007
+  level: A1
+  text: "わたしは毎日7時で起きます。"
+  expected:
+    - { wrong: "7時で", right: "7時に", rule_tag: ja.a1.time_ni }
+  must_not_flag: ["起きます"]
+
+- id: ja-a1-008
+  level: A1
+  text: "毎朝コーヒーが飲みます。"
+  expected:
+    - { wrong: "コーヒーが", right: "コーヒーを", rule_tag: ja.a1.wo_object }
+  must_not_flag: ["毎朝"]
+
+- id: ja-a1-009
+  level: A1
+  text: "えんぴつが二人あります。"
+  expected:
+    - { wrong: "二人", right: "二本", rule_tag: ja.a1.counters_basic }
+  must_not_flag: []
+
+# No errors: nothing should be flagged.
+- id: ja-a1-010
+  level: A1
+  text: "りんごを三つ買いました。とてもおいしいです。"
+  expected: []
+  must_not_flag: ["三つ", "買いました", "おいしいです"]

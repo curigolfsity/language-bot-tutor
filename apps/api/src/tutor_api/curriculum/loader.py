@@ -14,6 +14,7 @@ from tutor_api.curriculum.models import (
     GrammarTopic,
     LanguageMeta,
     LevelPolicy,
+    Placement,
     Scenario,
 )
 
@@ -117,13 +118,59 @@ def load_curriculum(lang_dir: Path) -> Curriculum:
 
     errors.extend(_validate_graph(lang_dir.name, levels, topics, scenarios))
 
+    # placement.yaml (optional)
+    placement: Placement | None = None
+    placement_path = lang_dir / "placement.yaml"
+    if placement_path.is_file():
+        try:
+            placement = Placement.model_validate(_read_yaml(placement_path))
+        except ValidationError as e:
+            errors.append(f"{placement_path}: {e}")
+        else:
+            errors.extend(_validate_placement(placement_path, lang_dir.name, placement, levels))
+
     if errors:
         raise CurriculumError(f"invalid curriculum in {lang_dir}:\n  - " + "\n  - ".join(errors))
     assert meta is not None
     ordered = tuple(sorted(levels, key=lambda c: levels[c].rank))
     return Curriculum(
-        lang=meta, levels=levels, topics=topics, scenarios=scenarios, _ordered_levels=ordered
+        lang=meta,
+        levels=levels,
+        topics=topics,
+        scenarios=scenarios,
+        placement=placement,
+        _ordered_levels=ordered,
     )
+
+
+def _validate_placement(
+    path: Path, lang: str, placement: Placement, levels: dict[str, LevelPolicy]
+) -> list[str]:
+    errors: list[str] = []
+    if placement.pass_mark > placement.per_level:
+        errors.append(f"{path}: pass_mark must be <= per_level")
+    seen: set[str] = set()
+    per_level: dict[str, int] = {}
+    for q in placement.questions:
+        if q.id in seen:
+            errors.append(f"{path}: duplicate question id {q.id}")
+        seen.add(q.id)
+        if not q.id.startswith(f"{lang}."):
+            errors.append(f"{path} [{q.id}]: id must start with '{lang}.'")
+        if q.level not in levels:
+            errors.append(f"{path} [{q.id}]: level {q.level!r} missing from levels.yaml")
+        if q.answer >= len(q.options):
+            errors.append(f"{path} [{q.id}]: answer index {q.answer} out of range")
+        if len(set(q.options)) != len(q.options):
+            errors.append(f"{path} [{q.id}]: options must be distinct")
+        per_level[q.level] = per_level.get(q.level, 0) + 1
+    for code in levels:
+        if per_level.get(code, 0) < placement.per_level:
+            errors.append(
+                f"{path}: level {code} needs at least {placement.per_level} questions, "
+                f"has {per_level.get(code, 0)}"
+            )
+    return errors
 
 
 def _validate_graph(

@@ -38,8 +38,10 @@ from tutor_contracts import (
     LearnerPatch,
     LearnerProfileOut,
     LevelOut,
+    PlacementStepOut,
     ResolveUserRequest,
     SessionOut,
+    WordCardOut,
 )
 
 from tutor_telegram import formatting, views
@@ -58,6 +60,9 @@ COMMANDS = [
     BotCommand("roleplay", "Practise a real-life situation"),
     BotCommand("lessons", "Grammar lessons with practice"),
     BotCommand("review", "Practise your past mistakes"),
+    BotCommand("words", "Word flashcards from our chats"),
+    BotCommand("week", "Your week in numbers"),
+    BotCommand("placement", "Quick test to find your level"),
     BotCommand("ask", "Ask a question without interrupting the conversation"),
     BotCommand("progress", "Your progress and recent mistakes"),
     BotCommand("end", "Finish the session and see a summary"),
@@ -294,7 +299,9 @@ async def do_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         update,
         f"{lang.flag} <b>{lang.name}</b>\n" + formatting.format_settings(profile, lang.levels),
         reply_markup=kb.settings_keyboard(
-            profile.reminders_enabled, f"{lang.flag} {lang.name}" if multi else None
+            profile.reminders_enabled,
+            f"{lang.flag} {lang.name}" if multi else None,
+            voice=_voice_on(context),
         ),
     )
 
@@ -543,13 +550,19 @@ async def do_browse_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     )
 
 
-async def start_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE, topic_id: str) -> None:
+async def start_lesson(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, topic_id: str, fresh: bool = False
+) -> None:
     """Generate the lesson, show the explanation, then the first exercise as a reply prompt."""
     profile, _ = await _resolve(update, context)
-    await _send(update, "📖 Preparing your lesson… (about 15 seconds)")
+    await _send(update, "📖 Preparing your lesson…")
     async with _typing(update, context):
-        lesson = await _api(context).start_lesson(profile.id, topic_id)
-    await _send(update, formatting.format_lesson(lesson))
+        lesson = await _api(context).start_lesson(profile.id, topic_id, fresh=fresh)
+    await _send(
+        update,
+        formatting.format_lesson(lesson),
+        reply_markup=kb.lesson_fresh_keyboard(topic_id) if lesson.reused else None,
+    )
     if lesson.exercise is not None:
         await _send(
             update,
@@ -580,6 +593,180 @@ async def answer_exercise(
     )
 
 
+# ----------------------------------------------------------------------------- voice replies
+
+
+def _voice_on(context: ContextTypes.DEFAULT_TYPE) -> bool:
+    return bool(context.chat_data and context.chat_data.get("voice"))
+
+
+async def send_speech(update: Update, audio: bytes, mime: str, reply_to: int) -> None:
+    chat = update.effective_chat
+    assert chat is not None
+    params = ReplyParameters(message_id=reply_to, allow_sending_without_reply=True)
+    if mime == "audio/ogg":
+        await chat.send_voice(audio, reply_parameters=params)
+    else:
+        await chat.send_audio(audio, filename="reply.mp3", reply_parameters=params)
+
+
+async def speak_turn(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, turn_id: int, reply_to: int
+) -> None:
+    chat = update.effective_chat
+    assert chat is not None
+    await chat.send_chat_action(ChatAction.RECORD_VOICE)
+    audio, mime = await _api(context).turn_speech(turn_id)
+    await send_speech(update, audio, mime, reply_to)
+
+
+# ----------------------------------------------------------------------------- word cards
+
+
+async def do_words(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    queue = await _api(context).next_word(profile.id)
+    if queue.card is None:
+        await _send(
+            update, formatting.format_words_empty(queue), reply_markup=kb.next_step_keyboard()
+        )
+        return
+    if context.chat_data is not None:  # the back of the card, shown on "Show meaning"
+        context.chat_data.setdefault("word_cards", {})[queue.card.id] = queue.card.model_dump()
+    await _send(
+        update,
+        formatting.format_word_front(queue),
+        reply_markup=kb.word_front_keyboard(queue.card.id),
+    )
+
+
+async def on_word_button(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, action: str, word_id: int
+) -> None:
+    query = update.callback_query
+    assert query is not None and query.message is not None
+    if action == "say":
+        await _ack(query)
+        audio, mime = await _api(context).word_speech(word_id)
+        await send_speech(update, audio, mime, query.message.message_id)
+        return
+    cards: dict[int, dict] = (context.chat_data or {}).get("word_cards", {})
+    raw = cards.get(word_id)
+    if raw is None:
+        await _ack(query, "This card has expired. Here's the next one.")
+        await do_words(update, context)
+        return
+    card = WordCardOut.model_validate(raw)
+    await _ack(query)
+    if action == "show":
+        with contextlib.suppress(TelegramError):
+            await query.edit_message_text(
+                formatting.format_word_back(card),
+                parse_mode=ParseMode.HTML,
+                reply_markup=kb.word_back_keyboard(word_id),
+            )
+        return
+    result = await _api(context).answer_word(word_id, knew=action == "y")
+    cards.pop(word_id, None)
+    with contextlib.suppress(TelegramError):
+        await query.edit_message_text(
+            formatting.format_word_result(card.word, result), parse_mode=ParseMode.HTML
+        )
+    if result.due:
+        await do_words(update, context)
+    else:
+        await _send(update, "🎉 All words done for now!", reply_markup=kb.next_step_keyboard())
+
+
+# ----------------------------------------------------------------------------- placement test
+
+
+async def do_placement(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, onboarding: bool = False
+) -> None:
+    profile, _ = await _resolve(update, context)
+    step = await _api(context).start_placement(profile.id)
+    if context.chat_data is not None:
+        context.chat_data["pl_onboarding"] = onboarding
+    await _send(
+        update,
+        "🧭 <b>Quick level test</b>\nAbout 2 minutes, multiple choice. It gets harder as you "
+        "go and stops when it gets too hard, so don't worry about wrong answers.",
+    )
+    await _show_placement_step(update, context, step)
+
+
+async def _show_placement_step(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, step: PlacementStepOut, edit: bool = False
+) -> None:
+    query = update.callback_query
+    if step.question is not None:
+        text = formatting.format_placement_question(step)
+        markup = kb.placement_keyboard(step.run_id, step.question.id, step.question.options)
+    else:
+        assert step.result is not None
+        r = step.result
+        text = formatting.format_placement_result(step)
+        onboarding = bool((context.chat_data or {}).get("pl_onboarding"))
+        markup = kb.placement_result_keyboard(r.level, r.current_level, r.label, onboarding)
+    if edit and query is not None:
+        try:
+            await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=markup)
+            return
+        except TelegramError as e:
+            log.info("could not edit placement message: %s", e)
+    await _send(update, text, reply_markup=markup)
+
+
+async def on_placement_button(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, rest: str
+) -> None:
+    query = update.callback_query
+    assert query is not None
+    if rest.startswith("start"):
+        await _ack(query)
+        await do_placement(update, context, onboarding=rest.endswith(":o"))
+        return
+    if rest == "keep":
+        await _ack(query, "Keeping your level 👍")
+        with contextlib.suppress(TelegramError):
+            await query.edit_message_reply_markup(None)
+        await _send(update, "👍 Level unchanged. What next?", reply_markup=kb.next_step_keyboard())
+        return
+    if rest == "pick":
+        await _ack(query)
+        await _ask_level(update, context, onboarding=True)
+        return
+    run_id, _, tail = rest.partition(":")
+    choice, _, question_id = tail.partition(":")
+    if not (run_id.isdigit() and choice.isdigit() and question_id):
+        await _ack(query)
+        return
+    try:
+        step = await _api(context).answer_placement(int(run_id), question_id, int(choice))
+    except ApiError as e:
+        if e.status_code in (400, 409):
+            await _ack(query, "Already answered ✔")
+            return
+        raise
+    await _ack(query)
+    await _show_placement_step(update, context, step, edit=True)
+
+
+# ----------------------------------------------------------------------------- weekly summary
+
+
+async def do_week(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    w = await _api(context).weekly(profile.id)
+    lesson = w.suggested_lesson.id if w.suggested_lesson else None
+    await _send(
+        update,
+        formatting.format_weekly(w),
+        reply_markup=kb.weekly_keyboard(lesson, w.reviews_due, w.words_due),
+    )
+
+
 MENU_ACTIONS = {
     kb.MENU_CHAT: do_free_chat,
     kb.MENU_ROLEPLAY: do_roleplay,
@@ -590,6 +777,7 @@ MENU_ACTIONS = {
     kb.MENU_FINISH: do_finish,
     kb.MENU_SETTINGS: do_settings,
     kb.MENU_HELP: do_help,
+    kb.MENU_WORDS: do_words,
 }
 
 
@@ -682,6 +870,29 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
         return
 
+    if kind == "sp" and rest.isdigit():  # read a tutor message aloud
+        await _ack(query, "🔊 One moment…")
+        assert query.message is not None
+        await speak_turn(update, context, int(rest), query.message.message_id)
+        return
+
+    if kind == "wd":  # word flashcards
+        action, _, word_id = rest.partition(":")
+        if action == "next":
+            await _ack(query)
+            with contextlib.suppress(TelegramError):
+                await query.edit_message_reply_markup(None)
+            await do_words(update, context)
+        elif action in ("show", "y", "n", "say") and word_id.isdigit():
+            await on_word_button(update, context, action, int(word_id))
+        else:
+            await _ack(query)
+        return
+
+    if kind == "pl":  # placement test
+        await on_placement_button(update, context, rest)
+        return
+
     if kind == "tl":  # choose the language to learn
         await _ack(query)
         code, _, flag = rest.partition(":")
@@ -753,6 +964,20 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         with contextlib.suppress(Exception):
             await query.edit_message_reply_markup(None)
         await start_lesson(update, context, rest)
+    elif kind == "lf" and rest:
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await start_lesson(update, context, rest, fresh=True)
+    elif kind == "av" and rest in ("on", "off") and context.chat_data is not None:
+        context.chat_data["voice"] = rest == "on"
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await _send(
+            update,
+            "🔊 Voice replies on: I'll read every reply aloud. (Tap 🔊 under any message too.)"
+            if rest == "on"
+            else "🔇 Voice replies off. You can still tap 🔊 under any message.",
+        )
     elif kind == "lb":
         await do_browse_lessons(update, context)
     elif kind == "rv":
@@ -843,6 +1068,8 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     async with _typing(update, context):
         result = await api.send_turn(session.id, msg.text)
     await _send_view(update, context, views.from_turn(result), reply_to=msg)
+    if _voice_on(context):
+        await speak_turn(update, context, result.turn_id, msg.message_id)
 
 
 MAX_VOICE_SECONDS = 120  # keep in step with the API's STT_MAX_SECONDS
@@ -879,6 +1106,8 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             session.id, audio, "voice.ogg", media.mime_type or "audio/ogg"
         )
     await _send_view(update, context, views.from_turn(result), reply_to=msg)
+    if _voice_on(context):
+        await speak_turn(update, context, result.turn_id, msg.message_id)
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -924,6 +1153,22 @@ async def send_due_reminders(app: Application) -> int:
             await api.patch_learner(r.profile_id, LearnerPatch(reminders_enabled=False))
         except TelegramError as e:
             log.warning("reminder to %s failed: %s", r.external_id, e)
+    for code in settings.languages():
+        lang = await api.language(code)
+        for w in await api.claim_weekly(PROVIDER, code):
+            if w.external_id is None:
+                continue
+            lesson = w.suggested_lesson.id if w.suggested_lesson else None
+            try:
+                await app.bot.send_message(
+                    chat_id=int(w.external_id),
+                    text=f"{lang.flag} <b>{lang.name}</b>\n" + formatting.format_weekly(w),
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=kb.weekly_keyboard(lesson, w.reviews_due, w.words_due, lang.code),
+                )
+                sent += 1
+            except TelegramError as e:
+                log.warning("weekly summary to %s failed: %s", w.external_id, e)
     return sent
 
 
@@ -991,6 +1236,9 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler("ask", cmd_ask))
     app.add_handler(CommandHandler(["lessons", "lesson", "grammar"], do_lessons))
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
+    app.add_handler(CommandHandler(["words", "cards"], do_words))
+    app.add_handler(CommandHandler("week", do_week))
+    app.add_handler(CommandHandler(["placement", "test"], do_placement))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice))

@@ -14,6 +14,13 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   rv:<next|done>         practise-my-mistakes: next card / stop
   ls:<topic_id>          start a grammar lesson on that topic
   lb                     browse every grammar topic at the learner's level
+  sp:<turn_id>           read a tutor message aloud (voice message)
+  av:<on|off>            voice replies after every tutor message on / off
+  wd:<show|y|n|say>:<id> word flashcard: reveal / knew it / didn't / say it; wd:next
+  pl:start[:o|s]         placement test: start (o = during onboarding)
+  pl:keep | pl:pick      after the test: keep my level / pick a level myself
+  pl:<run>:<choice>:<q>  placement test: answer question <q> with option <choice>
+  lf:<topic_id>          the same lesson with a newly written explanation
   menu:<action>          free | roleplay | resume | review | lessons | settings_level |
                          settings_native | settings_goal | settings_lang
 """
@@ -39,6 +46,7 @@ MENU_HELP = "❓ How it works"
 MENU_REVIEW = "🧠 Practise mistakes"
 MENU_ASK = "🙋 Ask a question"
 MENU_LESSONS = "📖 Grammar lessons"
+MENU_WORDS = "🃏 Word cards"
 MENU_LABELS = {
     MENU_CHAT,
     MENU_ROLEPLAY,
@@ -49,6 +57,7 @@ MENU_LABELS = {
     MENU_FINISH,
     MENU_SETTINGS,
     MENU_HELP,
+    MENU_WORDS,
 }
 
 # Headers of messages the learner answers with Telegram's "reply". The bot recognises the
@@ -68,7 +77,7 @@ def main_menu() -> ReplyKeyboardMarkup:
             [KeyboardButton(MENU_LESSONS), KeyboardButton(MENU_REVIEW)],
             [KeyboardButton(MENU_ASK), KeyboardButton(MENU_PROGRESS)],
             [KeyboardButton(MENU_FINISH), KeyboardButton(MENU_SETTINGS)],
-            [KeyboardButton(MENU_HELP)],
+            [KeyboardButton(MENU_WORDS), KeyboardButton(MENU_HELP)],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -93,7 +102,10 @@ def help_buttons(
             InlineKeyboardButton("✍️ Suggest", callback_data=f"h:suggest:{turn_id}"),
         ]
     ]
-    second = [InlineKeyboardButton("🙋 Ask", callback_data=f"ask:{turn_id}")]
+    second = [
+        InlineKeyboardButton("🔊", callback_data=f"sp:{turn_id}"),
+        InlineKeyboardButton("🙋 Ask", callback_data=f"ask:{turn_id}"),
+    ]
     if feedback_label:
         toggle = "▴ Hide feedback" if expanded else f"▾ {feedback_label}"
         second.append(InlineKeyboardButton(toggle, callback_data=f"fb:{turn_id}"))
@@ -120,6 +132,13 @@ def level_keyboard(levels: list[LevelOut], onboarding: bool) -> InlineKeyboardMa
                 )
             ]
             for lv in levels
+        ]
+        + [
+            [
+                InlineKeyboardButton(
+                    "🧭 Not sure? Take a 2-minute test", callback_data=f"pl:start:{flag}"
+                )
+            ]
         ]
     )
 
@@ -177,7 +196,7 @@ def language_keyboard(
 
 
 def settings_keyboard(
-    reminders_enabled: bool = True, language_label: str | None = None
+    reminders_enabled: bool = True, language_label: str | None = None, voice: bool = False
 ) -> InlineKeyboardMarkup:
     reminder = (
         InlineKeyboardButton("🔕 Turn reminders off", callback_data="rem:off")
@@ -199,6 +218,7 @@ def settings_keyboard(
         [
             *language,
             [InlineKeyboardButton("📶 Change my level", callback_data="menu:settings_level")],
+            [InlineKeyboardButton("🧭 Find my level (quick test)", callback_data="pl:start")],
             [
                 InlineKeyboardButton(
                     "🗣️ Change explanation language", callback_data="menu:settings_native"
@@ -206,6 +226,11 @@ def settings_keyboard(
             ],
             [InlineKeyboardButton("🎯 Change daily goal", callback_data="menu:settings_goal")],
             [reminder],
+            [
+                InlineKeyboardButton("🔇 Turn voice replies off", callback_data="av:off")
+                if voice
+                else InlineKeyboardButton("🔊 Turn voice replies on", callback_data="av:on")
+            ],
         ]
     )
 
@@ -280,3 +305,98 @@ def lesson_done_keyboard() -> InlineKeyboardMarkup:
             ],
         ]
     )
+
+
+def word_front_keyboard(word_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("👀 Show meaning", callback_data=f"wd:show:{word_id}"),
+                InlineKeyboardButton("🔊", callback_data=f"wd:say:{word_id}"),
+            ]
+        ]
+    )
+
+
+def word_back_keyboard(word_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("✅ I knew it", callback_data=f"wd:y:{word_id}"),
+                InlineKeyboardButton("❌ Not yet", callback_data=f"wd:n:{word_id}"),
+            ],
+            [InlineKeyboardButton("🔊", callback_data=f"wd:say:{word_id}")],
+        ]
+    )
+
+
+def word_next_keyboard(due: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(f"▶️ Next ({due} left)", callback_data="wd:next"),
+                InlineKeyboardButton("🏁 Stop", callback_data="rv:done"),
+            ]
+        ]
+    )
+
+
+def placement_keyboard(run_id: int, question_id: str, options: list[str]) -> InlineKeyboardMarkup:
+    buttons = [
+        InlineKeyboardButton(o, callback_data=f"pl:{run_id}:{i}:{question_id}")
+        for i, o in enumerate(options)
+    ]
+    return InlineKeyboardMarkup([buttons[i : i + 2] for i in range(0, len(buttons), 2)])
+
+
+def placement_result_keyboard(
+    suggested: str, current: str, suggested_label: str, onboarding: bool = False
+) -> InlineKeyboardMarkup:
+    if onboarding:
+        return InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        f"✅ Start at {suggested_label}", callback_data=f"lvl:{suggested}:o"
+                    )
+                ],
+                [InlineKeyboardButton("📶 Choose a level myself", callback_data="pl:pick")],
+            ]
+        )
+    rows = []
+    if suggested != current:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    f"✅ Switch to {suggested_label}", callback_data=f"lvl:{suggested}:s"
+                )
+            ]
+        )
+        rows.append([InlineKeyboardButton(f"Keep my level ({current})", callback_data="pl:keep")])
+    rows.append(
+        [InlineKeyboardButton("📶 Choose a level myself", callback_data="menu:settings_level")]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def lesson_fresh_keyboard(topic_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔄 Explain it differently", callback_data=f"lf:{topic_id}")]]
+    )
+
+
+def weekly_keyboard(
+    lesson_id: str | None, reviews_due: int, words_due: int, lang: str | None = None
+) -> InlineKeyboardMarkup:
+    rows = []
+    if lesson_id:
+        rows.append([InlineKeyboardButton("📖 Suggested lesson", callback_data=f"ls:{lesson_id}")])
+    if reviews_due:
+        review = f"go:{lang}:review" if lang else "menu:review"
+        rows.append(
+            [InlineKeyboardButton(f"🧠 Review {reviews_due} mistakes", callback_data=review)]
+        )
+    if words_due:
+        rows.append([InlineKeyboardButton(f"🃏 {words_due} word cards", callback_data="wd:next")])
+    rows.append([InlineKeyboardButton("💬 Chat now", callback_data="menu:free")])
+    return InlineKeyboardMarkup(rows)
