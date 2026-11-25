@@ -272,3 +272,25 @@ def test_voice_turn_shows_transcript_first():
     text = formatting.format_turn(turn(transcript="Yo soy <en> casa"))
     assert text.startswith("🎤 <i>I heard: “Yo soy &lt;en&gt; casa”</i>")
     assert "I heard" not in formatting.format_turn(turn())
+
+
+def test_help_buttons_include_ask():
+    rows = kb.help_buttons(5).inline_keyboard
+    assert [b.callback_data for b in rows[1]] == ["ask:5"]
+    rows = kb.help_buttons(5, has_corrections=True).inline_keyboard
+    assert [b.callback_data for b in rows[1]] == ["ask:5", "h:explain:5"]
+
+
+def test_ask_prompt_link_round_trip():
+    html = formatting.ask_about_prompt(123, 4567, "golf_tutor_bot")
+    url = html.split('href="')[1].split('"')[0]
+    assert formatting.parse_ask_link(["https://example.com", url]) == (123, 4567)
+    assert formatting.parse_ask_link([]) is None
+    assert formatting.parse_ask_link(["https://t.me/x?start=other"]) is None
+
+
+def test_inline_answer_block_and_length():
+    block = formatting.inline_answer_block("¿<qué>?", "It means 'what'.")
+    assert block.startswith("\n\n<blockquote expandable>🙋 <b>¿&lt;qué&gt;?</b>")
+    assert block.endswith("It means &#x27;what&#x27;.</blockquote>")
+    assert formatting.visible_length("<b>a&amp;b</b>") == 3

@@ -111,10 +111,9 @@ class TutorApiClient:
         req = ReminderClaimRequest(provider=provider, target_lang=target_lang)
         return await self._request("POST", "/v1/reminders/claim", list[ReminderOut], req)
 
-    async def ask(self, profile_id: UUID, question: str) -> AskOut:
-        return await self._request(
-            "POST", f"/v1/learners/{profile_id}/ask", AskOut, AskRequest(question=question)
-        )
+    async def ask(self, profile_id: UUID, question: str, turn_id: int | None = None) -> AskOut:
+        req = AskRequest(question=question, turn_id=turn_id)
+        return await self._request("POST", f"/v1/learners/{profile_id}/ask", AskOut, req)
 
     async def next_review(self, profile_id: UUID) -> ReviewQueueOut:
         return await self._request("GET", f"/v1/learners/{profile_id}/review/next", ReviewQueueOut)

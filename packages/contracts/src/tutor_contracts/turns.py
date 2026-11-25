@@ -95,6 +95,11 @@ class HelpOut(BaseModel):
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
+    turn_id: int | None = Field(
+        default=None,
+        description="Tutor turn the question is about (its message and history become context). "
+        "Omit to use the open conversation.",
+    )
 
 
 class AskOut(BaseModel):

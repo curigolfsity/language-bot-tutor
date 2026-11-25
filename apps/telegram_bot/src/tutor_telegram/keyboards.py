@@ -2,6 +2,7 @@
 
 Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   h:<kind>:<turn_id>     help on a tutor message (hint | translate | suggest | explain)
+  ask:<turn_id>          ask a question about a tutor message (answer goes inside that message)
   nat:<code>:<o|s>       set native language (o = onboarding step, s = from settings)
   lvl:<code>:<o|s>       set level
   play:<scenario_id>     start a role-play
@@ -75,10 +76,12 @@ def help_buttons(turn_id: int | None, has_corrections: bool = False) -> InlineKe
             InlineKeyboardButton("✍️ Suggest", callback_data=f"h:suggest:{turn_id}"),
         ]
     ]
+    second = [InlineKeyboardButton("🙋 Ask", callback_data=f"ask:{turn_id}")]
     if has_corrections:
-        rows.append(
-            [InlineKeyboardButton("❓ Explain my mistakes", callback_data=f"h:explain:{turn_id}")]
+        second.append(
+            InlineKeyboardButton("❓ Explain my mistakes", callback_data=f"h:explain:{turn_id}")
         )
+    rows.append(second)
     return InlineKeyboardMarkup(rows)
 
 

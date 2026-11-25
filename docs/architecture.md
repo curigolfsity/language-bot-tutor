@@ -150,7 +150,7 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 | GET | /healthz | liveness + curriculum loaded |
 | POST | /v1/users/resolve | `{provider, external_id, display_name, target_lang, native_lang}` → user + profile (idempotent) |
 | GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language, timezone, daily goal, reminders). Omitted PATCH fields are unchanged; `explanation_lang_override: null` / `timezone: null` reset to the default |
-| POST | /v1/learners/{id}/ask | `{question}` → `{question, answer}`: a side question answered with the open conversation as context; not stored as a turn, not corrected, not counted as practice |
+| POST | /v1/learners/{id}/ask | `{question, turn_id?}` → `{question, answer}` (with `turn_id`, that tutor message is the subject): a side question answered with the open conversation as context; not stored as a turn, not corrected, not counted as practice |
 | GET | /v1/learners/{id}/review/next | `{card?, due, total, next_due_at?}`: next mistake card due (the correct form is not sent) |
 | POST | /v1/review/{card_id}/answer | `{answer}` → `{correct, wrong, right, explanation, feedback?, next_review_in_days, due, progress}` |
 | GET | /v1/learners/{id}/progress | `{streak, best_streak, today, goal, goal_met}` |
@@ -298,7 +298,9 @@ Button-first, so nobody needs to type commands. Modules:
 - `/start`, `/chat`, `/roleplay`, `/progress`, `/end`, `/settings`, `/help`
 - older aliases: `/play <id>`, `/level [code]`, `/native [code]`, `/scenarios`, `/mistakes`
 
-**Every tutor message** (including opening lines) carries 💡 Hint · 🌐 Translate · ✍️ Suggest buttons, plus ❓ Explain my mistakes when there were corrections.
+**Every tutor message** (including opening lines) carries 💡 Hint · 🌐 Translate · ✍️ Suggest, and 🙋 Ask, plus ❓ Explain my mistakes when there were corrections.
+
+**🙋 Ask about one message.** Tapping it sends a reply prompt attached to that tutor message. The prompt holds `?start=ask_<turn_id>_<message_id>` in an invisible text link, which Telegram passes back with the learner's reply, so routing needs no bot state. The bot calls `/ask` with `turn_id`: that tutor message becomes `<message_in_question>`, and the history before it is context. It then edits the tutor message to append the Q&A in a collapsed blockquote (keeping its buttons) and deletes the prompt and the question message. The tutor message's HTML is cached in `chat_data` when Ask is tapped (last 50 per chat). If the cache is gone (bot restarted) or the 4096-character limit would be exceeded, the answer is sent as a reply under the tutor message instead.
 
 **Turn message layout:**
 1. the reply
@@ -308,7 +310,7 @@ Button-first, so nobody needs to type commands. Modules:
 
 The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it offers next-step buttons.
 
-**Stateless:** each step's choice travels in callback data (`h:<kind>:<turn_id>`, `nat:<code>:<o|s>`, `lvl:<code>:<o|s>`, `play:<id>`, `goal:<n>`, `rem:<on|off>`, `menu:<action>`, all ≤ 64 bytes). The active session comes from the API.
+**Stateless:** each step's choice travels in callback data (`h:<kind>:<turn_id>`, `ask:<turn_id>`, `nat:<code>:<o|s>`, `lvl:<code>:<o|s>`, `play:<id>`, `goal:<n>`, `rem:<on|off>`, `menu:<action>`, all ≤ 64 bytes). The active session comes from the API.
 
 **Config:**
 - `TELEGRAM_TOKEN`, `TUTOR_API_URL`

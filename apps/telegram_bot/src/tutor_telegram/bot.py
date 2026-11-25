@@ -11,7 +11,16 @@ import contextlib
 import logging
 from collections.abc import AsyncIterator
 
-from telegram import BotCommand, CallbackQuery, Message, Update
+from telegram import (
+    BotCommand,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    LinkPreviewOptions,
+    MaybeInaccessibleMessage,
+    Message,
+    ReplyParameters,
+    Update,
+)
 from telegram.constants import ChatAction, ParseMode
 from telegram.error import BadRequest, Forbidden, TelegramError
 from telegram.ext import (
@@ -256,6 +265,89 @@ async def do_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ----------------------------------------------------------------------------- side questions
 
 
+ASK_SOURCES_KEPT = 50  # tutor messages remembered for in-message answers (per chat)
+NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
+
+
+def _ask_sources(context: ContextTypes.DEFAULT_TYPE) -> dict[int, tuple[str, object]]:
+    """Per chat: tutor message id -> (its HTML, its buttons), captured when 🙋 Ask is tapped.
+    Only a display cache: after a bot restart the answer is sent as a reply instead."""
+    assert context.chat_data is not None
+    return context.chat_data.setdefault("ask_sources", {})
+
+
+async def ask_about_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    turn_id: int,
+    tutor_message: MaybeInaccessibleMessage | None,
+) -> None:
+    """🙋 Ask under a tutor message: open a reply box tied to that message."""
+    if not isinstance(tutor_message, Message):
+        return
+    sources = _ask_sources(context)
+    sources[tutor_message.message_id] = (tutor_message.text_html, tutor_message.reply_markup)
+    while len(sources) > ASK_SOURCES_KEPT:
+        sources.pop(next(iter(sources)))
+    await _send(
+        update,
+        formatting.ask_about_prompt(turn_id, tutor_message.message_id, context.bot.username),
+        reply_markup=kb.reply_prompt("Your question about this message…"),
+        reply_parameters=ReplyParameters(message_id=tutor_message.message_id),
+        link_preview_options=NO_PREVIEW,
+    )
+
+
+async def answer_inside_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    turn_id: int,
+    message_id: int,
+    question: str,
+    prompt: Message,
+) -> None:
+    """Answer, then append the Q&A inside the tutor message and tidy up the prompt and the
+    question. Falls back to a reply under the tutor message if it cannot be edited."""
+    msg = update.effective_message
+    chat = update.effective_chat
+    assert msg is not None and chat is not None
+    profile, _ = await _resolve(update, context)
+    async with _typing(update, context):
+        answer = await _api(context).ask(profile.id, question, turn_id=turn_id)
+
+    sources = _ask_sources(context)
+    source = sources.get(message_id)
+    if source is not None:
+        html, markup = source
+        new_html = html + formatting.inline_answer_block(question, answer.answer)
+        if formatting.visible_length(new_html) <= formatting.TELEGRAM_TEXT_LIMIT:
+            try:
+                await context.bot.edit_message_text(
+                    new_html,
+                    chat_id=chat.id,
+                    message_id=message_id,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=markup if isinstance(markup, InlineKeyboardMarkup) else None,
+                    link_preview_options=NO_PREVIEW,
+                )
+            except TelegramError as e:
+                log.info("could not edit tutor message %s: %s", message_id, e)
+            else:
+                sources[message_id] = (new_html, markup)
+                for m in (prompt, msg):  # the Q&A now lives in the tutor message
+                    with contextlib.suppress(TelegramError):
+                        await m.delete()
+                return
+
+    with contextlib.suppress(TelegramError):
+        await prompt.delete()
+    await chat.send_message(
+        formatting.format_answer(answer),
+        parse_mode=ParseMode.HTML,
+        reply_parameters=ReplyParameters(message_id=message_id, allow_sending_without_reply=True),
+    )
+
+
 async def answer_question(
     update: Update, context: ContextTypes.DEFAULT_TYPE, question: str
 ) -> None:
@@ -428,6 +520,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         with contextlib.suppress(Exception):
             await query.edit_message_reply_markup(None)
         await _send(update, f"🎯 Daily goal set to <b>{updated.daily_goal} messages</b>.")
+    elif kind == "ask" and rest.isdigit():
+        await ask_about_message(update, context, int(rest), query.message)
     elif kind == "rv":
         with contextlib.suppress(Exception):
             await query.edit_message_reply_markup(None)
@@ -484,6 +578,10 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # A reply to one of the bot's prompts (practice card or "ask me anything").
     replied = msg.reply_to_message
     if replied is not None and replied.from_user is not None and replied.from_user.is_bot:
+        link_urls = [e.url for e in replied.entities or [] if e.url]
+        if (target := formatting.parse_ask_link(link_urls)) is not None:
+            await answer_inside_message(update, context, *target, text, prompt=replied)
+            return
         card_id = formatting.parse_card_id(replied.text)
         if card_id is not None:
             await answer_card(update, context, card_id, text)

@@ -252,6 +252,41 @@ def format_answer(a: AskOut) -> str:
     return f"🙋 <i>{escape(a.question)}</i>\n\n{escape(a.answer)}"
 
 
+# Asking about one tutor message. The prompt carries the tutor turn id and Telegram message id
+# in an invisible link, so the learner's reply can be routed without the bot remembering
+# anything; Telegram includes the replied-to message's entities (with the link) in the update.
+_ASK_LINK = re.compile(r"[?&]start=ask_(\d+)_(\d+)$")
+TELEGRAM_TEXT_LIMIT = 4096
+
+
+def ask_about_prompt(turn_id: int, message_id: int, bot_username: str) -> str:
+    link = f"https://t.me/{bot_username}?start=ask_{turn_id}_{message_id}"
+    return (
+        f'<a href="{link}">​</a>🙋 <b>Ask about this message</b>\n'
+        "<i>Type your question. The answer will appear inside the message above.</i>"
+    )
+
+
+def parse_ask_link(urls: list[str]) -> tuple[int, int] | None:
+    """(turn_id, message_id) from the URLs of a replied-to ask prompt's text links."""
+    for url in urls:
+        if m := _ASK_LINK.search(url):
+            return int(m.group(1)), int(m.group(2))
+    return None
+
+
+def inline_answer_block(question: str, answer: str) -> str:
+    """Question + answer appended inside the tutor message, collapsed if long."""
+    return f"\n\n<blockquote expandable>🙋 <b>{escape(question)}</b>\n{escape(answer)}</blockquote>"
+
+
+def visible_length(html: str) -> int:
+    """Characters Telegram counts toward its 4096 limit (tags removed, entities decoded)."""
+    from html import unescape
+
+    return len(unescape(re.sub(r"<[^>]+>", "", html)))
+
+
 # ----------------------------------------------------------------------------- practise mistakes
 
 SNIPPET_CONTEXT = 70  # characters of the original message shown on each side of the error

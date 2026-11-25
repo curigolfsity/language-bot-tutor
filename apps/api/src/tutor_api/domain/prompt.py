@@ -256,10 +256,12 @@ def build_ask_prompt(
     scenario: Scenario | None,
     recent_turns: Sequence[PriorTurn],
     question: str,
+    about_message: str | None = None,
 ) -> tuple[str, str]:
     """(system, user) for a question the learner asks outside the conversation ("aside").
 
     The answer is not part of the conversation: it is not stored as a turn and not corrected.
+    `about_message`: the tutor message the question is attached to, if any.
     """
     target = policy.target_lang_name
     native = f"the learner's native language (ISO 639-1 code '{policy.native_lang}')"
@@ -267,7 +269,8 @@ def build_ask_prompt(
         f"You are a friendly {target} teacher. A learner at level {policy.level} is in the "
         "middle of a practice conversation and steps aside to ask you a question (grammar, "
         "vocabulary, usage, pronunciation, culture, or something in the conversation).\n"
-        "- Answer the question directly and correctly. Use the conversation only as context.\n"
+        "- Answer the question directly and correctly. Use the conversation only as context. "
+        "If a <message_in_question> is given, the question is about that tutor message.\n"
         f"- Write in the language the question is written in. If it is written in {target}, "
         f"answer in simple {target} suited to level {policy.level}. If unsure, use {native}.\n"
         f"- Give 1-2 short {target} example sentences when they help.\n"
@@ -281,6 +284,8 @@ def build_ask_prompt(
     if recent_turns:
         convo = "\n".join(f"{t.role}: {escape(t.text)}" for t in recent_turns)
         parts.append(f"<conversation>\n{convo}\n</conversation>")
+    if about_message is not None:
+        parts.append(f"<message_in_question>\n{escape(about_message)}\n</message_in_question>")
     parts.append(f"<question>\n{escape(question)}\n</question>")
     return system, "\n\n".join(parts)
 

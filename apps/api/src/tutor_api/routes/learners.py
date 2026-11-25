@@ -32,7 +32,7 @@ async def patch_learner(profile_id: UUID, body: LearnerPatch, ctx: Ctx) -> Learn
 @router.post("/{profile_id}/ask", response_model=AskOut)
 async def ask(profile_id: UUID, body: AskRequest, ctx: Ctx) -> AskOut:
     """A side question (grammar, a word, ...). Does not interrupt or join the conversation."""
-    return await help_service.ask(ctx, profile_id, body.question)
+    return await help_service.ask(ctx, profile_id, body.question, body.turn_id)
 
 
 @router.get("/{profile_id}/review/next", response_model=ReviewQueueOut)

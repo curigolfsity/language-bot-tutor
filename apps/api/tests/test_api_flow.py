@@ -306,3 +306,37 @@ async def test_ask_unknown_profile_404(client):
         "/v1/learners/00000000-0000-0000-0000-000000000000/ask", json={"question": "hola"}
     )
     assert r.status_code == 404
+
+
+async def test_ask_about_a_specific_tutor_message(client, fake_llm):
+    pid = (await resolve(client))["profile"]["id"]
+    session = (
+        await client.post(
+            "/v1/sessions", json={"profile_id": pid, "scenario_id": "es.a1.cafe_order"}
+        )
+    ).json()
+    opening = session["opening_turn_id"]
+    fake_llm.push_result(make_result(reply="¿Quieres una tostada?"))
+    later = (
+        await client.post(f"/v1/sessions/{session['id']}/turns", json={"text": "Un café"})
+    ).json()
+
+    # Asking about the OPENING line: that message is the subject, later turns are not context.
+    r = await client.post(
+        f"/v1/learners/{pid}/ask", json={"question": "what is tomar?", "turn_id": opening}
+    )
+    assert r.status_code == 200
+    _, user = fake_llm.help_calls[-1]
+    assert "<message_in_question>\n¡Buenos días! ¿Qué quieres tomar?" in user
+    assert "tostada" not in user
+
+    # Asking about the later message: the earlier exchange is context.
+    await client.post(
+        f"/v1/learners/{pid}/ask", json={"question": "tostada?", "turn_id": later["turn_id"]}
+    )
+    _, user = fake_llm.help_calls[-1]
+    assert "<message_in_question>\n¿Quieres una tostada?" in user
+    assert "learner: Un café" in user
+
+    bad = await client.post(f"/v1/learners/{pid}/ask", json={"question": "x", "turn_id": 99999})
+    assert bad.status_code == 404
