@@ -14,3 +14,6 @@ build/
 # background runner
 .run/
 logs/
+
+# local model files (speech-to-text)
+.models/

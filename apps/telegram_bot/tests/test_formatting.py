@@ -266,3 +266,9 @@ def test_answer_and_reminder_with_reviews():
     assert "practise." not in formatting.format_reminder_with_reviews(
         r.model_copy(update={"reviews_due": 0})
     )
+
+
+def test_voice_turn_shows_transcript_first():
+    text = formatting.format_turn(turn(transcript="Yo soy <en> casa"))
+    assert text.startswith("🎤 <i>I heard: “Yo soy &lt;en&gt; casa”</i>")
+    assert "I heard" not in formatting.format_turn(turn())

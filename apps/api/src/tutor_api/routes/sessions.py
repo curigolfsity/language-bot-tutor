@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from tutor_contracts import (
     CreateSessionRequest,
     SessionOut,
@@ -23,6 +24,23 @@ async def create_session(body: CreateSessionRequest, ctx: Ctx) -> SessionOut:
 @router.post("/{session_id}/turns", response_model=TurnResponse)
 async def post_turn(session_id: UUID, body: TurnRequest, ctx: Ctx) -> TurnResponse:
     return await turn_service.handle_turn(ctx, session_id, body.text)
+
+
+MAX_AUDIO_BYTES = 20 * 1024 * 1024
+
+
+@router.post("/{session_id}/turns/voice", response_model=TurnResponse)
+async def post_voice_turn(
+    session_id: UUID, ctx: Ctx, audio: Annotated[UploadFile, File()]
+) -> TurnResponse:
+    """A spoken turn (any common audio format, e.g. Telegram's OGG/Opus voice notes).
+    The response's `transcript` is what was heard."""
+    data = await audio.read(MAX_AUDIO_BYTES + 1)
+    if len(data) > MAX_AUDIO_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "audio file too large")
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "empty audio file")
+    return await turn_service.handle_voice_turn(ctx, session_id, data)
 
 
 @router.post("/{session_id}/end", response_model=SessionSummary)

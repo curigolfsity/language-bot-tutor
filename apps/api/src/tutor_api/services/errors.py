@@ -14,5 +14,9 @@ class InvalidRequestError(ServiceError):
     pass
 
 
+class UnavailableError(ServiceError):
+    """A feature is switched off or not ready (e.g. voice without STT)."""
+
+
 class UpstreamError(ServiceError):
     """The LLM provider failed."""

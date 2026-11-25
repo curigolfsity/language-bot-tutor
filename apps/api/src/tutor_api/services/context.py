@@ -8,6 +8,7 @@ from tutor_api.config import Settings
 from tutor_api.curriculum import Curriculum
 from tutor_api.llm import TurnLLM
 from tutor_api.services.errors import InvalidRequestError
+from tutor_api.stt import SpeechToText
 
 
 @dataclass
@@ -18,6 +19,7 @@ class AppContext:
     curricula: dict[str, Curriculum]
     sessionmaker: async_sessionmaker[AsyncSession]
     llm: TurnLLM
+    stt: SpeechToText | None = None  # None: voice messages disabled
 
     def curriculum(self, lang: str) -> Curriculum:
         try:

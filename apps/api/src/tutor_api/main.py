@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,8 +21,10 @@ from tutor_api.services.errors import (
     InvalidRequestError,
     NotFoundError,
     ServiceError,
+    UnavailableError,
     UpstreamError,
 )
+from tutor_api.stt import WhisperSTT
 
 log = logging.getLogger("tutor_api")
 
@@ -29,6 +32,7 @@ _STATUS: dict[type[ServiceError], int] = {
     NotFoundError: status.HTTP_404_NOT_FOUND,
     ConflictError: status.HTTP_409_CONFLICT,
     InvalidRequestError: status.HTTP_400_BAD_REQUEST,
+    UnavailableError: status.HTTP_503_SERVICE_UNAVAILABLE,
     UpstreamError: status.HTTP_502_BAD_GATEWAY,
 }
 
@@ -49,11 +53,22 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
         curricula = load_all_curricula(settings.curriculum_dir)
         engine = make_engine(settings.database_url)
         llm = AnthropicTurnLLM(settings)
+        stt = None
+        if settings.stt_enabled:
+            stt = WhisperSTT(
+                settings.stt_model,
+                settings.stt_model_dir,
+                settings.stt_max_seconds,
+                settings.stt_cpu_threads,
+            )
+            # Load (first time: download) in the background so the first voice note is fast.
+            app.state.stt_warmup = asyncio.create_task(asyncio.to_thread(stt.load))
         app.state.ctx = AppContext(
             settings=settings,
             curricula=curricula,
             sessionmaker=make_sessionmaker(engine),
             llm=llm,
+            stt=stt,
         )
         log.info("tutor API ready: model=%s effort=%s", settings.tutor_model, settings.tutor_effort)
         try:

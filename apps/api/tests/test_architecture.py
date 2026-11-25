@@ -72,3 +72,9 @@ def test_no_level_codes_hardcoded_in_api_code():
     pattern = re.compile(r"""["'](A1|A2|B1|B2|C1|C2)["']""")
     for path in API_SRC.rglob("*.py"):
         assert not pattern.search(path.read_text(encoding="utf-8")), f"level literal in {path}"
+
+
+def test_only_stt_package_imports_whisper():
+    for path, mods in imported_modules(API_SRC).items():
+        if "faster_whisper" in mods:
+            assert "stt" in path.relative_to(API_SRC).parts, f"{path} imports faster_whisper"

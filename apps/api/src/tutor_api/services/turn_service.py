@@ -36,9 +36,16 @@ from tutor_api.domain.prompt import (
 from tutor_api.domain.tags import apply_policy, for_display, sanitize_tags, well_done_topics
 from tutor_api.llm import LLMError, LLMTurnOutcome, TurnLLM
 from tutor_api.services.context import AppContext
-from tutor_api.services.errors import ConflictError, NotFoundError, UpstreamError
+from tutor_api.services.errors import (
+    ConflictError,
+    InvalidRequestError,
+    NotFoundError,
+    UnavailableError,
+    UpstreamError,
+)
 from tutor_api.services.habits_service import record_message
 from tutor_api.services.review_service import add_cards
+from tutor_api.stt import AudioTooLongError, STTError
 
 log = logging.getLogger(__name__)
 
@@ -256,3 +263,31 @@ async def _persist_learning(
             item.seen_count += 1
             item.last_seen_at = now
     await db.flush()
+
+
+MAX_VOICE_TEXT = 4000  # same limit as a typed turn
+
+
+async def handle_voice_turn(ctx: AppContext, session_id: uuid.UUID, audio: bytes) -> TurnResponse:
+    """Transcribe a voice message in the target language, then run it as a normal turn."""
+    if ctx.stt is None:
+        raise UnavailableError("voice messages are not enabled on this server")
+    async with ctx.sessionmaker() as db:
+        session = await SessionRepo(db).get(session_id)
+        if session is None:
+            raise NotFoundError("session not found")
+        profile = await ProfileRepo(db).get(session.profile_id)
+        assert profile is not None
+        language = profile.target_lang
+    try:
+        transcript = await ctx.stt.transcribe(audio, language)
+    except AudioTooLongError as e:
+        raise InvalidRequestError(str(e)) from e
+    except STTError as e:
+        log.warning("speech-to-text failed: %s", e)
+        raise InvalidRequestError("I couldn't process that audio. Please try again.") from e
+    text = transcript.text.strip()[:MAX_VOICE_TEXT]
+    if not text:
+        raise InvalidRequestError("I couldn't hear any speech in that message.")
+    response = await handle_turn(ctx, session_id, text)
+    return response.model_copy(update={"transcript": text})

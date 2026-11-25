@@ -50,6 +50,7 @@ HOW_IT_WORKS = (
     f"{MENU_REVIEW}: fix your own past mistakes again until they stick\n"
     f"{MENU_ASK}: ask about grammar or a word without interrupting the conversation. "
     "Or just start any message with <b>?</b>\n"
+    "🎤 You can also send <b>voice messages</b>: I'll show what I heard and reply as usual.\n"
     f"{MENU_PROGRESS}: your scores and recent mistakes\n"
     f"{MENU_FINISH}: wrap up and see what you learned\n"
     f"{MENU_SETTINGS}: level, explanation language, daily goal, reminders\n\n"
@@ -69,7 +70,10 @@ def _topic(title: str | None, fallback: str) -> str:
 
 
 def format_turn(result: TurnResponse) -> str:
-    parts = [escape(result.reply)]
+    parts = []
+    if result.transcript:
+        parts.append(f"🎤 <i>I heard: “{escape(result.transcript)}”</i>\n")
+    parts.append(escape(result.reply))
     if result.well_done:
         parts.append("\n✅ Nice use of: " + ", ".join(escape(t.title) for t in result.well_done))
     if result.corrections:

@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     reminder_hour: int = Field(default=19, ge=0, le=23, alias="REMINDER_HOUR")
     reminder_max_idle_days: int = Field(default=7, ge=1, alias="REMINDER_MAX_IDLE_DAYS")
 
+    # Voice messages: local speech-to-text (faster-whisper). Model files go to STT_MODEL_DIR.
+    stt_enabled: bool = Field(default=True, alias="STT_ENABLED")
+    stt_model: str = Field(default="small", alias="STT_MODEL")  # tiny | base | small | medium
+    stt_model_dir: Path = Field(default=REPO_ROOT / ".models" / "whisper", alias="STT_MODEL_DIR")
+    stt_max_seconds: float = Field(default=120.0, gt=0, alias="STT_MAX_SECONDS")
+    stt_cpu_threads: int = Field(default=0, ge=0, alias="STT_CPU_THREADS")  # 0 = automatic
+
     tutor_max_tokens: int = Field(default=16000, alias="TUTOR_MAX_TOKENS")
     # "default" = server-side refusal fallbacks routed by the API; "off" disables them.
     tutor_fallbacks: Literal["default", "off"] = Field(default="default", alias="TUTOR_FALLBACKS")

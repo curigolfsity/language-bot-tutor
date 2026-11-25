@@ -56,6 +56,7 @@ uv run python evals/corrections/run_eval.py --level A1    # costs API money: run
 ```
 Prerequisites (Windows): Python 3.12, uv, Git, PostgreSQL 16. No Docker: Postgres is installed natively at `D:\PostgreSQL\16` (data in `D:\PostgreSQL\16\data`, port 5432, `psql` at `D:\PostgreSQL\16\bin\psql.exe`). DB `spanish_tutor`, owned by role `tutor`.
 After changing API or bot code, run `tutor restart` (the background API does not auto-reload).
+Installing packages: set `UV_CACHE_DIR=D:/uv-cache` first (uv's default cache is on C:).
 Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive is nearly full, so keep tools, caches and data on D:.
 
 ## Conventions

@@ -164,6 +164,7 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 | POST | /v1/sessions | `{profile_id, scenario_id?}` → session + tutor opening line + `opening_turn_id` (closes any open session) |
 | POST | /v1/sessions/{id}/turns | `{text}` → `TurnResponse` = `TurnResult` + `turn_id` + `well_done[]` + `progress` (streak/goal after this message, with `first_today` and `goal_just_met`) |
 | POST | /v1/reminders/claim | `{provider, target_lang}` → learners of that client due a practice reminder now; each is marked reminded for their local day |
+| POST | /v1/sessions/{id}/turns/voice | multipart `audio` (any common format; Telegram OGG/Opus) → `TurnResponse` with `transcript`. 503 if STT is disabled, 400 if no speech or longer than `STT_MAX_SECONDS` |
 | POST | /v1/turns/{turn_id}/help | `{kind: hint\|translate\|suggest\|explain}` on a **tutor** turn → `{kind, text}` |
 | POST | /v1/sessions/{id}/end | close session → summary (turn count, top mistakes, new vocab) |
 
@@ -314,6 +315,10 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - `TUTOR_API_KEY` (defaults to the first `CLIENT_API_KEYS` entry)
 - `BOT_TARGET_LANG`
 - `BOT_NATIVE_LANG_CHOICES` (`code:label` list for the language buttons)
+
+**Voice messages.** Voice notes and audio files are downloaded by the bot and posted to `/turns/voice`. The reply starts with "🎤 I heard: …" so the learner can see what the corrections are based on.
+
+**Speech-to-text (`apps/api/src/tutor_api/stt/`).** Local faster-whisper (`STT_MODEL`, default `small`, CPU int8), the only package allowed to import it (guarded by a test). The model lives in `STT_MODEL_DIR` (default `<repo>/.models/whisper`, gitignored, about 460 MB) and is loaded in the background at startup. Audio is decoded with PyAV to 16 kHz mono, then transcribed in the learner's target language with VAD, one transcription at a time. The transcript then goes through the normal turn path. Caveat: Whisper can smooth over small grammar slips, so spoken turns may get fewer corrections than typed ones.
 
 **Side questions.** 🙋 Ask (a reply prompt), `/ask <question>`, or any message starting with `?` goes to `POST /v1/learners/{id}/ask` instead of the conversation. Messages starting with Spanish `¿` stay in the conversation. The answer comes in the language of the question.
 

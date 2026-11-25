@@ -69,6 +69,10 @@ class TutorApiClient:
         json = body.model_dump(mode="json", exclude_unset=True) if body is not None else None
         clean_params = {k: v for k, v in params.items() if v is not None}
         resp = await self._http.request(method, url, json=json, params=clean_params or None)
+        return self._parse(resp, out)
+
+    @staticmethod
+    def _parse(resp: httpx.Response, out: type[T] | Any) -> T:
         if resp.status_code >= 400:
             try:
                 detail = str(resp.json().get("detail", resp.text))
@@ -152,6 +156,15 @@ class TutorApiClient:
         return await self._request(
             "POST", f"/v1/sessions/{session_id}/turns", TurnResponse, TurnRequest(text=text)
         )
+
+    async def send_voice_turn(
+        self, session_id: UUID, audio: bytes, filename: str, mime_type: str
+    ) -> TurnResponse:
+        resp = await self._http.post(
+            f"/v1/sessions/{session_id}/turns/voice",
+            files={"audio": (filename, audio, mime_type)},
+        )
+        return self._parse(resp, TurnResponse)
 
     async def end_session(self, session_id: UUID) -> SessionSummary:
         return await self._request("POST", f"/v1/sessions/{session_id}/end", SessionSummary)

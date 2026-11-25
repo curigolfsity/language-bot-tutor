@@ -511,6 +511,46 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+MAX_VOICE_SECONDS = 120  # keep in step with the API's STT_MAX_SECONDS
+MAX_VOICE_BYTES = 20 * 1024 * 1024  # Telegram bots can download up to 20 MB
+
+
+async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """A spoken message: the API transcribes it and answers it like a typed one."""
+    msg = update.effective_message
+    if msg is None:
+        return
+    media = msg.voice or msg.audio
+    if media is None:
+        return
+    if (media.duration or 0) > MAX_VOICE_SECONDS:
+        await msg.reply_text(
+            f"🎤 That's a bit long! Please keep voice messages under {MAX_VOICE_SECONDS // 60} "
+            "minutes."
+        )
+        return
+    if (media.file_size or 0) > MAX_VOICE_BYTES:
+        await msg.reply_text("🎤 That file is too big for me. Try a shorter message.")
+        return
+
+    profile, _ = await _resolve(update, context)
+    api = _api(context)
+    session = await api.active_session(profile.id)
+    if session is None:
+        session = await api.start_session(profile.id)
+    async with _typing(update, context):
+        file = await media.get_file()
+        audio = bytes(await file.download_as_bytearray())
+        result = await api.send_voice_turn(
+            session.id, audio, "voice.ogg", media.mime_type or "audio/ogg"
+        )
+    await msg.reply_text(
+        formatting.format_turn(result),
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb.help_buttons(result.turn_id, bool(result.corrections)),
+    )
+
+
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     err = context.error
     log.error("handler error: %s", err, exc_info=err)
@@ -606,5 +646,6 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice))
     app.add_error_handler(on_error)
     return app

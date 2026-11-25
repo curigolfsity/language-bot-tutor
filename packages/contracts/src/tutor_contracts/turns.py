@@ -72,6 +72,9 @@ class TurnResponse(TurnResult):
     progress: TurnProgress | None = Field(
         default=None, description="Streak and daily-goal state after this message."
     )
+    transcript: str | None = Field(
+        default=None, description="For voice turns: what speech-to-text heard (the turn text)."
+    )
 
 
 class TurnRequest(BaseModel):
