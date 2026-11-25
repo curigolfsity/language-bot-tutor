@@ -36,6 +36,7 @@ from tutor_api.services.errors import (
     UpstreamError,
 )
 from tutor_api.services.habits_service import record_message
+from tutor_api.services.usage import record_call
 
 log = logging.getLogger(__name__)
 
@@ -129,6 +130,7 @@ async def start_lesson(ctx: AppContext, profile_id: uuid.UUID, topic_id: str) ->
     except LLMError as e:
         log.error("LLM lesson failed: %s", e)
         raise UpstreamError(str(e)) from e
+    await record_call(ctx, "lesson", curriculum.code, outcome)
     if outcome.refused or outcome.lesson is None:
         raise UpstreamError("the model declined to write this lesson")
     exercises: list[dict[str, Any]] = [
@@ -191,6 +193,7 @@ async def answer(ctx: AppContext, run_id: int, index: int, answer_text: str) -> 
         except LLMError as e:
             log.error("LLM exercise grading failed: %s", e)
             raise UpstreamError(str(e)) from e
+        await record_call(ctx, "grade", profile.target_lang, outcome)
         correct = bool(outcome.grade and outcome.grade.correct)
         feedback = outcome.grade.feedback.strip() if outcome.grade else None
 

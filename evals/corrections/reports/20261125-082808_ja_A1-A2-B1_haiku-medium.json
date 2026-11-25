@@ -1,0 +1,438 @@
+{
+  "created_at": "2026-11-25T08:27:46.720939+00:00",
+  "model": "claude-haiku-5-5",
+  "effort": "medium",
+  "lang": "ja",
+  "levels": {
+    "A1": {
+      "metrics": {
+        "cases": 4,
+        "recall": 0.8,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 5.9,
+        "p90": 6.14
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 556,
+        "output_tokens": 3366,
+        "cache_read_input_tokens": 10556,
+        "cache_creation_input_tokens": 0
+      },
+      "cost_usd": 0.0018,
+      "cases": [
+        {
+          "id": "ja-a1-001",
+          "text": "わたしは学生だです。東京に住んでいます。",
+          "refused": false,
+          "seconds": 6.87,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "だです",
+              "right": "です",
+              "rule_tag": "ja.a1.desu_copula",
+              "explanation": "Use です directly after a noun; だ and です are not used together.",
+              "severity": "major"
+            }
+          ],
+          "reply": "学生（がくせい）ですね。東京（とうきょう）のどこに住（す）んでいますか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 142,
+            "output_tokens": 1183,
+            "cache_read_input_tokens": 2639,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a1-002",
+          "text": "きのう、図書館に勉強しました。",
+          "refused": false,
+          "seconds": 5.67,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "図書館に",
+              "right": "図書館で",
+              "rule_tag": "ja.a1.ni_de_place",
+              "explanation": "Use で, not に, for the place where an action such as studying happens.",
+              "severity": "major"
+            }
+          ],
+          "reply": "いいですね。きのう、図書館（としょかん）で勉強（べんきょう）しました。何（なに）を勉強（べんきょう）しましたか。",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 138,
+            "output_tokens": 850,
+            "cache_read_input_tokens": 2639,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a1-003",
+          "text": "これ本はわたし本です。",
+          "refused": false,
+          "seconds": 6.14,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "わたし本",
+              "right": "わたしの本",
+              "rule_tag": "ja.a1.no_possessive",
+              "explanation": "Use の between the owner and the noun to show possession: わたしの本 means 'my book'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "これ本",
+              "right": "この本",
+              "rule_tag": "ja.a1.kosoado",
+              "explanation": "Before a noun, use この (this) instead of これ.",
+              "severity": "major"
+            }
+          ],
+          "reply": "はい、この本（ほん）はわたしの本（ほん）ですね。あなたのすきな本（ほん）は なんですか。",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 134,
+            "output_tokens": 1155,
+            "cache_read_input_tokens": 2639,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a1-004",
+          "text": "テーブルの下に猫があります。かわいいです。",
+          "refused": false,
+          "seconds": 1.92,
+          "score": {
+            "expected": 1,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [
+              "猫があります -> 猫がいます"
+            ],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "いいですね！猫（ねこ）はかわいいです。あなたの猫（ねこ）ですか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 142,
+            "output_tokens": 178,
+            "cache_read_input_tokens": 2639,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    },
+    "A2": {
+      "metrics": {
+        "cases": 4,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 5.88,
+        "p90": 6.12
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 574,
+        "output_tokens": 4455,
+        "cache_read_input_tokens": 11696,
+        "cache_creation_input_tokens": 0
+      },
+      "cost_usd": 0.0024,
+      "cases": [
+        {
+          "id": "ja-a2-001",
+          "text": "わたしはすしをすきです。毎週食べます。",
+          "refused": false,
+          "seconds": 6.12,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "すしを",
+              "right": "すしが",
+              "rule_tag": "ja.a2.ga_with_likes",
+              "explanation": "With the verb 'like' (すき), use が instead of を for the thing you like.",
+              "severity": "major"
+            }
+          ],
+          "reply": "すしが大好き(だいすき)ですね！毎週(まいしゅう)どこですしを食べますか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 142,
+            "output_tokens": 1038,
+            "cache_read_input_tokens": 2924,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a2-002",
+          "text": "すみません、ここに名前を書きてください。",
+          "refused": false,
+          "seconds": 5.63,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "書きてください",
+              "right": "書いてください",
+              "rule_tag": "ja.a2.te_form",
+              "explanation": "For a request, use the て-form of 書く, which is 書いて, not 書きて.",
+              "severity": "major"
+            }
+          ],
+          "reply": "はい、わかりました。ここに名前(なまえ)を書(か)いてください。ほかに何(なに)か必要(ひつよう)ですか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 139,
+            "output_tokens": 1065,
+            "cache_read_input_tokens": 2924,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a2-003",
+          "text": "友だちはわたしにプレゼントをあげました。とてもうれしかったです。",
+          "refused": false,
+          "seconds": 7.52,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "あげました",
+              "right": "くれました",
+              "rule_tag": "ja.a2.giving_receiving",
+              "explanation": "When someone gives something to you, use くれました (kuremashita), not あげました.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "わあ、うれしいですね！どんなプレゼントでしたか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 152,
+            "output_tokens": 1481,
+            "cache_read_input_tokens": 2924,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-a2-004",
+          "text": "週末は京都に行って、お寺を見ました。",
+          "refused": false,
+          "seconds": 4.92,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "いいですね。京都(きょうと)のお寺(てら)は きれいですね。どの お寺(てら)が いちばん 好(す)きですか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 141,
+            "output_tokens": 871,
+            "cache_read_input_tokens": 2924,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    },
+    "B1": {
+      "metrics": {
+        "cases": 3,
+        "recall": 0.3333,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 4.24,
+        "p90": 4.24
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 428,
+        "output_tokens": 2712,
+        "cache_read_input_tokens": 9609,
+        "cache_creation_input_tokens": 0
+      },
+      "cost_usd": 0.0015,
+      "cases": [
+        {
+          "id": "ja-b1-001",
+          "text": "来年日本に行きようと思います。",
+          "refused": false,
+          "seconds": 6.95,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "行きよう",
+              "right": "行こう",
+              "rule_tag": "ja.b1.volitional",
+              "explanation": "「行く」の意向形（volitional form：〜う・〜よう）は「行こう」です。「行きよう」とは言いません。",
+              "severity": "major"
+            }
+          ],
+          "reply": "来年の日本旅行の計画、いいですね！どこに行こうと思っていますか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 138,
+            "output_tokens": 1203,
+            "cache_read_input_tokens": 3203,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-b1-002",
+          "text": "きのう電車で財布を盗みました。とても困りました。",
+          "refused": false,
+          "seconds": 4.24,
+          "score": {
+            "expected": 1,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [
+              "盗みました -> 盗まれました"
+            ],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "えっ、それは大変でしたね。財布はどうしましたか？警察(けいさつ)に行きましたか？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 146,
+            "output_tokens": 708,
+            "cache_read_input_tokens": 3203,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "ja-b1-003",
+          "text": "わたしは買った本はとてもおもしろいです。",
+          "refused": false,
+          "seconds": 4.15,
+          "score": {
+            "expected": 1,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [
+              "わたしは買った -> わたしが買った"
+            ],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "それはいいですね！どんな本ですか。どこがいちばんおもしろいですか。",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 144,
+            "output_tokens": 801,
+            "cache_read_input_tokens": 3203,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    }
+  }
+}

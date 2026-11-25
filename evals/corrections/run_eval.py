@@ -86,12 +86,23 @@ async def run_case(
     }
 
 
-def cost_usd(usage: dict[str, int], in_price: float, out_price: float) -> float:
+# USD per 1M tokens: (input, output, cache-read multiplier of input). From the Pricing page
+# (platform.claude.com/docs/en/about-claude/pricing), checked 2026-11-25. Eval tooling only.
+PRICES: dict[str, tuple[float, float, float]] = {
+    "claude-opus-5-5": (4.0, 20.0, 0.05),
+    "claude-sonnet-5-5": (2.0, 10.0, 0.05),
+    "claude-haiku-5-5": (0.10, 0.50, 0.10),
+}
+
+
+def cost_usd(
+    usage: dict[str, int], in_price: float, out_price: float, read_mult: float = 0.1
+) -> float:
     per = 1_000_000
     return (
         usage["input_tokens"] * in_price / per
         + usage["cache_creation_input_tokens"] * in_price * 1.25 / per
-        + usage["cache_read_input_tokens"] * in_price * 0.1 / per
+        + usage["cache_read_input_tokens"] * in_price * read_mult / per
         + usage["output_tokens"] * out_price / per
     )
 
@@ -102,16 +113,26 @@ async def main() -> int:
     ap.add_argument("--lang", default="es")
     ap.add_argument("--cases-dir", type=Path, help="default: cases/<lang>/")
     ap.add_argument("--concurrency", type=int, default=4)
-    ap.add_argument("--input-price", type=float, default=4.0, help="USD per 1M input tokens")
-    ap.add_argument("--output-price", type=float, default=20.0, help="USD per 1M output tokens")
+    ap.add_argument("--input-price", type=float, help="USD per 1M input tokens (default: PRICES)")
+    ap.add_argument("--output-price", type=float, help="USD per 1M output tokens")
+    ap.add_argument("--model", help="override TUTOR_MODEL for this run")
+    ap.add_argument("--fallbacks", choices=["default", "off"], help="override TUTOR_FALLBACKS")
     ap.add_argument("--out", type=Path, default=HERE / "reports")
     ap.add_argument("--effort", help="override TUTOR_EFFORT for this run (low|medium|high|...)")
     ap.add_argument("--label", default="", help="suffix for the report file name")
     args = ap.parse_args()
 
-    settings = get_settings()
+    # The same per-language routing production uses (TUTOR_LANG_OVERRIDES); flags override it.
+    settings = get_settings().for_lang(args.lang)
     if args.effort:
         settings = settings.model_copy(update={"tutor_effort": args.effort})
+    if args.model:
+        settings = settings.model_copy(update={"tutor_model": args.model})
+    if args.fallbacks:
+        settings = settings.model_copy(update={"tutor_fallbacks": args.fallbacks})
+    in_price, out_price, read_mult = PRICES.get(settings.tutor_model, (4.0, 20.0, 0.1))
+    in_price = args.input_price if args.input_price is not None else in_price
+    out_price = args.output_price if args.output_price is not None else out_price
     curriculum = load_curriculum(settings.curriculum_dir / args.lang)
     cases = load_cases(args.cases_dir or HERE / "cases" / args.lang, args.level)
     if not cases:
@@ -156,7 +177,7 @@ async def main() -> int:
                 },
                 "errors": [r for r in results if "error" in r],
                 "usage": usage,
-                "cost_usd": round(cost_usd(usage, args.input_price, args.output_price), 4),
+                "cost_usd": round(cost_usd(usage, in_price, out_price, read_mult), 4),
                 "cases": ok,
             }
     finally:

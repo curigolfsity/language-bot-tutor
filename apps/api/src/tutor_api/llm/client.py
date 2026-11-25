@@ -54,6 +54,8 @@ class LLMHelpOutcome:
     model: str
     input_tokens: int
     output_tokens: int
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
 
 
 class ReviewGrade(BaseModel):
@@ -71,6 +73,10 @@ class LLMGradeOutcome:
     grade: ReviewGrade | None  # None when refused
     refused: bool
     model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
 
 
 class ExerciseSpec(BaseModel):
@@ -100,6 +106,22 @@ class LLMLessonOutcome:
     lesson: LessonContent | None  # None when refused
     refused: bool
     model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+
+
+def _usage(response: Any) -> dict[str, Any]:
+    """Model and token counts of a response, for the outcome dataclasses."""
+    u = response.usage
+    return {
+        "model": response.model,
+        "input_tokens": u.input_tokens,
+        "output_tokens": u.output_tokens,
+        "cache_read_input_tokens": u.cache_read_input_tokens or 0,
+        "cache_creation_input_tokens": u.cache_creation_input_tokens or 0,
+    }
 
 
 class TurnLLM(Protocol):
@@ -127,6 +149,10 @@ class AnthropicTurnLLM:
         self._client = client or anthropic.AsyncAnthropic(
             api_key=settings.anthropic_api_key, timeout=settings.llm_timeout_seconds
         )
+
+    def variant(self, settings: Settings) -> AnthropicTurnLLM:
+        """Same HTTP client, different model/effort settings (per-language routing)."""
+        return AnthropicTurnLLM(settings, client=self._client)
 
     async def aclose(self) -> None:
         await self._client.close()
@@ -196,11 +222,7 @@ class AnthropicTurnLLM:
         response = await self._parse(
             system_prompt, user_content, HelpText, self._help_effort, cache_system=False
         )
-        base = {
-            "model": response.model,
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
-        }
+        base = _usage(response)
         if response.stop_reason == "refusal":
             log.warning("model refused help request (model=%s)", response.model)
             return LLMHelpOutcome(text=None, refused=True, **base)
@@ -215,11 +237,11 @@ class AnthropicTurnLLM:
         )
         if response.stop_reason == "refusal":
             log.warning("model refused review grading (model=%s)", response.model)
-            return LLMGradeOutcome(grade=None, refused=True, model=response.model)
+            return LLMGradeOutcome(grade=None, refused=True, **_usage(response))
         parsed = response.parsed_output
         if parsed is None:
             raise LLMError(f"no parsed ReviewGrade (stop_reason={response.stop_reason})")
-        return LLMGradeOutcome(grade=parsed, refused=False, model=response.model)
+        return LLMGradeOutcome(grade=parsed, refused=False, **_usage(response))
 
     async def generate_lesson(self, system_prompt: str, user_content: str) -> LLMLessonOutcome:
         # The system prompt holds the per-level teaching rules: cacheable across topics.
@@ -228,8 +250,8 @@ class AnthropicTurnLLM:
         )
         if response.stop_reason == "refusal":
             log.warning("model refused lesson generation (model=%s)", response.model)
-            return LLMLessonOutcome(lesson=None, refused=True, model=response.model)
+            return LLMLessonOutcome(lesson=None, refused=True, **_usage(response))
         parsed = response.parsed_output
         if parsed is None:
             raise LLMError(f"no parsed LessonContent (stop_reason={response.stop_reason})")
-        return LLMLessonOutcome(lesson=parsed, refused=False, model=response.model)
+        return LLMLessonOutcome(lesson=parsed, refused=False, **_usage(response))

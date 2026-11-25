@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -20,6 +20,11 @@ class AppContext:
     sessionmaker: async_sessionmaker[AsyncSession]
     llm: TurnLLM
     stt: SpeechToText | None = None  # None: voice messages disabled
+    # Conversation-turn LLMs routed per target language (TUTOR_LANG_OVERRIDES); others use llm.
+    turn_llms: dict[str, TurnLLM] = field(default_factory=dict)
+
+    def turn_llm(self, lang: str) -> TurnLLM:
+        return self.turn_llms.get(lang, self.llm)
 
     def curriculum(self, lang: str) -> Curriculum:
         try:

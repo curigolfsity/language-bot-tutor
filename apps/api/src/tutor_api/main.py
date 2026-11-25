@@ -63,13 +63,19 @@ def create_app(ctx: AppContext | None = None) -> FastAPI:
             )
             # Load (first time: download) in the background so the first voice note is fast.
             app.state.stt_warmup = asyncio.create_task(asyncio.to_thread(stt.load))
+        turn_llms = {
+            lang: llm.variant(settings.for_lang(lang)) for lang in settings.tutor_lang_overrides
+        }
         app.state.ctx = AppContext(
             settings=settings,
             curricula=curricula,
             sessionmaker=make_sessionmaker(engine),
             llm=llm,
             stt=stt,
+            turn_llms=turn_llms,  # type: ignore[arg-type]
         )
+        for lang, routed in turn_llms.items():
+            log.info("turns in %s use model=%s", lang, routed.model)
         log.info("tutor API ready: model=%s effort=%s", settings.tutor_model, settings.tutor_effort)
         try:
             yield

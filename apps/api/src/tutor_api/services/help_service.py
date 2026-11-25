@@ -13,6 +13,7 @@ from tutor_api.domain.prompt import PriorTurn, build_ask_prompt, build_help_prom
 from tutor_api.llm import LLMError
 from tutor_api.services.context import AppContext
 from tutor_api.services.errors import InvalidRequestError, NotFoundError, UpstreamError
+from tutor_api.services.usage import record_call
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ async def get_help(ctx: AppContext, turn_id: int, kind: HelpKind) -> HelpOut:
     except LLMError as e:
         log.error("LLM help failed: %s", e)
         raise UpstreamError(str(e)) from e
+    await record_call(ctx, "help", curriculum.code, outcome)
     if outcome.refused or not outcome.text:
         return HelpOut(kind=kind, text=curriculum.lang.refusal_reply)
     return HelpOut(kind=kind, text=outcome.text.strip())
@@ -103,5 +105,6 @@ async def ask(
     except LLMError as e:
         log.error("LLM ask failed: %s", e)
         raise UpstreamError(str(e)) from e
+    await record_call(ctx, "ask", curriculum.code, outcome)
     text = curriculum.lang.refusal_reply if outcome.refused or not outcome.text else outcome.text
     return AskOut(question=question, answer=text.strip())

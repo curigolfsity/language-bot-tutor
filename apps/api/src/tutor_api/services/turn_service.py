@@ -137,7 +137,8 @@ async def handle_turn(ctx: AppContext, session_id: uuid.UUID, text: str) -> Turn
         profile_id = profile.id
 
     # 2) Model call + pure post-processing.
-    run = await run_correction(ctx.llm, curriculum, policy, scenario, summary, prior, text)
+    llm = ctx.turn_llm(curriculum.code)
+    run = await run_correction(llm, curriculum, policy, scenario, summary, prior, text)
     final = run.final
 
     # 3) Persist everything for this turn in one transaction.

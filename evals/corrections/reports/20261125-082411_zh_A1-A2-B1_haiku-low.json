@@ -1,0 +1,476 @@
+{
+  "created_at": "2026-11-25T08:23:53.105970+00:00",
+  "model": "claude-haiku-5-5",
+  "effort": "low",
+  "lang": "zh",
+  "levels": {
+    "A1": {
+      "metrics": {
+        "cases": 4,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 4.98,
+        "p90": 5.05
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 555,
+        "output_tokens": 3766,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 11024
+      },
+      "cost_usd": 0.0033,
+      "cases": [
+        {
+          "id": "zh-a1-001",
+          "text": "我是很忙，我没有时间。",
+          "refused": false,
+          "seconds": 5.42,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "我是很忙",
+              "right": "我很忙",
+              "rule_tag": "zh.a1.adjective_predicates",
+              "explanation": "Don't use 是 before an adjective; say 很 + adjective, like 我很忙.",
+              "severity": "major"
+            }
+          ],
+          "reply": "你很忙啊。(nǐ hěn máng a.) 你今天有时间吗？(nǐ jīntiān yǒu shíjiān ma?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 136,
+            "output_tokens": 1119,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2756
+          }
+        },
+        {
+          "id": "zh-a1-002",
+          "text": "我有两书，你有几本书？",
+          "refused": false,
+          "seconds": 4.63,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "两书",
+              "right": "两本书",
+              "rule_tag": "zh.a1.measure_words_basic",
+              "explanation": "Chinese nouns need a measure word between a number and the noun, so use 本 for books.",
+              "severity": "major"
+            }
+          ],
+          "reply": "我有三本书。(wǒ yǒu sān běn shū.) 你喜欢看书吗？(nǐ xǐhuan kàn shū ma?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 135,
+            "output_tokens": 825,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2756
+          }
+        },
+        {
+          "id": "zh-a1-003",
+          "text": "我今天吃饭在家。我去北京明天。",
+          "refused": false,
+          "seconds": 5.05,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "吃饭在家",
+              "right": "在家吃饭",
+              "rule_tag": "zh.a1.time_place_order",
+              "explanation": "In Chinese, the place goes before the verb: 在家 comes before 吃饭.",
+              "severity": "major"
+            },
+            {
+              "wrong": "我去北京明天",
+              "right": "我明天去北京",
+              "rule_tag": "zh.a1.time_place_order",
+              "explanation": "The time word 明天 goes before the verb 去, not at the end of the sentence.",
+              "severity": "major"
+            }
+          ],
+          "reply": "在家吃饭很好。(Zài jiā chīfàn hěn hǎo.) 你明天想做什么？(Nǐ míngtiān xiǎng zuò shénme?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 141,
+            "output_tokens": 891,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2756
+          }
+        },
+        {
+          "id": "zh-a1-004",
+          "text": "我不有哥哥，可是我有一个姐姐。",
+          "refused": false,
+          "seconds": 4.92,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "不有",
+              "right": "没有",
+              "rule_tag": "zh.a1.bu_vs_mei",
+              "explanation": "To say you don't have something, use 没有 (méiyǒu), not 不有.",
+              "severity": "major"
+            }
+          ],
+          "reply": "你有一个姐姐，很好。(Nǐ yǒu yí ge jiějie, hěn hǎo.) 你的姐姐几岁？(Nǐ de jiějie jǐ suì?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 143,
+            "output_tokens": 931,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2756
+          }
+        }
+      ]
+    },
+    "A2": {
+      "metrics": {
+        "cases": 4,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 5.33,
+        "p90": 5.45
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 564,
+        "output_tokens": 3309,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 12284
+      },
+      "cost_usd": 0.0032,
+      "cases": [
+        {
+          "id": "zh-a2-001",
+          "text": "我去中国过两次，很喜欢那里。",
+          "refused": false,
+          "seconds": 5.2,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "去中国过两次",
+              "right": "去过中国两次",
+              "rule_tag": "zh.a2.guo_experience",
+              "explanation": "用“过”表示经历时，要紧跟在动词后面，所以说“去过”，不是“去中国过”。",
+              "severity": "minor"
+            }
+          ],
+          "reply": "听起来很棒！(tīng qǐlai hěn bàng!) 你去过哪些城市？(Nǐ qùguo nǎxiē chéngshì?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 140,
+            "output_tokens": 946,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3071
+          }
+        },
+        {
+          "id": "zh-a2-002",
+          "text": "他比我很高，也比我大三岁。",
+          "refused": false,
+          "seconds": 5.45,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "比我很高",
+              "right": "比我高",
+              "rule_tag": "zh.a2.bi_comparison",
+              "explanation": "In a 比 comparison you cannot use 很 before the adjective; say 比我高 instead.",
+              "severity": "major"
+            }
+          ],
+          "reply": "哇，他很高！(Wā, tā hěn gāo!) 你们经常一起玩儿吗？(Nǐmen jīngcháng yìqǐ wánr ma?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 138,
+            "output_tokens": 830,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3071
+          }
+        },
+        {
+          "id": "zh-a2-003",
+          "text": "他说中文很好得。我两年学了中文。",
+          "refused": false,
+          "seconds": 6.44,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [
+            "de_degree_complement",
+            "duration",
+            "le_completed_action"
+          ],
+          "predicted": [
+            {
+              "wrong": "很好得",
+              "right": "说得很好",
+              "rule_tag": "zh.a2.de_degree_complement",
+              "explanation": "Use 得 between the verb and the complement: 说得很好 means 'speaks very well'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "两年学了中文",
+              "right": "学了两年中文",
+              "rule_tag": "zh.a2.duration",
+              "explanation": "Put the length of time after the verb: 学了两年中文 means 'studied Chinese for two years'.",
+              "severity": "major"
+            }
+          ],
+          "reply": "谢谢你！你说得很好。(Xièxie nǐ! Nǐ shuō de hěn hǎo.) 你学了两年中文，真厉害。(Nǐ xuéle liǎng nián Zhōngwén, zhēn lìhai.) 你为什么想学中文？(Nǐ wèishénme xiǎng xué Zhōngwén?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 140,
+            "output_tokens": 1313,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3071
+          }
+        },
+        {
+          "id": "zh-a2-004",
+          "text": "我昨天跟朋友去看了一个电影，很有意思。",
+          "refused": false,
+          "seconds": 2.05,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "听起来很不错！你们看的是什么电影？(tīng qǐlai hěn bù cuò! Nǐmen kàn de shì shénme diànyǐng?) 你觉得哪个地方最有意思？(Nǐ juéde nǎge dìfang zuì yǒu yìsi?)",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 146,
+            "output_tokens": 220,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3071
+          }
+        }
+      ]
+    },
+    "B1": {
+      "metrics": {
+        "cases": 3,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 4.51,
+        "p90": 4.51
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 435,
+        "output_tokens": 2144,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 10116
+      },
+      "cost_usd": 0.0024,
+      "cases": [
+        {
+          "id": "zh-b1-001",
+          "text": "我放书在桌子上了，你看见了吗？",
+          "refused": false,
+          "seconds": 2.34,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [
+            "zh.le_completed_action"
+          ],
+          "predicted": [
+            {
+              "wrong": "我放书在桌子上了",
+              "right": "我把书放在桌子上了",
+              "rule_tag": "zh.b1.ba_construction",
+              "explanation": "当宾语是特定的东西（如“书”）并被处置时，常用“把”字句 (ba construction: object placed before the verb with 把)。Use 把 to move the object before the verb.",
+              "severity": "major"
+            }
+          ],
+          "reply": "是的，我看见了，书在桌子上。你平时喜欢在家看书吗？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 143,
+            "output_tokens": 257,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3372
+          }
+        },
+        {
+          "id": "zh-b1-002",
+          "text": "他高兴的说：我们明天去旅行！",
+          "refused": false,
+          "seconds": 4.51,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "高兴的说",
+              "right": "高兴地说",
+              "rule_tag": "zh.b1.de_de_de",
+              "explanation": "描述动作的方式（how the action is done）时，动词前要用“地”(de, adverb marker)，不用“的”。",
+              "severity": "minor"
+            }
+          ],
+          "reply": "太好了！他高兴地说，你们想去哪里旅行？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 142,
+            "output_tokens": 743,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3372
+          }
+        },
+        {
+          "id": "zh-b1-003",
+          "text": "天气越来越很冷了。老师说得太快，我不能听懂。",
+          "refused": false,
+          "seconds": 6.38,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "我不能听懂",
+              "right": "我听不懂",
+              "rule_tag": "zh.b1.potential_complements",
+              "explanation": "可能补语用“听不懂”，不用“不能听懂”。Use 听不懂 (can't understand) with 不 between the verb and the result 懂 (potential complement).",
+              "severity": "major"
+            },
+            {
+              "wrong": "越来越很冷",
+              "right": "越来越冷",
+              "rule_tag": "zh.b1.yuelaiyue",
+              "explanation": "“越来越”后面直接加形容词，不要再加“很”。After 越来越 (more and more), don't add 很 (very).",
+              "severity": "minor"
+            }
+          ],
+          "reply": "是啊，天气越来越冷了！别担心，听不懂的时候可以请老师说慢一点。你平时喜欢听什么样的中文材料？",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 150,
+            "output_tokens": 1144,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3372
+          }
+        }
+      ]
+    }
+  }
+}

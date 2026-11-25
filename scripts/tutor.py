@@ -174,6 +174,8 @@ def main() -> int:
     lp = sub.add_parser("logs")
     lp.add_argument("name", nargs="?", default="bot", choices=["api", "bot", "supervisor"])
     lp.add_argument("-n", type=int, default=40)
+    up = sub.add_parser("usage", help="token usage and estimated cost")
+    up.add_argument("-d", "--days", type=int, default=7)
     ap = sub.add_parser("autostart")
     ap.add_argument("mode", choices=["on", "off"])
     a = p.parse_args()
@@ -189,6 +191,11 @@ def main() -> int:
         return status()
     if a.cmd == "logs":
         return logs(a.name, a.n)
+    if a.cmd == "usage":
+        return subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "usage_report.py"), "--days", str(a.days)],
+            cwd=ROOT,
+        ).returncode
     return autostart(a.mode == "on")
 
 

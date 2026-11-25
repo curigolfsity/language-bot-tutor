@@ -340,3 +340,51 @@ async def test_ask_about_a_specific_tutor_message(client, fake_llm):
 
     bad = await client.post(f"/v1/learners/{pid}/ask", json={"question": "x", "turn_id": 99999})
     assert bad.status_code == 404
+
+
+def test_lang_overrides_parse_and_apply():
+    from tutor_api.config import Settings
+
+    s = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+        DATABASE_URL="sqlite+aiosqlite://",
+        CLIENT_API_KEYS="k",
+        TUTOR_LANG_OVERRIDES='{"es": {"model": "cheap-model", "effort": "medium", '
+        '"fallbacks": "off"}}',
+    )
+    es = s.for_lang("es")
+    assert (es.tutor_model, es.tutor_effort, es.tutor_fallbacks) == ("cheap-model", "medium", "off")
+    assert s.for_lang("ja") is s  # unlisted: unchanged
+    assert es.tutor_help_effort == s.tutor_help_effort  # only the turn route changes
+
+
+async def test_turns_use_the_language_route(client, ctx, fake_llm):
+    from conftest import FakeLLM
+
+    routed = FakeLLM()
+    ctx.turn_llms = {"es": routed}
+    pid = (await resolve(client))["profile"]["id"]
+    sid = (await client.post("/v1/sessions", json={"profile_id": pid})).json()["id"]
+    await client.post(f"/v1/sessions/{sid}/turns", json={"text": "Hola"})
+    assert len(routed.calls) == 1 and fake_llm.calls == []  # Spanish turn went to its route
+    # Help stays on the default model.
+    tutor_turn = (await client.get(f"/v1/learners/{pid}/active-session")).json()["opening_turn_id"]
+    await client.post(f"/v1/turns/{tutor_turn}/help", json={"kind": "hint"})
+    assert fake_llm.help_calls and not routed.help_calls
+
+
+async def test_non_turn_calls_are_logged(client, ctx, fake_llm):
+    from sqlalchemy import select
+    from tutor_api.db.models import LlmCall
+
+    pid = (await resolve(client))["profile"]["id"]
+    session = (await client.post("/v1/sessions", json={"profile_id": pid})).json()
+    await client.post(f"/v1/turns/{session['opening_turn_id']}/help", json={"kind": "hint"})
+    await client.post(f"/v1/learners/{pid}/ask", json={"question": "ser?"})
+    async with ctx.sessionmaker() as db:
+        rows = (await db.execute(select(LlmCall).order_by(LlmCall.id))).scalars().all()
+    assert [(r.kind, r.lang, r.model) for r in rows] == [
+        ("help", "es", "fake-model"),
+        ("ask", "es", "fake-model"),
+    ]
+    assert rows[0].input_tokens == 10 and rows[0].output_tokens == 5

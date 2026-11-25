@@ -20,6 +20,7 @@ from tutor_api.services.context import AppContext
 from tutor_api.services.errors import NotFoundError, UpstreamError
 from tutor_api.services.habits_service import record_message
 from tutor_api.services.mappers import topic_title
+from tutor_api.services.usage import record_call
 
 log = logging.getLogger(__name__)
 
@@ -124,6 +125,7 @@ async def answer_card(ctx: AppContext, card_id: int, answer: str) -> ReviewAnswe
         except LLMError as e:
             log.error("LLM grading failed: %s", e)
             raise UpstreamError(str(e)) from e
+        await record_call(ctx, "grade", curriculum.code, outcome)
         correct = bool(outcome.grade and outcome.grade.correct)
         feedback = outcome.grade.feedback.strip() if outcome.grade else None
 

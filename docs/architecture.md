@@ -215,6 +215,15 @@ TurnResult {
 - The LLM-plus-domain path is `turn_service.run_correction` (no DB). `handle_turn` and the eval both call it.
 - No assistant prefill and no forced `tool_choice`. Current models reject both.
 - The model comes from `TUTOR_MODEL` (default `claude-opus-5-5`), with `effort` set explicitly. Change models only on eval evidence. Turns run at `TUTOR_EFFORT=low`: on the correction eval it matched `medium` on every case at about half the cost and a shorter latency tail. Help buttons use `TUTOR_HELP_EFFORT` (also `low`).
+- **Per-language routing** (`TUTOR_LANG_OVERRIDES`, JSON): conversation turns for a language can use another model and effort. The eval uses the same route (`run_eval.py --lang` reads it; `--model`/`--effort`/`--fallbacks` override). Help, ask, grading and lessons stay on `TUTOR_MODEL`, because no eval covers them yet. Decision (2026-11-25, correction eval, 56 cases; per-language results below; Sonnet 5.5 at low made two corrections that were themselves wrong):
+
+  | Model | es (34) | zh (11) | ja (11) | Wrong corrections | Cost, 56 cases |
+  |---|---|---|---|---|---|
+  | Opus 5.5, low | 34/34 | 11/11 | 11/11 | 0 | ~$0.75 |
+  | Haiku 5.5, medium | 34/34 | 10/11 | 8/11 | 0 | ~$0.03 |
+
+  So es and zh use `claude-haiku-5-5` at `medium` (fallbacks off: Haiku has no server-side refusal fallback), and ja stays on Opus.
+- **Usage visibility**: turns keep their tokens on the tutor turn row; every other model call is logged to `llm_calls` (kind, lang, model, tokens). `tutor usage [-d N]` prints calls, tokens and estimated cost by kind, language and model (`scripts/usage_report.py`, prices from the Pricing page).
 - Check `stop_reason`. On `refusal`, return a polite generic reply with no corrections and log it. Server-side fallbacks are enabled (`fallbacks: "default"`, `TUTOR_FALLBACKS=off` disables them). The refusal reply text comes from `language.yaml`.
 - Prompt order for caching:
   1. tutor instructions + level policy + topic catalogue for the level (stable, cached)

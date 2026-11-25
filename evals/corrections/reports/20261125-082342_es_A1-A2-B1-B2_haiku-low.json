@@ -1,0 +1,1369 @@
+{
+  "created_at": "2026-11-25T08:23:03.290319+00:00",
+  "model": "claude-haiku-5-5",
+  "effort": "low",
+  "lang": "es",
+  "levels": {
+    "A1": {
+      "metrics": {
+        "cases": 11,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 0.9545,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 2.47,
+        "p90": 5.34
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 1617,
+        "output_tokens": 5935,
+        "cache_read_input_tokens": 18298,
+        "cache_creation_input_tokens": 10456
+      },
+      "cost_usd": 0.0046,
+      "cases": [
+        {
+          "id": "a1-001",
+          "text": "Yo soy en la playa con mi amigos.",
+          "refused": false,
+          "seconds": 2.47,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Yo soy en la playa",
+              "right": "Yo estoy en la playa",
+              "rule_tag": "es.a1.ser_vs_estar_basic",
+              "explanation": "Use estar, not ser, to say where you are.",
+              "severity": "major"
+            },
+            {
+              "wrong": "mi amigos",
+              "right": "mis amigos",
+              "rule_tag": "es.a1.possessive_agreement",
+              "explanation": "Plural possessive must match the plural noun: mis amigos.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Qué bonito! ¿Te gusta la playa? ¿Qué haces con tus amigos?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 140,
+            "output_tokens": 330,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2614
+          }
+        },
+        {
+          "id": "a1-002",
+          "text": "Me llamo Ana y soy 25 años.",
+          "refused": false,
+          "seconds": 2.44,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "soy 25 años",
+              "right": "tengo 25 años",
+              "rule_tag": "es.a1.tener_expressions",
+              "explanation": "In Spanish you use 'tener' (to have) to talk about age, not 'ser'.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Hola, Ana! Mucho gusto. ¿Qué te gusta hacer los fines de semana?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 140,
+            "output_tokens": 210,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2614
+          }
+        },
+        {
+          "id": "a1-003",
+          "text": "El casa de mi madre es muy bonito.",
+          "refused": false,
+          "seconds": 2.43,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "El casa",
+              "right": "La casa",
+              "rule_tag": "es.a1.gender_agreement",
+              "explanation": "\"Casa\" is feminine, so the article must be \"la\" instead of \"el\".",
+              "severity": "major"
+            },
+            {
+              "wrong": "bonito",
+              "right": "bonita",
+              "rule_tag": "es.a1.gender_agreement",
+              "explanation": "The adjective must agree in gender with the feminine noun \"casa\", so it ends in -a.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Qué bonito! Tu madre tiene una casa muy bonita. ¿Dónde está la casa de tu madre?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 139,
+            "output_tokens": 309,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2614
+          }
+        },
+        {
+          "id": "a1-004",
+          "text": "Yo gusto mucho el café con leche.",
+          "refused": false,
+          "seconds": 2.43,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Yo gusto",
+              "right": "Me gusta",
+              "rule_tag": "es.a1.gustar_basic",
+              "explanation": "With gustar, use the indirect object pronoun me and the verb agrees with the thing liked, not with the person.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! A mí también me gusta el café con leche. ¿Tomas café con leche por la mañana?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 139,
+            "output_tokens": 207,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2614
+          }
+        },
+        {
+          "id": "a1-005",
+          "text": "Nosotros vive en Madrid y trabajamos en un banco.",
+          "refused": false,
+          "seconds": 1.77,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Nosotros vive",
+              "right": "Nosotros vivimos",
+              "rule_tag": "es.a1.subject_verb_agreement",
+              "explanation": "The verb must agree with the subject \"nosotros\", so it takes the \"-imos\" ending, not \"-e\".",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Madrid es una ciudad muy bonita. ¿Te gusta vivir en Madrid?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 147,
+            "output_tokens": 258,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-006",
+          "text": "Mañana voy comer con mi hermano.",
+          "refused": false,
+          "seconds": 3.43,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "voy comer",
+              "right": "voy a comer",
+              "rule_tag": "es.a1.ir_a_infinitive",
+              "explanation": "Use 'ir a' plus the infinitive to talk about the near future.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Mañana vas a comer con tu hermano. ¿Dónde vas a comer?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 139,
+            "output_tokens": 707,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-007",
+          "text": "Hola, me llamo Pedro. Soy de México y estudio inglés.",
+          "refused": false,
+          "seconds": 1.37,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "¡Hola, Pedro! Qué bien, eres de México. ¿Por qué estudias inglés?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 150,
+            "output_tokens": 133,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-008",
+          "text": "Yo podo nadar pero no quero correr.",
+          "refused": false,
+          "seconds": 4.04,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "podo",
+              "right": "puedo",
+              "rule_tag": "es.a1.stem_changing_present",
+              "explanation": "The verb poder changes o to ue in the present, so it is puedo.",
+              "severity": "major"
+            },
+            {
+              "wrong": "quero",
+              "right": "quiero",
+              "rule_tag": "es.a1.stem_changing_present",
+              "explanation": "The verb querer changes e to ie in the present, so it is quiero.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien que puedes nadar! ¿Te gusta nadar en el mar o en la piscina?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 140,
+            "output_tokens": 888,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-009",
+          "text": "Mi hermana es alto y tiene 20 año. Ella es en Madrid y trabaja en un oficina.",
+          "refused": false,
+          "seconds": 5.34,
+          "score": {
+            "expected": 4,
+            "predicted": 4,
+            "matched": 4,
+            "tag_correct": 3,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "es en Madrid",
+              "right": "está en Madrid",
+              "rule_tag": "es.a1.ser_vs_estar_basic",
+              "explanation": "Use 'estar' (not 'ser') to say where someone is.",
+              "severity": "major"
+            },
+            {
+              "wrong": "alto",
+              "right": "alta",
+              "rule_tag": "es.a1.gender_agreement",
+              "explanation": "'Hermana' is feminine, so the adjective must also be feminine: 'alta'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "20 año",
+              "right": "20 años",
+              "rule_tag": "es.a1.tener_expressions",
+              "explanation": "With 'tener', age is 'tiene 20 años', and 'años' must be plural after a number above one.",
+              "severity": "major"
+            },
+            {
+              "wrong": "en un oficina",
+              "right": "en una oficina",
+              "rule_tag": "es.a1.gender_agreement",
+              "explanation": "'Oficina' is feminine, so the article must be 'una', not 'un'.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Tu hermana está en Madrid y trabaja en una oficina. ¿Te gusta Madrid?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 162,
+            "output_tokens": 1176,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-010",
+          "text": "Nosotros tiene un perro y dos gato. Los perros es muy simpáticos y me gusta los animales.",
+          "refused": false,
+          "seconds": 3.26,
+          "score": {
+            "expected": 4,
+            "predicted": 4,
+            "matched": 4,
+            "tag_correct": 4,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Nosotros tiene",
+              "right": "Nosotros tenemos",
+              "rule_tag": "es.a1.subject_verb_agreement",
+              "explanation": "With \"nosotros\" the verb must end in -emos, not match \"tiene\" (he/she form).",
+              "severity": "major"
+            },
+            {
+              "wrong": "dos gato",
+              "right": "dos gatos",
+              "rule_tag": "es.a1.number_agreement",
+              "explanation": "After \"dos\", the noun must be plural: gatos.",
+              "severity": "major"
+            },
+            {
+              "wrong": "Los perros es muy simpáticos",
+              "right": "Los perros son muy simpáticos",
+              "rule_tag": "es.a1.ser_present",
+              "explanation": "The verb for plural \"perros\" is \"son\", and \"simpáticos\" must also be plural.",
+              "severity": "major"
+            },
+            {
+              "wrong": "me gusta los animales",
+              "right": "me gustan los animales",
+              "rule_tag": "es.a1.gustar_basic",
+              "explanation": "\"Gustar\" agrees with the plural noun \"animales\", so use \"gustan\".",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bonito! Un perro y dos gatos son muy divertidos. ¿Cómo se llama tu perro?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 162,
+            "output_tokens": 549,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a1-011",
+          "text": "Yo quero ir a la playa porque hace calor. Mi amigos no puede venir y soy solo.",
+          "refused": false,
+          "seconds": 7.19,
+          "score": {
+            "expected": 4,
+            "predicted": 4,
+            "matched": 4,
+            "tag_correct": 4,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "quero",
+              "right": "quiero",
+              "rule_tag": "es.a1.stem_changing_present",
+              "explanation": "The verb querer changes its stem e to ie in the present, so it is quiero, not quero.",
+              "severity": "major"
+            },
+            {
+              "wrong": "no puede",
+              "right": "no pueden",
+              "rule_tag": "es.a1.subject_verb_agreement",
+              "explanation": "The verb must agree with the plural subject amigos, so use pueden.",
+              "severity": "major"
+            },
+            {
+              "wrong": "soy solo",
+              "right": "estoy solo",
+              "rule_tag": "es.a1.ser_vs_estar_basic",
+              "explanation": "Use estar, not ser, to describe a temporary state like being alone.",
+              "severity": "major"
+            },
+            {
+              "wrong": "Mi amigos",
+              "right": "Mis amigos",
+              "rule_tag": "es.a1.possessive_agreement",
+              "explanation": "The possessive must match the plural noun, so use mis before amigos.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué buena idea! Lo siento mucho por tus amigos. ¿Vas a ir a la playa solo?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 159,
+            "output_tokens": 1168,
+            "cache_read_input_tokens": 2614,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    },
+    "A2": {
+      "metrics": {
+        "cases": 9,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 0.9167,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 3.48,
+        "p90": 4.97
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 1336,
+        "output_tokens": 5713,
+        "cache_read_input_tokens": 14910,
+        "cache_creation_input_tokens": 11928
+      },
+      "cost_usd": 0.0046,
+      "cases": [
+        {
+          "id": "a2-001",
+          "text": "Ayer yo hací mis deberes y después fui al cine.",
+          "refused": false,
+          "seconds": 3.53,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "hací",
+              "right": "hice",
+              "rule_tag": "es.a2.preterite_irregular",
+              "explanation": "The verb hacer is irregular in the preterite, so 'I did' is 'hice', not 'hací'.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Ayer hice mis deberes y después fui al cine. ¿Qué película viste?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 145,
+            "output_tokens": 639,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2982
+          }
+        },
+        {
+          "id": "a2-002",
+          "text": "Cuando era pequeño, jugué al fútbol todos los días.",
+          "refused": false,
+          "seconds": 4.13,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "jugué",
+              "right": "jugaba",
+              "rule_tag": "es.a2.preterite_vs_imperfect",
+              "explanation": "Use the imperfect (jugaba) for habitual actions in the past, like doing something every day.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Cuando eras pequeño, ¿jugabas en un equipo? ¿Cuál era tu posición favorita?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 147,
+            "output_tokens": 768,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2982
+          }
+        },
+        {
+          "id": "a2-003",
+          "text": "Gracias para la ayuda, eres muy amable.",
+          "refused": false,
+          "seconds": 2.21,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Gracias para la ayuda",
+              "right": "Gracias por la ayuda",
+              "rule_tag": "unknown",
+              "explanation": "In Spanish you say \"gracias por\" (thanks for), not \"gracias para\".",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡De nada! Me alegra mucho ayudarte. ¿Qué quieres practicar hoy?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 142,
+            "output_tokens": 230,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2982
+          }
+        },
+        {
+          "id": "a2-004",
+          "text": "Tengo el libro de María. Le lo doy mañana.",
+          "refused": false,
+          "seconds": 3.48,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Le lo",
+              "right": "Se lo",
+              "rule_tag": "es.a2.indirect_object_pronouns",
+              "explanation": "When le or les comes before lo, la, los or las, it changes to se (se lo).",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! Se lo das mañana a María. ¿Es una novela interesante? ¿Te gusta leer en tu tiempo libre?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 144,
+            "output_tokens": 589,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 2982
+          }
+        },
+        {
+          "id": "a2-005",
+          "text": "Normalmente levanto a las siete y ducho rápido.",
+          "refused": false,
+          "seconds": 3.45,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "levanto",
+              "right": "me levanto",
+              "rule_tag": "es.a2.reflexive_verbs",
+              "explanation": "Levantarse is reflexive here, so it needs the pronoun 'me' to mean 'I get up'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "ducho",
+              "right": "me ducho",
+              "rule_tag": "es.a2.reflexive_verbs",
+              "explanation": "Ducharse is reflexive, so it needs the pronoun 'me' to mean 'I shower'.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué buena rutina! Yo también me levanto temprano los días de semana. ¿Qué haces después de ducharte?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 144,
+            "output_tokens": 697,
+            "cache_read_input_tokens": 2982,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a2-006",
+          "text": "Mi hermano es más mejor que yo en matemáticas.",
+          "refused": false,
+          "seconds": 3.02,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "más mejor",
+              "right": "mejor",
+              "rule_tag": "es.a2.comparatives",
+              "explanation": "'Mejor' is already a comparative form, so 'más' should not be added before it.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué interesante! Tu hermano es mejor que tú en matemáticas. ¿Qué es lo más difícil para ti en matemáticas?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 145,
+            "output_tokens": 607,
+            "cache_read_input_tokens": 2982,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a2-007",
+          "text": "El sábado pasado fuimos a la playa y comimos paella.",
+          "refused": false,
+          "seconds": 1.46,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "¡Qué bien! La paella en la playa suena muy rica. ¿Con quién fuiste a la playa y qué hicieron allí?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 146,
+            "output_tokens": 167,
+            "cache_read_input_tokens": 2982,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a2-008",
+          "text": "Ahora estoy comer y luego quiero que me llamas.",
+          "refused": false,
+          "seconds": 4.97,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "estoy comer",
+              "right": "estoy comiendo",
+              "rule_tag": "es.a2.present_progressive",
+              "explanation": "For an action happening right now, use estar + gerund (comiendo), not estar + infinitive.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien! ¿Qué estás comiendo ahora? Te llamo luego, ¿a qué hora puedes hablar?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 145,
+            "output_tokens": 879,
+            "cache_read_input_tokens": 2982,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "a2-009",
+          "text": "Ayer tení un día largo. Por la mañana yo levanté a las seis y trabajé para ocho horas. Por la noche hací la cena para mi familia.",
+          "refused": false,
+          "seconds": 5.1,
+          "score": {
+            "expected": 4,
+            "predicted": 4,
+            "matched": 4,
+            "tag_correct": 4,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "tení",
+              "right": "tuve",
+              "rule_tag": "es.a2.preterite_irregular",
+              "explanation": "The verb tener is irregular in the preterite: tuve, tuviste, tuvo.",
+              "severity": "major"
+            },
+            {
+              "wrong": "hací",
+              "right": "hice",
+              "rule_tag": "es.a2.preterite_irregular",
+              "explanation": "The verb hacer is irregular in the preterite: hice, hiciste, hizo.",
+              "severity": "major"
+            },
+            {
+              "wrong": "levanté",
+              "right": "me levanté",
+              "rule_tag": "es.a2.reflexive_verbs",
+              "explanation": "Levantarse (to get up) is reflexive, so it needs the pronoun me.",
+              "severity": "major"
+            },
+            {
+              "wrong": "para ocho horas",
+              "right": "durante ocho horas",
+              "rule_tag": "es.a2.por_vs_para_basic",
+              "explanation": "To say how long something lasted, use durante or por, not para.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Qué día tan largo! Me gusta que cocinaste para tu familia. ¿Qué hiciste después de la cena?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 178,
+            "output_tokens": 1137,
+            "cache_read_input_tokens": 2982,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    },
+    "B1": {
+      "metrics": {
+        "cases": 7,
+        "recall": 0.875,
+        "precision": 0.875,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 2.04,
+        "p90": 4.9
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 1036,
+        "output_tokens": 3219,
+        "cache_read_input_tokens": 10797,
+        "cache_creation_input_tokens": 14396
+      },
+      "cost_usd": 0.0036,
+      "cases": [
+        {
+          "id": "b1-001",
+          "text": "Espero que tú vienes a mi fiesta el sábado.",
+          "refused": false,
+          "seconds": 1.78,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Espero que tú vienes",
+              "right": "Espero que vengas",
+              "rule_tag": "es.b1.subjunctive_wishes_emotion",
+              "explanation": "Después de \"espero que\" (I hope that) se usa el subjuntivo, no el indicativo. Por eso: \"vengas\".",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bonito! Me encantaría ir a tu fiesta el sábado. ¿Cuántas personas vienen y qué tipo de música vas a poner?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 147,
+            "output_tokens": 281,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3599
+          }
+        },
+        {
+          "id": "b1-002",
+          "text": "No creo que es una buena idea viajar ahora.",
+          "refused": false,
+          "seconds": 1.89,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "No creo que es",
+              "right": "No creo que sea",
+              "rule_tag": "es.b1.subjunctive_doubt_denial",
+              "explanation": "Después de «no creo que» se usa el subjuntivo (subjuntivo) porque expresa duda. Use \"sea\" (is), not \"es\".",
+              "severity": "major"
+            }
+          ],
+          "reply": "Entiendo tu punto de vista, pero ¿por qué piensas que no es buena idea? ¿Hay algún problema específico, como el dinero o el trabajo?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 143,
+            "output_tokens": 293,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3599
+          }
+        },
+        {
+          "id": "b1-003",
+          "text": "Esta mañana he hacido la compra y he escribido un correo.",
+          "refused": false,
+          "seconds": 2.19,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "he hacido",
+              "right": "he hecho",
+              "rule_tag": "es.b1.present_perfect",
+              "explanation": "El participio de \"hacer\" es irregular: \"hecho\" (past participle, irregular form). Use \"hecho\" con \"he\".",
+              "severity": "major"
+            },
+            {
+              "wrong": "he escribido",
+              "right": "he escrito",
+              "rule_tag": "es.b1.present_perfect",
+              "explanation": "El participio de \"escribir\" es irregular: \"escrito\" (written). Es un error común en el pretérito perfecto.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bien que hayas hecho la compra temprano! ¿Qué compraste en el supermercado? Y, ¿a quién le escribiste el correo?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 148,
+            "output_tokens": 350,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3599
+          }
+        },
+        {
+          "id": "b1-004",
+          "text": "Si me ayudas, yo podería terminar el proyecto antes.",
+          "refused": false,
+          "seconds": 5.06,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "podería",
+              "right": "podría",
+              "rule_tag": "es.b1.conditional_simple",
+              "explanation": "El condicional de 'poder' en la tercera persona es 'podría' (would be able), con tilde en la í. Es una forma irregular del condicional simple.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué amable eres! Con tu ayuda, el proyecto va a salir muy bien. ¿Qué parte del proyecto te gustaría hacer primero?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 149,
+            "output_tokens": 836,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3599
+          }
+        },
+        {
+          "id": "b1-005",
+          "text": "Es la chica que hablé con ayer en la biblioteca.",
+          "refused": false,
+          "seconds": 2.04,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [
+              "que hablé con -> con quien hablé"
+            ],
+            "unmatched_predicted": [
+              "hablé -> hablé con [unknown]"
+            ]
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "hablé",
+              "right": "hablé con",
+              "rule_tag": "unknown",
+              "explanation": "Here the sentence is correct; no change is needed. (Sin error.)",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Qué interesante! ¿De qué hablaste con ella en la biblioteca? ¿Es una amiga nueva o la conociste por primera vez ayer?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 147,
+            "output_tokens": 217,
+            "cache_read_input_tokens": 3599,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "b1-006",
+          "text": "Creo que mañana lloverá, así que llevaré un paraguas.",
+          "refused": false,
+          "seconds": 1.65,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "¡Qué buena idea llevar paraguas! Yo creo que mañana también hará frío. ¿Tienes planes para el fin de semana o prefieres quedarte en casa cuando llueve?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 150,
+            "output_tokens": 191,
+            "cache_read_input_tokens": 3599,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "b1-007",
+          "text": "Necesito el informe por el lunes, y quiero que lo revisas tú.",
+          "refused": false,
+          "seconds": 4.9,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "revisas",
+              "right": "revises",
+              "rule_tag": "es.b1.subjunctive_wishes_emotion",
+              "explanation": "Después de 'quiero que' se usa el subjuntivo (subjunctive mood), así que el verbo es 'revises'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "por el lunes",
+              "right": "para el lunes",
+              "rule_tag": "es.b1.por_vs_para_extended",
+              "explanation": "Para una fecha límite (deadline) se usa 'para' (for, by), no 'por'.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Claro que sí! Voy a revisar el informe antes del lunes. ¿Qué parte te preocupa más?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 152,
+            "output_tokens": 1051,
+            "cache_read_input_tokens": 3599,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    },
+    "B2": {
+      "metrics": {
+        "cases": 7,
+        "recall": 1.0,
+        "precision": 1.0,
+        "rule_tag_accuracy": 1.0,
+        "must_not_flag_false_positives": 0,
+        "policy_violations": 0,
+        "refusals": 0
+      },
+      "latency_s": {
+        "median": 2.8,
+        "p90": 4.84
+      },
+      "errors": [],
+      "usage": {
+        "input_tokens": 1040,
+        "output_tokens": 4215,
+        "cache_read_input_tokens": 10791,
+        "cache_creation_input_tokens": 14388
+      },
+      "cost_usd": 0.0041,
+      "cases": [
+        {
+          "id": "b2-001",
+          "text": "Si tendría más tiempo, aprendería a tocar la guitarra.",
+          "refused": false,
+          "seconds": 2.55,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "Si tendría más tiempo",
+              "right": "Si tuviera más tiempo",
+              "rule_tag": "es.b2.si_clauses",
+              "explanation": "En la cláusula con \"si\" (condition clause) se usa el imperfecto de subjuntivo, no el condicional: \"si tuviera\". Es un error común en español.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué bonito sueño! Si tuvieras más tiempo, ¿qué tipo de música te gustaría tocar primero? Yo creo que la guitarra es un instrumento perfecto para empezar, porque te acompaña en muchos momentos de la vida. ¿Ya tienes una guitarra en casa o todavía estás pensando en comprarla?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 151,
+            "output_tokens": 383,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3597
+          }
+        },
+        {
+          "id": "b2-002",
+          "text": "Mi jefe quería que yo termino el informe antes del viernes.",
+          "refused": false,
+          "seconds": 2.19,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "quería que yo termino",
+              "right": "quería que yo terminara",
+              "rule_tag": "es.b2.imperfect_subjunctive",
+              "explanation": "Después de «quería que» se usa el subjuntivo imperfecto (imperfect subjunctive), no el presente. / After «quería que» use the imperfect subjunctive (imperfecto de subjuntivo), not the present.",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué presión la de tu jefe! ¿Ya tienes avanzado el informe o todavía te falta mucho para terminarlo? Cuéntame un poco de qué trata.",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 149,
+            "output_tokens": 337,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3597
+          }
+        },
+        {
+          "id": "b2-003",
+          "text": "Cuando llegarás a casa, llámame por favor.",
+          "refused": false,
+          "seconds": 3.75,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "llegarás",
+              "right": "llegues",
+              "rule_tag": "es.b2.subjunctive_adverbial",
+              "explanation": "Con \"cuando\" para una acción futura se usa el subjuntivo (subjunctive), no el futuro (future).",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Claro que sí! Te llamaré en cuanto llegues a casa. ¿Qué planes tienes para esta noche, después de la reunión?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 145,
+            "output_tokens": 734,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3597
+          }
+        },
+        {
+          "id": "b2-004",
+          "text": "En esta tienda se vende muchos productos ecológicos.",
+          "refused": false,
+          "seconds": 2.8,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "se vende muchos productos",
+              "right": "se venden muchos productos",
+              "rule_tag": "es.b2.passive_se",
+              "explanation": "Con 'se' pasiva el verbo concuerda con el sujeto plural 'productos' (verb agrees with the plural subject). Gloss: 'se vende' → 'se venden' (agreement).",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué interesante! Es cierto que cada vez hay más tiendas que ofrecen productos ecológicos. ¿Compras tú también en este tipo de tiendas o prefieres los supermercados de siempre?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 146,
+            "output_tokens": 304,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 3597
+          }
+        },
+        {
+          "id": "b2-005",
+          "text": "Cuando llegué a la estación, el tren ya salió.",
+          "refused": false,
+          "seconds": 2.66,
+          "score": {
+            "expected": 1,
+            "predicted": 1,
+            "matched": 1,
+            "tag_correct": 1,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "el tren ya salió",
+              "right": "el tren ya había salido",
+              "rule_tag": "es.b2.pluperfect",
+              "explanation": "Para una acción anterior a otra pasada, se usa el pluscuamperfecto (pluperfect): había + participio. Por eso se dice \"ya había salido\" (the train had already left).",
+              "severity": "major"
+            }
+          ],
+          "reply": "¡Qué mala suerte! ¿Llegaste tarde o el tren salió antes de lo previsto? Cuéntame, ¿qué hiciste después de perderlo?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 146,
+            "output_tokens": 319,
+            "cache_read_input_tokens": 3597,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "b2-006",
+          "text": "Busco un piso que tiene terraza y que está cerca del centro.",
+          "refused": false,
+          "seconds": 6.78,
+          "score": {
+            "expected": 2,
+            "predicted": 2,
+            "matched": 2,
+            "tag_correct": 2,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [
+            {
+              "wrong": "tiene",
+              "right": "tenga",
+              "rule_tag": "es.b2.subjunctive_relative_clauses",
+              "explanation": "Cuando buscas algo que todavía no existe o no conoces, la cláusula de relativo va en subjuntivo (subjunctive). Por eso: 'un piso que tenga terraza'.",
+              "severity": "major"
+            },
+            {
+              "wrong": "está",
+              "right": "esté",
+              "rule_tag": "es.b2.subjunctive_relative_clauses",
+              "explanation": "Con el mismo antecedente indefinido (un piso que aún no has encontrado), también usamos el subjuntivo: 'que esté cerca'.",
+              "severity": "minor"
+            }
+          ],
+          "reply": "¡Qué buena idea! Una terraza es un lujo, sobre todo si quieres un piso que tenga terraza y esté cerca del centro. ¿Ya tienes un presupuesto en mente o prefieres mirar primero las zonas que te gustan?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 149,
+            "output_tokens": 1386,
+            "cache_read_input_tokens": 3597,
+            "cache_creation_input_tokens": 0
+          }
+        },
+        {
+          "id": "b2-007",
+          "text": "Aunque llueva mañana, iremos a la excursión que habíamos planeado.",
+          "refused": false,
+          "seconds": 4.84,
+          "score": {
+            "expected": 0,
+            "predicted": 0,
+            "matched": 0,
+            "tag_correct": 0,
+            "must_not_flag_hits": [],
+            "unmatched_expected": [],
+            "unmatched_predicted": []
+          },
+          "policy_violations": [],
+          "unknown_tags": [],
+          "predicted": [],
+          "reply": "¡Qué buena actitud, no dejar que el mal tiempo os quite las ganas! Si llueve, siempre se puede disfrutar de un paseo bajo la lluvia con un buen chubasquero. ¿Ya sabes a qué lugar les gustaría llegar en la excursión?",
+          "model": "claude-haiku-5-5",
+          "usage": {
+            "input_tokens": 154,
+            "output_tokens": 752,
+            "cache_read_input_tokens": 3597,
+            "cache_creation_input_tokens": 0
+          }
+        }
+      ]
+    }
+  }
+}

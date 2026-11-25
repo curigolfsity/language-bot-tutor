@@ -1,12 +1,24 @@
+import json
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+Effort = Literal["low", "medium", "high", "xhigh", "max"]
+
+
+class LangRoute(BaseModel):
+    """Per-language override for conversation turns (the correction path the eval covers)."""
+
+    model: str | None = None
+    effort: Effort | None = None
+    fallbacks: Literal["default", "off"] | None = None  # some models have no server fallback
 
 
 class Settings(BaseSettings):
@@ -50,6 +62,14 @@ class Settings(BaseSettings):
     )
     lesson_exercises: int = Field(default=5, ge=1, le=10, alias="LESSON_EXERCISES")
 
+    # Per-language routing for conversation turns, as JSON, e.g.
+    # {"es": {"model": "claude-haiku-5-5", "effort": "medium", "fallbacks": "off"}}.
+    # Decide it with the correction eval (evals/corrections, --lang); unlisted languages use
+    # TUTOR_MODEL / TUTOR_EFFORT / TUTOR_FALLBACKS.
+    tutor_lang_overrides: dict[str, LangRoute] = Field(
+        default_factory=dict, alias="TUTOR_LANG_OVERRIDES"
+    )
+
     tutor_max_tokens: int = Field(default=16000, alias="TUTOR_MAX_TOKENS")
     # "default" = server-side refusal fallbacks routed by the API; "off" disables them.
     tutor_fallbacks: Literal["default", "off"] = Field(default="default", alias="TUTOR_FALLBACKS")
@@ -73,6 +93,13 @@ class Settings(BaseSettings):
             return [k.strip() for k in v.split(",") if k.strip()]
         return v
 
+    @field_validator("tutor_lang_overrides", mode="before")
+    @classmethod
+    def _parse_overrides(cls, v: object) -> object:
+        if isinstance(v, str):
+            return json.loads(v) if v.strip() else {}
+        return v
+
     @field_validator("default_timezone")
     @classmethod
     def _valid_timezone(cls, v: str) -> str:
@@ -81,6 +108,22 @@ class Settings(BaseSettings):
         except (ZoneInfoNotFoundError, ValueError) as e:
             raise ValueError(f"unknown IANA timezone {v!r}") from e
         return v
+
+    def for_lang(self, lang: str) -> "Settings":
+        """These settings with `lang`'s turn route applied (unchanged if it has none)."""
+        route = self.tutor_lang_overrides.get(lang)
+        if route is None:
+            return self
+        update = {
+            k: v
+            for k, v in {
+                "tutor_model": route.model,
+                "tutor_effort": route.effort,
+                "tutor_fallbacks": route.fallbacks,
+            }.items()
+            if v is not None
+        }
+        return self.model_copy(update=update)
 
 
 @lru_cache

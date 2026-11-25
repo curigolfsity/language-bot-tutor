@@ -48,6 +48,7 @@ uv sync                                                   # install workspace
 uv run alembic -c apps/api/alembic.ini upgrade head       # migrate
 tutor start | stop | restart | status | logs [api|bot]     # API + bot in the background (scripts/supervisor.py)
 tutor autostart on                                        # start at Windows logon
+tutor usage [-d 7]                                        # tokens + estimated cost per kind/lang/model
 uv run uvicorn tutor_api.main:app --reload                # core API, foreground dev (run `tutor stop` first)
 uv run python -m tutor_telegram                           # bot, foreground dev (only one bot may poll)
 uv run pytest                                             # tests (no real LLM calls)
