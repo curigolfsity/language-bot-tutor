@@ -18,6 +18,10 @@ from tutor_contracts import (
     LanguageOut,
     LearnerPatch,
     LearnerProfileOut,
+    LessonAnswerOut,
+    LessonAnswerRequest,
+    LessonOut,
+    LessonSuggestionsOut,
     LevelOut,
     MistakeOut,
     ReminderClaimRequest,
@@ -30,6 +34,7 @@ from tutor_contracts import (
     ScenarioOut,
     SessionOut,
     SessionSummary,
+    StartLessonRequest,
     TurnRequest,
     TurnResponse,
     VocabOut,
@@ -114,6 +119,19 @@ class TutorApiClient:
     async def ask(self, profile_id: UUID, question: str, turn_id: int | None = None) -> AskOut:
         req = AskRequest(question=question, turn_id=turn_id)
         return await self._request("POST", f"/v1/learners/{profile_id}/ask", AskOut, req)
+
+    async def lessons(self, profile_id: UUID) -> LessonSuggestionsOut:
+        return await self._request(
+            "GET", f"/v1/learners/{profile_id}/lessons", LessonSuggestionsOut
+        )
+
+    async def start_lesson(self, profile_id: UUID, topic_id: str) -> LessonOut:
+        req = StartLessonRequest(topic_id=topic_id)
+        return await self._request("POST", f"/v1/learners/{profile_id}/lessons", LessonOut, req)
+
+    async def answer_lesson(self, lesson_id: int, index: int, answer: str) -> LessonAnswerOut:
+        req = LessonAnswerRequest(index=index, answer=answer)
+        return await self._request("POST", f"/v1/lessons/{lesson_id}/answer", LessonAnswerOut, req)
 
     async def next_review(self, profile_id: UUID) -> ReviewQueueOut:
         return await self._request("GET", f"/v1/learners/{profile_id}/review/next", ReviewQueueOut)

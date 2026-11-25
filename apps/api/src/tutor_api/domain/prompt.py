@@ -324,3 +324,107 @@ def build_grade_prompt(
         f"<learner_answer>{escape(answer)}</learner_answer>"
     )
     return system, user
+
+
+# ----------------------------------------------------------------------------- grammar lessons
+
+LESSON_NATIVE = "the learner's native language (given in <learner>)"
+
+
+def build_lesson_prompt(
+    curriculum: Curriculum,
+    policy: Policy,
+    topic: GrammarTopic,
+    learner_mistakes: Sequence[tuple[str, str]],
+    n_exercises: int,
+) -> tuple[str, str]:
+    """(system, user) to write a short lesson plus exercises on one grammar topic.
+
+    The system part depends only on language, level and explanation style (cacheable); the
+    learner's native language, the topic and their own mistakes go in the user part.
+    learner_mistakes: (wrong, right) pairs the learner made on this topic.
+    """
+    target = policy.target_lang_name
+    explain_in = _EXPLAIN_LANG[policy.explanation_language].format(
+        native=LESSON_NATIVE, target=target
+    )
+    notes = ""
+    if curriculum.lang.prompt_notes:
+        notes = (
+            "\n# Notes for "
+            + target
+            + "\n"
+            + "\n".join(f"- {n}" for n in curriculum.lang.prompt_notes)
+        )
+    system = f"""You are an expert {target} teacher. Write a short grammar lesson with practice \
+exercises for a learner at CEFR level {policy.level}.
+
+# explanation
+- Write it in {explain_in}. Plain text: no Markdown symbols (no *, #, or backticks). Line \
+breaks and "•" bullets are fine.
+- At most 14 short lines, in this order:
+  1. One line: what this grammar point is for.
+  2. The rule, simply. Show forms compactly (for example one line of conjugation).
+  3. Three example sentences in {target}, each followed by its translation in parentheses.
+  4. "Watch out": the most common mistake. If <learner_mistakes> are given, use one of the \
+learner's own mistakes and show the correct form.
+- Vocabulary no harder than CEFR {policy.vocab_ceiling}.
+
+# exercises
+- Exactly {n_exercises} exercises on THIS topic only, easiest first. Mix the kinds: at least one \
+fill_blank, one fix and one translate.
+- `instruction` and `why` in {explain_in}. `prompt` in {target}, except for translate, whose \
+prompt is a short sentence in {LESSON_NATIVE}.
+- fill_blank: exactly one gap written ___ ; `answer` is only the missing word(s).
+- fix: a sentence with exactly one error on this topic; `answer` is the full corrected sentence.
+- translate: `answer` is a natural {target} sentence.
+- Each exercise needs one clearly correct answer. Put genuinely acceptable alternatives in \
+`also_accept` (for example with or without the subject pronoun).
+- Vocabulary no harder than CEFR {policy.vocab_ceiling}. Check that every answer is correct \
+{target}.{notes}
+"""
+    examples = "\n".join(f"- {escape(e.wrong)} → {escape(e.right)}" for e in topic.examples)
+    parts = [
+        f"<learner>native language: ISO 639-1 code '{policy.native_lang}'</learner>",
+        "<topic>\n"
+        f"id: {topic.id}\nlevel: {topic.level}\ntitle: {escape(topic.title)}\n"
+        f"description: {escape(topic.description)}\n"
+        + (f"examples (wrong → right):\n{examples}\n" if examples else "")
+        + "</topic>",
+    ]
+    if learner_mistakes:
+        lines = "\n".join(f"- {escape(w)} → {escape(r)}" for w, r in learner_mistakes)
+        parts.append(f"<learner_mistakes>\n{lines}\n</learner_mistakes>")
+    parts.append("Write the lesson and the exercises.")
+    return system, "\n\n".join(parts)
+
+
+def build_exercise_grade_prompt(
+    policy: Policy,
+    kind: str,
+    instruction: str,
+    prompt_text: str,
+    expected: Sequence[str],
+    answer: str,
+) -> tuple[str, str]:
+    """(system, user) to check an exercise answer that did not match the expected ones."""
+    target = policy.target_lang_name
+    native = f"the learner's native language (ISO 639-1 code '{policy.native_lang}')"
+    feedback_lang = _EXPLAIN_LANG[policy.explanation_language].format(native=native, target=target)
+    system = (
+        f"You check a {target} learner's (level {policy.level}) answer to a grammar exercise.\n"
+        "- `correct` is true if the answer is fully correct for the exercise. Any correct "
+        "alternative counts. Ignore capitalisation and final punctuation. Accents matter.\n"
+        "- For fill_blank, the answer may be just the missing words or the whole sentence.\n"
+        f"- `feedback` in {feedback_lang}, at most 2 short sentences, warm. If incorrect, say "
+        "what is wrong and give the correct answer."
+    )
+    user = (
+        f"<exercise kind='{escape(kind)}'>\n"
+        f"instruction: {escape(instruction)}\n"
+        f"prompt: {escape(prompt_text)}\n"
+        f"expected: {' | '.join(escape(x) for x in expected)}\n"
+        "</exercise>\n"
+        f"<learner_answer>{escape(answer)}</learner_answer>"
+    )
+    return system, user

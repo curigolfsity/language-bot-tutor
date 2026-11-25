@@ -131,6 +131,7 @@ The loader fails startup on any of these:
 | users | **id uuid**, display_name, created_at | one per human |
 | user_identities | **provider, external_id**, user_id | `provider` ∈ telegram/web/…; lets one human use many clients |
 | learner_profiles | **id uuid**, user_id, target_lang, native_lang, explanation_lang_override?, cefr_level, created_at, timezone?, daily_goal?, reminders_enabled, last_reminded_on?, streak_best | unique(user_id, target_lang): one profile per language learned. NULL timezone / daily_goal mean the configured default (`DEFAULT_TIMEZONE`, `DEFAULT_DAILY_GOAL`) |
+| lesson_runs | **id**, profile_id, topic_id, explanation, exercises jsonb, answers jsonb, correct, llm_model, created_at, finished_at? | one grammar lesson as shown to the learner. Answers are graded against the stored exercises, in order |
 | review_items | **id**, profile_id, source_text, wrong, right, rule_tag, explanation, box, due_at, reviews, lapses, last_reviewed_at?, created_at | spaced-repetition card per distinct mistake; unique(profile_id, wrong, right), index(profile_id, due_at). Created by turns; migration 0003 backfilled existing mistakes |
 | daily_activity | **profile_id, day**, messages | learner messages per *local* day (learner's timezone); drives streaks and the daily goal |
 | skill_levels | **profile_id, skill**, cefr_level, score (0–1), updated_at | skill ∈ speaking, listening, reading, writing, grammar, vocab |
@@ -151,6 +152,9 @@ All JSON. Every `/v1` call sends `X-Client-Key`, which is checked against `CLIEN
 | POST | /v1/users/resolve | `{provider, external_id, display_name, target_lang, native_lang}` → user + profile (idempotent) |
 | GET / PATCH | /v1/learners/{profile_id} | profile, skill levels, settings (level, native language, explanation language, timezone, daily goal, reminders). Omitted PATCH fields are unchanged; `explanation_lang_override: null` / `timezone: null` reset to the default |
 | POST | /v1/learners/{id}/ask | `{question, turn_id?}` → `{question, answer}` (with `turn_id`, that tutor message is the subject): a side question answered with the open conversation as context; not stored as a turn, not corrected, not counted as practice |
+| GET | /v1/learners/{id}/lessons | `{suggested[], level_topics[]}`: topics with mastery, lessons taken and reason (`weak`/`next`/`refresh`) |
+| POST | /v1/learners/{id}/lessons | `{topic_id}` → `{id, topic, explanation, exercise}`: generates a lesson (one model call, `LESSON_EFFORT`) |
+| POST | /v1/lessons/{id}/answer | `{index, answer}` → `{correct, expected, why, feedback?, score, answered, total, next?, mastery, progress}`; 409 if already answered |
 | GET | /v1/learners/{id}/review/next | `{card?, due, total, next_due_at?}`: next mistake card due (the correct form is not sent) |
 | POST | /v1/review/{card_id}/answer | `{answer}` → `{correct, wrong, right, explanation, feedback?, next_review_in_days, due, progress}` |
 | GET | /v1/learners/{id}/progress | `{streak, best_streak, today, goal, goal_met}` |
@@ -260,6 +264,12 @@ The result is a `Policy` object, and prompt assembly reads only that object:
 - Leitner boxes: a new or failed card is due again after 10 minutes. A correct answer moves it up one box, with intervals of 1, 3, 7, 16 and 35 days.
 - The learner sees their original sentence with the error underlined and replies with a fix. `quick_grade` accepts an answer that contains the stored fix and not the error, for free. Anything else is judged by the model (`build_grade_prompt`, `ReviewGrade` structured output, help effort), which accepts correct alternatives and gives feedback in the explanation language.
 - Each review answer counts toward the daily goal and streak. Reminders mention the number of cards due.
+
+## 8c. Grammar lessons (`domain/lessons.py`, `services/lesson_service.py`)
+- **Suggestions** (pure, from mastery and curriculum order): up to 3 *weak* topics (practised, mastery < 0.6, most errors first), then *next* topics at the learner's level that are not practised yet and whose prerequisites are, in YAML order, then *refresh* (lowest mastery) to fill the list.
+- **A lesson** is one structured-output call (`LessonContent`: explanation + exercises of kinds `fill_blank` / `fix` / `translate`, each with `answer`, `also_accept` and `why`). It uses the topic's YAML (title, description, examples) and the learner's own past mistakes on it. The explanation follows the level's explanation language. `LESSON_EXERCISES` (5) exercises, at `LESSON_EFFORT` (medium: exercise correctness matters). The run is stored, so grading uses exactly what was shown.
+- **Answers**: an exact normalised match against `answer`/`also_accept` is free. Otherwise the model judges (`build_exercise_grade_prompt`, `ReviewGrade`). Each answer is one attempt on the topic's mastery (an error counts as major) and counts toward the daily goal.
+- **Telegram**: 📖 Grammar lessons (or `/lessons`) shows suggestions (🎯 weak, 🆕 next, 🔁 refresh) plus "All topics at my level" (`ls:<topic_id>`, `lb`). The explanation is followed by exercises as reply prompts headed `📝 Lesson #<id> · n/N`. The reply quotes that header, so routing is stateless. Each result message carries the next question. At the end: "Use it in a conversation", "Another lesson", "My mistakes".
 
 ## 9. Evaluation (`evals/corrections`)
 `cases/<level>.yaml`:

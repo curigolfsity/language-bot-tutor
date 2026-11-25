@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import anthropic
 from pydantic import BaseModel, Field
@@ -73,6 +73,35 @@ class LLMGradeOutcome:
     model: str
 
 
+class ExerciseSpec(BaseModel):
+    kind: Literal["fill_blank", "fix", "translate"] = Field(
+        description="fill_blank: complete the gap (___). fix: correct a sentence with one "
+        "error. translate: translate a short sentence from the learner's language."
+    )
+    instruction: str = Field(description="One short line telling the learner what to do.")
+    prompt: str = Field(description="The sentence to work on (use ___ for the gap).")
+    answer: str = Field(
+        description="The expected answer: the missing word(s) for fill_blank, the full "
+        "corrected sentence for fix, the target-language sentence for translate."
+    )
+    also_accept: list[str] = Field(description="Other fully correct answers (may be empty).")
+    why: str = Field(description="One short sentence explaining the answer.")
+
+
+class LessonContent(BaseModel):
+    """Structured output for a grammar lesson."""
+
+    explanation: str = Field(description="The lesson text shown to the learner, plain text.")
+    exercises: list[ExerciseSpec] = Field(description="Practice exercises, easiest first.")
+
+
+@dataclass(frozen=True)
+class LLMLessonOutcome:
+    lesson: LessonContent | None  # None when refused
+    refused: bool
+    model: str
+
+
 class TurnLLM(Protocol):
     """What services depend on. Tests provide a fake implementation."""
 
@@ -84,12 +113,15 @@ class TurnLLM(Protocol):
 
     async def generate_grade(self, system_prompt: str, user_content: str) -> LLMGradeOutcome: ...
 
+    async def generate_lesson(self, system_prompt: str, user_content: str) -> LLMLessonOutcome: ...
+
 
 class AnthropicTurnLLM:
     def __init__(self, settings: Settings, client: anthropic.AsyncAnthropic | None = None) -> None:
         self.model = settings.tutor_model
         self._effort = settings.tutor_effort
         self._help_effort = settings.tutor_help_effort
+        self._lesson_effort = settings.lesson_effort
         self._max_tokens = settings.tutor_max_tokens
         self._fallbacks = settings.tutor_fallbacks
         self._client = client or anthropic.AsyncAnthropic(
@@ -188,3 +220,16 @@ class AnthropicTurnLLM:
         if parsed is None:
             raise LLMError(f"no parsed ReviewGrade (stop_reason={response.stop_reason})")
         return LLMGradeOutcome(grade=parsed, refused=False, model=response.model)
+
+    async def generate_lesson(self, system_prompt: str, user_content: str) -> LLMLessonOutcome:
+        # The system prompt holds the per-level teaching rules: cacheable across topics.
+        response = await self._parse(
+            system_prompt, user_content, LessonContent, self._lesson_effort, cache_system=True
+        )
+        if response.stop_reason == "refusal":
+            log.warning("model refused lesson generation (model=%s)", response.model)
+            return LLMLessonOutcome(lesson=None, refused=True, model=response.model)
+        parsed = response.parsed_output
+        if parsed is None:
+            raise LLMError(f"no parsed LessonContent (stop_reason={response.stop_reason})")
+        return LLMLessonOutcome(lesson=parsed, refused=False, model=response.model)

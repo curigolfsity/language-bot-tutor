@@ -237,3 +237,23 @@ class ReviewItem(Base):
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LessonRun(Base):
+    """One grammar lesson taken by a learner: the generated explanation and exercises, and
+    the learner's answers. `exercises`/`answers` are JSON lists (see services/lesson_service)."""
+
+    __tablename__ = "lesson_runs"
+    __table_args__ = (Index("ix_lesson_runs_profile_created_at", "profile_id", "created_at"),)
+    id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("learner_profiles.id", ondelete="CASCADE")
+    )
+    topic_id: Mapped[str] = mapped_column(String(128))
+    explanation: Mapped[str] = mapped_column(Text)
+    exercises: Mapped[list[dict[str, Any]]] = mapped_column(JsonB)
+    answers: Mapped[list[dict[str, Any]]] = mapped_column(JsonB, default=list)
+    correct: Mapped[int] = mapped_column(Integer, default=0)
+    llm_model: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

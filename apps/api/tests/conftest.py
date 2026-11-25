@@ -9,7 +9,15 @@ from sqlalchemy.pool import StaticPool
 from tutor_api.config import REPO_ROOT, Settings
 from tutor_api.curriculum import Curriculum, load_curriculum
 from tutor_api.db import Base, make_engine, make_sessionmaker
-from tutor_api.llm import LLMGradeOutcome, LLMHelpOutcome, LLMTurnOutcome, ReviewGrade
+from tutor_api.llm import (
+    ExerciseSpec,
+    LessonContent,
+    LLMGradeOutcome,
+    LLMHelpOutcome,
+    LLMLessonOutcome,
+    LLMTurnOutcome,
+    ReviewGrade,
+)
 from tutor_api.main import create_app
 from tutor_api.services.context import AppContext
 from tutor_contracts import Correction, NewVocab, TurnResult
@@ -33,6 +41,38 @@ def settings() -> Settings:
     )
 
 
+def default_lesson() -> LessonContent:
+    return LessonContent(
+        explanation="Ser = what something is. Estar = where/how it is.",
+        exercises=[
+            ExerciseSpec(
+                kind="fill_blank",
+                instruction="Fill the gap",
+                prompt="Yo ___ en casa.",
+                answer="estoy",
+                also_accept=[],
+                why="Location uses estar.",
+            ),
+            ExerciseSpec(
+                kind="fix",
+                instruction="Fix the sentence",
+                prompt="Ella es en Madrid.",
+                answer="Ella está en Madrid.",
+                also_accept=["Está en Madrid."],
+                why="Location uses estar.",
+            ),
+            ExerciseSpec(
+                kind="translate",
+                instruction="Translate",
+                prompt="I am tired.",
+                answer="Estoy cansado.",
+                also_accept=["Estoy cansada.", "Yo estoy cansado."],
+                why="Temporary states use estar.",
+            ),
+        ],
+    )
+
+
 class FakeLLM:
     """Stands in for AnthropicTurnLLM. Returns queued outcomes and records the prompts."""
 
@@ -45,6 +85,8 @@ class FakeLLM:
         self.help_refuse = False
         self.grade_calls: list[tuple[str, str]] = []
         self.grades: list[ReviewGrade] = []  # queued; default: incorrect
+        self.lesson_calls: list[tuple[str, str]] = []
+        self.lesson: LessonContent | None = None
 
     def push_result(self, result: TurnResult) -> None:
         self.queue.append(
@@ -82,6 +124,12 @@ class FakeLLM:
         self.grade_calls.append((system_prompt, user_content))
         grade = self.grades.pop(0) if self.grades else ReviewGrade(correct=False, feedback="nope")
         return LLMGradeOutcome(grade=grade, refused=False, model=self.model)
+
+    async def generate_lesson(self, system_prompt: str, user_content: str) -> LLMLessonOutcome:
+        self.lesson_calls.append((system_prompt, user_content))
+        return LLMLessonOutcome(
+            lesson=self.lesson or default_lesson(), refused=False, model=self.model
+        )
 
     async def generate_turn(self, system_prompt: str, user_content: str) -> LLMTurnOutcome:
         self.calls.append((system_prompt, user_content))

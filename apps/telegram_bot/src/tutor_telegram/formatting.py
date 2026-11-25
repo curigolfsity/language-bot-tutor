@@ -9,8 +9,13 @@ from html import escape
 from tutor_contracts import (
     AskOut,
     DailyProgressOut,
+    ExerciseOut,
     HelpOut,
     LearnerProfileOut,
+    LessonAnswerOut,
+    LessonOut,
+    LessonSuggestionsOut,
+    LessonTopicOut,
     LevelOut,
     MistakeOut,
     ReminderOut,
@@ -25,14 +30,17 @@ from tutor_contracts import (
 
 from tutor_telegram.keyboards import (
     ASK_PROMPT_HEADER,
+    LESSON_HEADER,
     MENU_ASK,
     MENU_CHAT,
     MENU_FINISH,
+    MENU_LESSONS,
     MENU_PROGRESS,
     MENU_REVIEW,
     MENU_ROLEPLAY,
     MENU_SETTINGS,
     REVIEW_HEADER,
+    TOPIC_ICONS,
     level_icon,
 )
 
@@ -47,6 +55,7 @@ HOW_IT_WORKS = (
     "❓ <b>Explain</b>: more detail about your mistakes\n\n"
     f"{MENU_CHAT}: talk about anything\n"
     f"{MENU_ROLEPLAY}: practise a real situation (café, doctor, job interview…)\n"
+    f"{MENU_LESSONS}: short grammar lessons with practice, picked from your weak spots\n"
     f"{MENU_REVIEW}: fix your own past mistakes again until they stick\n"
     f"{MENU_ASK}: ask about grammar or a word without interrupting the conversation. "
     "Or just start any message with <b>?</b>\n"
@@ -397,4 +406,83 @@ def format_review_result(r: ReviewAnswerOut) -> str:
         lines.append(f"\n{milestone}")
     if r.due == 0:
         lines.append("\n🎉 That's all for now!")
+    return "\n".join(lines)
+
+
+# ----------------------------------------------------------------------------- grammar lessons
+
+_LESSON_RE = re.compile(re.escape(LESSON_HEADER) + r"(\d+) · (\d+)/(\d+)")
+
+
+def _mastery_text(t: LessonTopicOut) -> str:
+    if t.mastery is None:
+        return "new"
+    return f"{_bar(t.mastery, 5)} {round(t.mastery * 100)}%"
+
+
+def format_lesson_menu(s: LessonSuggestionsOut) -> str:
+    lines = [
+        "📖 <b>Grammar lessons</b>",
+        "A short explanation, then a few practice questions.",
+        "",
+        "<b>Suggested for you</b>",
+    ]
+    for t in s.suggested:
+        lines.append(
+            f"{TOPIC_ICONS.get(t.reason or '', '📖')} {escape(t.title)} · {_mastery_text(t)}"
+        )
+    lines += ["", "<i>🎯 you often get this wrong · 🆕 next new topic · 🔁 refresh</i>"]
+    return "\n".join(lines)
+
+
+def format_level_topics(topics: list[LessonTopicOut]) -> str:
+    if not topics:
+        return "No grammar topics for your level yet."
+    lines = [f"📚 <b>All {escape(topics[0].level)} topics</b>"]
+    lines += [f"• {escape(t.title)} · {_mastery_text(t)}" for t in topics]
+    return "\n".join(lines)
+
+
+def format_lesson(lesson: LessonOut) -> str:
+    return f"📖 <b>{escape(lesson.topic.title)}</b>\n\n{escape(lesson.explanation)}"
+
+
+def format_exercise(lesson_id: int, ex: ExerciseOut) -> str:
+    return (
+        f"<b>{LESSON_HEADER}{lesson_id} · {ex.index + 1}/{ex.total}</b>\n"
+        f"<i>{escape(ex.instruction)}</i>\n\n"
+        f"<b>{escape(ex.prompt)}</b>\n\n"
+        "<i>Reply to this message with your answer.</i>"
+    )
+
+
+def parse_exercise(prompt_text: str | None) -> tuple[int, int] | None:
+    """(lesson id, 0-based exercise index) from an exercise message the learner replied to."""
+    m = _LESSON_RE.search(prompt_text or "")
+    return (int(m.group(1)), int(m.group(2)) - 1) if m else None
+
+
+def format_lesson_answer(lesson_id: int, r: LessonAnswerOut) -> str:
+    if r.correct:
+        lines = ["✅ <b>Correct!</b>"]
+        if r.feedback:
+            lines.append(escape(r.feedback))
+    else:
+        lines = ["❌ <b>Not quite.</b>"]
+        if r.feedback:
+            lines.append(escape(r.feedback))
+        lines.append(f"Answer: <b>{escape(r.expected)}</b>")
+    if r.why:
+        lines.append(f"<i>{escape(r.why)}</i>")
+    if milestone := format_milestone(r.progress):
+        lines.append(f"\n{milestone}")
+    if r.next is not None:
+        lines.append("\n" + format_exercise(lesson_id, r.next))
+    else:
+        stars = "🌟" if r.score == r.total else "👏" if r.score * 2 >= r.total else "💪"
+        lines += [
+            f"\n🏁 <b>Lesson done: {r.score}/{r.total}</b> {stars}",
+            f"Topic mastery: {_bar(r.mastery, 5)} {round(r.mastery * 100)}%",
+            "Now try it for real in a conversation, or take another lesson.",
+        ]
     return "\n".join(lines)

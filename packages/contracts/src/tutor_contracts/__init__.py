@@ -19,6 +19,16 @@ from tutor_contracts.learners import (
     SkillLevelOut,
     VocabOut,
 )
+from tutor_contracts.lessons import (
+    ExerciseKind,
+    ExerciseOut,
+    LessonAnswerOut,
+    LessonAnswerRequest,
+    LessonOut,
+    LessonSuggestionsOut,
+    LessonTopicOut,
+    StartLessonRequest,
+)
 from tutor_contracts.reminders import ReminderClaimRequest, ReminderOut
 from tutor_contracts.review import (
     ReviewAnswerOut,
@@ -49,6 +59,14 @@ from tutor_contracts.turns import (
 from tutor_contracts.users import ResolveUserRequest, ResolveUserResponse
 
 __all__ = [
+    "ExerciseKind",
+    "ExerciseOut",
+    "LessonAnswerOut",
+    "LessonAnswerRequest",
+    "LessonOut",
+    "LessonSuggestionsOut",
+    "LessonTopicOut",
+    "StartLessonRequest",
     "ReviewAnswerOut",
     "ReviewAnswerRequest",
     "ReviewCardOut",

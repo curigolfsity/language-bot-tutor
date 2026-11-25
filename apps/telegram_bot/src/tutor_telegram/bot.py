@@ -55,6 +55,7 @@ COMMANDS = [
     BotCommand("start", "Start or restart"),
     BotCommand("chat", "Free conversation"),
     BotCommand("roleplay", "Practise a real-life situation"),
+    BotCommand("lessons", "Grammar lessons with practice"),
     BotCommand("review", "Practise your past mistakes"),
     BotCommand("ask", "Ask a question without interrupting the conversation"),
     BotCommand("progress", "Your progress and recent mistakes"),
@@ -428,9 +429,70 @@ async def answer_card(
     )
 
 
+# ----------------------------------------------------------------------------- grammar lessons
+
+
+async def do_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    sugg = await _api(context).lessons(profile.id)
+    await _send(
+        update,
+        formatting.format_lesson_menu(sugg),
+        reply_markup=kb.lesson_topics_keyboard(sugg.suggested, browse=True),
+    )
+
+
+async def do_browse_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    profile, _ = await _resolve(update, context)
+    sugg = await _api(context).lessons(profile.id)
+    await _send(
+        update,
+        formatting.format_level_topics(sugg.level_topics),
+        reply_markup=kb.lesson_topics_keyboard(sugg.level_topics, browse=False),
+    )
+
+
+async def start_lesson(update: Update, context: ContextTypes.DEFAULT_TYPE, topic_id: str) -> None:
+    """Generate the lesson, show the explanation, then the first exercise as a reply prompt."""
+    profile, _ = await _resolve(update, context)
+    await _send(update, "📖 Preparing your lesson… (about 15 seconds)")
+    async with _typing(update, context):
+        lesson = await _api(context).start_lesson(profile.id, topic_id)
+    await _send(update, formatting.format_lesson(lesson))
+    if lesson.exercise is not None:
+        await _send(
+            update,
+            formatting.format_exercise(lesson.id, lesson.exercise),
+            reply_markup=kb.reply_prompt("Your answer…"),
+        )
+
+
+async def answer_exercise(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, lesson_id: int, index: int, answer: str
+) -> None:
+    msg = update.effective_message
+    assert msg is not None
+    try:
+        async with _typing(update, context):
+            result = await _api(context).answer_lesson(lesson_id, index, answer)
+    except ApiError as e:
+        if e.status_code == 409:
+            await msg.reply_text("You already answered that one. Reply to the newest question.")
+            return
+        raise
+    await msg.reply_text(
+        formatting.format_lesson_answer(lesson_id, result),
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb.reply_prompt("Your answer…")
+        if result.next is not None
+        else kb.lesson_done_keyboard(),
+    )
+
+
 MENU_ACTIONS = {
     kb.MENU_CHAT: do_free_chat,
     kb.MENU_ROLEPLAY: do_roleplay,
+    kb.MENU_LESSONS: do_lessons,
     kb.MENU_REVIEW: do_review,
     kb.MENU_ASK: do_ask,
     kb.MENU_PROGRESS: do_progress,
@@ -580,6 +642,12 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await _send(update, f"🎯 Daily goal set to <b>{updated.daily_goal} messages</b>.")
     elif kind == "ask" and rest.isdigit():
         await ask_about_message(update, context, int(rest), query.message)
+    elif kind == "ls" and rest:
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await start_lesson(update, context, rest)
+    elif kind == "lb":
+        await do_browse_lessons(update, context)
     elif kind == "rv":
         with contextlib.suppress(Exception):
             await query.edit_message_reply_markup(None)
@@ -605,6 +673,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await do_roleplay(update, context)
         elif rest == "review":
             await do_review(update, context)
+        elif rest == "lessons":
+            await do_lessons(update, context)
         elif rest == "resume":
             await do_resume(update, context)
         elif rest == "settings_goal":
@@ -639,6 +709,9 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         link_urls = [e.url for e in replied.entities or [] if e.url]
         if (target := formatting.parse_ask_link(link_urls)) is not None:
             await answer_inside_message(update, context, *target, text, prompt=replied)
+            return
+        if (exercise := formatting.parse_exercise(replied.text)) is not None:
+            await answer_exercise(update, context, *exercise, text)
             return
         card_id = formatting.parse_card_id(replied.text)
         if card_id is not None:
@@ -800,6 +873,7 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler("level", cmd_level))
     app.add_handler(CommandHandler("native", cmd_native))
     app.add_handler(CommandHandler("ask", cmd_ask))
+    app.add_handler(CommandHandler(["lessons", "lesson", "grammar"], do_lessons))
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

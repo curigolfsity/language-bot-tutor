@@ -10,6 +10,8 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   goal:<n>               set the daily goal (messages per day)
   rem:<on|off>           practice reminders on / off
   rv:<next|done>         practise-my-mistakes: next card / stop
+  ls:<topic_id>          start a grammar lesson on that topic
+  lb                     browse every grammar topic at the learner's level
   menu:<action>          free | roleplay | resume | settings_level | settings_native | settings_goal
 """
 
@@ -22,7 +24,7 @@ from telegram import (
     KeyboardButton,
     ReplyKeyboardMarkup,
 )
-from tutor_contracts import LevelOut, ScenarioOut
+from tutor_contracts import LessonTopicOut, LevelOut, ScenarioOut
 
 # Persistent menu under the text box. Pressing one sends its label as a message.
 MENU_CHAT = "💬 Free chat"
@@ -33,11 +35,13 @@ MENU_SETTINGS = "⚙️ Settings"
 MENU_HELP = "❓ How it works"
 MENU_REVIEW = "🧠 Practise mistakes"
 MENU_ASK = "🙋 Ask a question"
+MENU_LESSONS = "📖 Grammar lessons"
 MENU_LABELS = {
     MENU_CHAT,
     MENU_ROLEPLAY,
     MENU_REVIEW,
     MENU_ASK,
+    MENU_LESSONS,
     MENU_PROGRESS,
     MENU_FINISH,
     MENU_SETTINGS,
@@ -48,6 +52,7 @@ MENU_LABELS = {
 # reply by the quoted header, so it needs no memory of what it asked.
 ASK_PROMPT_HEADER = "🙋 Ask me anything"
 REVIEW_HEADER = "🧠 Practice #"  # followed by the card id
+LESSON_HEADER = "📝 Lesson #"  # followed by "<lesson id> · <n>/<total>"
 
 LEVEL_ICONS = ["🌱", "🌿", "🌳", "🏔️", "🚀", "👑"]
 GOAL_CHOICES = (5, 10, 20, 30)  # messages per day offered as buttons
@@ -57,9 +62,10 @@ def main_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton(MENU_CHAT), KeyboardButton(MENU_ROLEPLAY)],
-            [KeyboardButton(MENU_REVIEW), KeyboardButton(MENU_ASK)],
-            [KeyboardButton(MENU_PROGRESS), KeyboardButton(MENU_FINISH)],
-            [KeyboardButton(MENU_SETTINGS), KeyboardButton(MENU_HELP)],
+            [KeyboardButton(MENU_LESSONS), KeyboardButton(MENU_REVIEW)],
+            [KeyboardButton(MENU_ASK), KeyboardButton(MENU_PROGRESS)],
+            [KeyboardButton(MENU_FINISH), KeyboardButton(MENU_SETTINGS)],
+            [KeyboardButton(MENU_HELP)],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -204,5 +210,35 @@ def review_next_keyboard(due: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(f"▶️ Next ({due} left)", callback_data="rv:next"),
                 InlineKeyboardButton("🏁 Stop", callback_data="rv:done"),
             ]
+        ]
+    )
+
+
+TOPIC_ICONS = {"weak": "🎯", "next": "🆕", "refresh": "🔁"}
+
+
+def lesson_topics_keyboard(topics: list[LessonTopicOut], browse: bool) -> InlineKeyboardMarkup:
+    """One button per topic; `browse` adds "all topics at my level"."""
+    rows = [
+        [
+            InlineKeyboardButton(
+                f"{TOPIC_ICONS.get(t.reason or '', '📖')} {t.title}", callback_data=f"ls:{t.id}"
+            )
+        ]
+        for t in topics
+    ]
+    if browse:
+        rows.append([InlineKeyboardButton("📚 All topics at my level", callback_data="lb")])
+    return InlineKeyboardMarkup(rows)
+
+
+def lesson_done_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("💬 Use it in a conversation", callback_data="menu:free")],
+            [
+                InlineKeyboardButton("📖 Another lesson", callback_data="menu:lessons"),
+                InlineKeyboardButton("🧠 My mistakes", callback_data="menu:review"),
+            ],
         ]
     )

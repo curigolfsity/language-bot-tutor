@@ -77,7 +77,8 @@ Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive
 - persisting mistakes, vocab and mastery to Postgres
 - correction eval script
 - added on request (2026-11-25): streaks/daily goal/reminders, side questions ("ask"),
-  spaced-repetition practice of the learner's own mistakes, voice messages in (speech-to-text)
+  spaced-repetition practice of the learner's own mistakes, voice messages in (speech-to-text),
+  grammar lessons with generated exercises (2026-11-25)
 
 **Not yet (do not build unless asked):**
 - listening exercises and spoken replies (text-to-speech)

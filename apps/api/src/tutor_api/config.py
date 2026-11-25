@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     stt_max_seconds: float = Field(default=120.0, gt=0, alias="STT_MAX_SECONDS")
     stt_cpu_threads: int = Field(default=0, ge=0, alias="STT_CPU_THREADS")  # 0 = automatic
 
+    # Grammar lessons: correctness of generated exercises matters, so a notch more effort.
+    lesson_effort: Literal["low", "medium", "high", "xhigh", "max"] = Field(
+        default="medium", alias="LESSON_EFFORT"
+    )
+    lesson_exercises: int = Field(default=5, ge=1, le=10, alias="LESSON_EXERCISES")
+
     tutor_max_tokens: int = Field(default=16000, alias="TUTOR_MAX_TOKENS")
     # "default" = server-side refusal fallbacks routed by the API; "off" disables them.
     tutor_fallbacks: Literal["default", "off"] = Field(default="default", alias="TUTOR_FALLBACKS")

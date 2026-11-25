@@ -17,6 +17,7 @@ from tutor_api.db.models import (
     DailyActivity,
     GrammarMastery,
     LearnerProfile,
+    LessonRun,
     Mistake,
     ReviewItem,
     Session,
@@ -225,6 +226,10 @@ class MasteryRepo:
         )
         return (await self.db.execute(stmt)).scalars().all()
 
+    async def all_for_profile(self, profile_id: uuid.UUID) -> dict[str, GrammarMastery]:
+        stmt = select(GrammarMastery).where(GrammarMastery.profile_id == profile_id)
+        return {m.topic_id: m for m in (await self.db.execute(stmt)).scalars().all()}
+
     async def all_masteries(self, profile_id: uuid.UUID) -> list[float]:
         stmt = select(GrammarMastery.mastery).where(
             GrammarMastery.profile_id == profile_id, GrammarMastery.attempts > 0
@@ -384,3 +389,25 @@ class ReviewRepo:
     async def earliest_due(self, profile_id: uuid.UUID) -> datetime | None:
         stmt = select(func.min(ReviewItem.due_at)).where(ReviewItem.profile_id == profile_id)
         return (await self.db.execute(stmt)).scalar_one_or_none()
+
+
+class LessonRepo:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+
+    async def get(self, run_id: int) -> LessonRun | None:
+        return await self.db.get(LessonRun, run_id)
+
+    async def add(self, run: LessonRun) -> LessonRun:
+        self.db.add(run)
+        await self.db.flush()
+        return run
+
+    async def topics_studied(self, profile_id: uuid.UUID) -> dict[str, int]:
+        """topic_id -> number of lessons taken on it."""
+        stmt = (
+            select(LessonRun.topic_id, func.count())
+            .where(LessonRun.profile_id == profile_id)
+            .group_by(LessonRun.topic_id)
+        )
+        return {tid: int(n) for tid, n in (await self.db.execute(stmt)).all()}

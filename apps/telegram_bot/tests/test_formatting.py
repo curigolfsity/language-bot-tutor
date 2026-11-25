@@ -163,7 +163,7 @@ def test_native_keyboard_puts_detected_first():
 
 def test_menu_labels_are_unique_and_all_shown():
     shown = [b.text for row in kb.main_menu().keyboard for b in row]
-    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 8
+    assert len(shown) == len(set(shown)) == len(kb.MENU_LABELS) == 9
     assert set(shown) == kb.MENU_LABELS
 
 
@@ -359,3 +359,54 @@ def test_inline_answer_block_and_length():
     assert block.startswith("\n\n<blockquote expandable>🙋 <b>¿&lt;qué&gt;?</b>")
     assert block.endswith("It means &#x27;what&#x27;.</blockquote>")
     assert formatting.visible_length("<b>a&amp;b</b>") == 3
+
+
+def _topic(reason=None, mastery=None, id_="es.c1.subjunctive_sequence_of_tenses"):
+    from tutor_contracts import LessonTopicOut
+
+    return LessonTopicOut(id=id_, title="Ser & estar", level="A1", mastery=mastery, reason=reason)
+
+
+def test_lesson_menu_and_buttons():
+    from tutor_contracts import LessonSuggestionsOut
+
+    s = LessonSuggestionsOut(
+        suggested=[_topic("weak", 0.2), _topic("next")], level_topics=[_topic(mastery=0.8)]
+    )
+    menu = formatting.format_lesson_menu(s)
+    assert "🎯 Ser &amp; estar · ▰▱▱▱▱ 20%" in menu and "🆕 Ser &amp; estar · new" in menu
+    rows = kb.lesson_topics_keyboard(s.suggested, browse=True).inline_keyboard
+    assert rows[0][0].callback_data == "ls:es.c1.subjunctive_sequence_of_tenses"
+    assert rows[-1][0].callback_data == "lb"
+    for row in rows + kb.lesson_done_keyboard().inline_keyboard:
+        for b in row:
+            assert len(b.callback_data.encode()) <= 64
+    assert "80%" in formatting.format_level_topics(s.level_topics)
+
+
+def test_exercise_round_trip_and_results():
+    from tutor_contracts import ExerciseOut, LessonAnswerOut
+
+    ex = ExerciseOut(index=1, total=5, kind="fill_blank", instruction="Fill", prompt="Yo ___.")
+    html = formatting.format_exercise(42, ex)
+    plain = html.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "")
+    assert "📝 Lesson #42 · 2/5" in plain
+    assert formatting.parse_exercise(plain) == (42, 1)
+    assert formatting.parse_exercise("🧠 Practice #3") is None
+
+    base = dict(
+        expected="estoy", why="Location uses estar.", feedback=None, score=2, answered=2,
+        total=5, mastery=0.4, progress=progress(),
+    )  # fmt: skip
+    nxt = ExerciseOut(index=2, total=5, kind="fix", instruction="Fix", prompt="Ella es en casa.")
+    ok = formatting.format_lesson_answer(42, LessonAnswerOut(correct=True, next=nxt, **base))
+    assert ok.startswith("✅") and "📝 Lesson #42 · 3/5" in ok
+    # The next question is inside the same message, so a reply to it routes correctly.
+    assert formatting.parse_exercise(ok.replace("<b>", "").replace("</b>", "")) == (42, 2)
+    done = formatting.format_lesson_answer(
+        42,
+        LessonAnswerOut(
+            **{**base, "correct": False, "feedback": "Use estar.", "score": 5}, next=None
+        ),
+    )
+    assert "Answer: <b>estoy</b>" in done and "Lesson done: 5/5" in done and "🌟" in done

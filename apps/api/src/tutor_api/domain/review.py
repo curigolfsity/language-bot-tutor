@@ -42,7 +42,7 @@ def after_answer(box: int, correct: bool, now: datetime) -> Schedule:
     return Schedule(box=new_box, due_at=now + BOX_INTERVALS[new_box])
 
 
-def _norm(text: str) -> str:
+def normalize_answer(text: str) -> str:
     """Lowercase, NFC, punctuation dropped, whitespace collapsed. Accents stay significant."""
     text = unicodedata.normalize("NFC", text).casefold()
     text = re.sub(r"[^\w\s]", " ", text)
@@ -54,7 +54,7 @@ def quick_grade(answer: str, wrong: str, right: str) -> bool | None:
     original error. None means "not sure" (an alternative wording, a typo, a wrong answer):
     the caller asks the model.
     """
-    a, w, r = _norm(answer), _norm(wrong), _norm(right)
+    a, w, r = normalize_answer(answer), normalize_answer(wrong), normalize_answer(right)
     if not a or not r:
         return None
     padded = f" {a} "

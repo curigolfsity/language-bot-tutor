@@ -1,8 +1,11 @@
 from tutor_api.llm.client import (
     AnthropicTurnLLM,
+    ExerciseSpec,
+    LessonContent,
     LLMError,
     LLMGradeOutcome,
     LLMHelpOutcome,
+    LLMLessonOutcome,
     LLMTurnOutcome,
     ReviewGrade,
     TurnLLM,
@@ -10,9 +13,12 @@ from tutor_api.llm.client import (
 
 __all__ = [
     "AnthropicTurnLLM",
+    "ExerciseSpec",
+    "LessonContent",
     "LLMError",
     "LLMGradeOutcome",
     "LLMHelpOutcome",
+    "LLMLessonOutcome",
     "LLMTurnOutcome",
     "ReviewGrade",
     "TurnLLM",
