@@ -11,6 +11,8 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from tutor_api.domain.text import contains_unit
+
 # Wait after a box-0 event (new card or failed answer): long enough to have moved on.
 RETRY_DELAY = timedelta(minutes=10)
 # Interval after a correct answer that lands the card in box N (index = N).
@@ -57,9 +59,8 @@ def quick_grade(answer: str, wrong: str, right: str) -> bool | None:
     a, w, r = normalize_answer(answer), normalize_answer(wrong), normalize_answer(right)
     if not a or not r:
         return None
-    padded = f" {a} "
-    has_right = f" {r} " in padded
-    has_wrong = bool(w) and f" {w} " in padded and f" {w} " not in f" {r} "
+    has_right = contains_unit(a, r)
+    has_wrong = bool(w) and contains_unit(a, w) and not contains_unit(r, w)
     if has_right and not has_wrong:
         return True
     return None

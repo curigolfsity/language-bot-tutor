@@ -339,8 +339,17 @@ The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it o
 - After a turn, the bot adds one line only on the first message of the day (🔥 streak) or when the goal is reached (🎯), so ordinary turns stay clean. 📊 My progress shows the streak, best streak and today's goal bar. ⚙️ Settings changes the goal (`goal:<n>`) and toggles reminders (`rem:on|off`).
 - Reminders: the bot polls `POST /v1/reminders/claim` every `BOT_REMINDER_POLL_SECONDS` (300). The API returns learners whose local time is past `REMINDER_HOUR`, who have not practised today, who practised within `REMINDER_MAX_IDLE_DAYS`, and who have not been reminded today, and marks them reminded. A learner who blocked the bot gets reminders switched off.
 
+**Languages.** The bot offers `BOT_TARGET_LANGS` (default `es,zh,ja`). The chat's current language lives in `chat_data["lang"]` (display state, persisted). It is picked on first `/start` (`tl:<code>:o`) and switched in ⚙️ Settings or `/language` (`tl:<code>:s`); before a pick, the default is `BOT_TARGET_LANG`. Every API call resolves the profile for that language, so level, mistakes, cards, lessons and streak are kept per language. Switching to a new language keeps the explanation language and asks the level, then starts the level's starter role-play. Reminders are claimed per language, tagged with the flag and name, and their buttons (`go:<code>:resume|review`) switch to that language first.
+
+## 10b. Chinese and Japanese
+- **Same CEFR scale** (A1–C2) for every language, so no code knows level names. Labels show the familiar equivalent ("≈ HSK 1", "≈ JLPT N5").
+- **Reading aids** are level policy, not code. `tutor_reply.speed_note` asks for pinyin (zh, A1–A2) or hiragana readings after kanji (ja, A1–A2), and fewer at B1. `prompt_notes` set the conventions: Simplified characters, accept pinyin/romaji/kana input, the particle focus for Japanese, and `new_vocab.translation` starting with the reading.
+- **Text matching** (`domain/text.py`): Chinese and Japanese have no spaces between words, so phrases match as substrings there and on word boundaries elsewhere. Used by vocab mastery, review quick-grading and eval scoring.
+- **Speech-to-text**: `language.yaml` `stt_prompt` steers Whisper (Simplified characters for zh).
+- **Eval**: `evals/corrections/cases/<lang>/`. First run (effort low): zh and ja A1–B1, 11 cases each, recall/precision/tag accuracy 1.00.
+
 ## 11. Extensibility
-- **New language:** add `curriculum/<lang>/` with `language.yaml`, `levels.yaml`, grammar and scenarios, then add eval cases. No code change is needed. The code takes `lang` as a parameter everywhere.
+- **New language:** add `curriculum/<lang>/` with `language.yaml` (incl. `flag`, optional `stt_prompt`), `levels.yaml`, grammar and scenarios, add eval cases in `evals/corrections/cases/<lang>/`, and add the code to `BOT_TARGET_LANGS`. No code change is needed. The code takes `lang` as a parameter everywhere.
 - **New client (web, mobile, voice):** a new `apps/<client>` that uses `packages/contracts` and calls the API.
 - **Multi-user:** already modelled (`users`, `user_identities`). Real auth (per-user tokens) replaces `X-Client-Key` later.
 - **Different model per route** (e.g. a cheaper model for summaries): add config keys. The `llm/` wrapper is the only place that changes.

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from tutor_contracts import Correction, Severity
 
 from tutor_api.domain.prompt import UNKNOWN_TAG
+from tutor_api.domain.text import contains_unit
 
 SEVERITY_WEIGHT: dict[Severity, float] = {"major": 1.0, "minor": 0.5}
 
@@ -82,8 +83,7 @@ def normalize_text(text: str) -> str:
 
 def contains_phrase(text: str, phrase: str) -> bool:
     """Word-boundary phrase match on normalised text."""
-    t, p = normalize_text(text), normalize_text(phrase)
-    return bool(p) and f" {p} " in f" {t} "
+    return contains_unit(normalize_text(text), normalize_text(phrase))
 
 
 def vocab_used_correctly(

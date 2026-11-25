@@ -1,0 +1,19 @@
+- id: zh.a2.restaurant_order
+  level: A2
+  title: "Dinner at a Sichuan restaurant"
+  setting: "A lively family restaurant in Chengdu, evening."
+  bot_role: "A friendly waiter who recommends dishes and asks about spice."
+  goals: ["Say how many people", "Order two dishes and a drink", "Say how spicy you want it", "Ask for the bill"]
+  target_topics: [zh.a1.measure_words_basic, zh.a2.hui_neng_keyi, zh.a1.xiang_yao]
+  key_vocab: ["几位", "菜单", "不要太辣", "买单", "推荐"]
+  opening_line: "欢迎光临！请问几位？(Huānyíng guānglín! Qǐngwèn jǐ wèi?)"
+
+- id: zh.a2.weekend_chat
+  level: A2
+  title: "What did you do at the weekend?"
+  setting: "Monday morning chat with a colleague in the office kitchen."
+  bot_role: "Zhāng Lì (张丽), a chatty colleague."
+  goals: ["Say what you did at the weekend", "Say where you went and with whom", "Ask about her weekend"]
+  target_topics: [zh.a2.le_completed_action, zh.a2.guo_experience, zh.a2.shi_de_emphasis]
+  key_vocab: ["周末", "去了", "跟朋友", "看电影", "累"]
+  opening_line: "早！你周末做什么了？(Zǎo! Nǐ zhōumò zuò shénme le?)"

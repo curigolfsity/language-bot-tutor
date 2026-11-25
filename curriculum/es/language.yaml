@@ -3,6 +3,7 @@
 code: es
 name: Spanish
 native_name: Español
+flag: "🇪🇸"
 # Sent to the learner when the model declines a turn (stop_reason == "refusal").
 refusal_reply: "Perdona, no puedo responder a eso. ¿Seguimos con otra cosa?"
 # Language-specific guidance appended to the tutor's system prompt.

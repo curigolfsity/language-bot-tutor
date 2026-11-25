@@ -39,7 +39,9 @@ class Transcript:
 
 
 class SpeechToText(Protocol):
-    async def transcribe(self, audio: bytes, language: str) -> Transcript: ...
+    async def transcribe(
+        self, audio: bytes, language: str, prompt: str | None = None
+    ) -> Transcript: ...
 
 
 class WhisperSTT:
@@ -90,7 +92,7 @@ class WhisperSTT:
             return np.zeros(0, dtype=np.float32)
         return np.concatenate(chunks).astype(np.float32) / 32768.0
 
-    def _run(self, audio: bytes, language: str) -> Transcript:
+    def _run(self, audio: bytes, language: str, prompt: str | None = None) -> Transcript:
         self.load()
         assert self._model is not None
         try:
@@ -109,6 +111,7 @@ class WhisperSTT:
                 temperature=0.0,
                 condition_on_previous_text=False,
                 vad_filter=True,
+                initial_prompt=prompt or None,
             )
             text = " ".join(s.text.strip() for s in segments).strip()
         except STTError:
@@ -117,6 +120,8 @@ class WhisperSTT:
             raise STTError(f"could not transcribe audio: {e}") from e
         return Transcript(text=text, duration_seconds=duration)
 
-    async def transcribe(self, audio: bytes, language: str) -> Transcript:
+    async def transcribe(
+        self, audio: bytes, language: str, prompt: str | None = None
+    ) -> Transcript:
         async with self._run_lock:
-            return await asyncio.to_thread(self._run, audio, language)
+            return await asyncio.to_thread(self._run, audio, language, prompt)

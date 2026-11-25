@@ -1,0 +1,81 @@
+- id: zh.a2.le_completed_action
+  level: A2
+  title: "了 (le) after a verb: completed actions"
+  prerequisites: [zh.a1.time_place_order]
+  description: "Verb + 了 marks a completed action, especially with a quantity: 我买了一本书. Negative: 没 + verb (no 了)."
+  examples:
+    - { wrong: "昨天我买一本书。", right: "昨天我买了一本书。" }
+    - { wrong: "我没吃了饭。", right: "我没吃饭。" }
+
+- id: zh.a2.le_change_of_state
+  level: A2
+  title: "了 (le) at the end: something has changed"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "Sentence-final 了 signals a new situation: 下雨了 (it's started raining), 我饿了."
+  examples:
+    - { wrong: "我现在饿。我们去吃饭吧。", right: "我饿了。我们去吃饭吧。" }
+
+- id: zh.a2.guo_experience
+  level: A2
+  title: "过 (guo): have you ever…?"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "Verb + 过 for past experience: 我去过中国. Negative: 没 + verb + 过."
+  examples:
+    - { wrong: "我去中国过。", right: "我去过中国。" }
+
+- id: zh.a2.zai_progressive
+  level: A2
+  title: "在 / 正在 + verb: doing something right now"
+  prerequisites: [zh.a1.zai_location]
+  description: "在 or 正在 before the verb shows an ongoing action: 我在吃饭(呢)."
+  examples:
+    - { wrong: "我吃饭在。", right: "我在吃饭。" }
+
+- id: zh.a2.bi_comparison
+  level: A2
+  title: "Comparisons with 比 (bǐ)"
+  prerequisites: [zh.a1.adjective_predicates]
+  description: "A 比 B + adjective (+ amount): 他比我高(一点儿). Never 很 after 比."
+  examples:
+    - { wrong: "他比我很高。", right: "他比我高。" }
+
+- id: zh.a2.hui_neng_keyi
+  level: A2
+  title: "会, 能, 可以: can"
+  prerequisites: [zh.a1.xiang_yao]
+  description: "会 = learned skill (我会游泳); 能 = able/possible (我今天不能来); 可以 = allowed (我可以进来吗)."
+  examples:
+    - { wrong: "我会去洗手间吗？", right: "我可以去洗手间吗？" }
+
+- id: zh.a2.shi_de_emphasis
+  level: A2
+  title: "是…的: when, where, how something happened"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "For details of a known past event: 我是坐飞机来的, 你是什么时候到的?"
+  examples:
+    - { wrong: "我是坐飞机来了。", right: "我是坐飞机来的。" }
+
+- id: zh.a2.duration
+  level: A2
+  title: "How long: duration after the verb"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "Duration goes after the verb: 我学了两年中文 / 我等了你半个小时."
+  examples:
+    - { wrong: "我两年学了中文。", right: "我学了两年中文。" }
+
+- id: zh.a2.de_degree_complement
+  level: A2
+  title: "得 (de): how well something is done"
+  prerequisites: [zh.a1.adjective_predicates]
+  description: "Verb + 得 + description: 他跑得很快. With an object, repeat the verb: 他说中文说得很好."
+  examples:
+    - { wrong: "他说中文很好得。", right: "他说中文说得很好。" }
+    - { wrong: "他跑很快。", right: "他跑得很快。" }
+
+- id: zh.a2.yinwei_suoyi
+  level: A2
+  title: "因为…所以…: because… so…"
+  prerequisites: []
+  description: "因为 introduces the reason, 所以 the result; the reason comes first."
+  examples:
+    - { wrong: "我不去公园，所以下雨。", right: "因为下雨，所以我不去公园。" }

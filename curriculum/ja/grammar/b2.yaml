@@ -1,0 +1,39 @@
+- id: ja.b2.causative
+  level: B2
+  title: "Causative: make / let someone do (〜させる)"
+  prerequisites: [ja.b1.passive]
+  description: "食べる→食べさせる, 行く→行かせる. The person made to act takes に (or を with intransitive verbs)."
+  examples:
+    - { wrong: "母はわたしに野菜を食べました。", right: "母はわたしに野菜を食べさせました。" }
+
+- id: ja.b2.causative_passive
+  level: B2
+  title: "Causative passive: being made to (〜させられる)"
+  prerequisites: [ja.b2.causative]
+  description: "Being forced to do something: 部長に残業させられました."
+  examples:
+    - { wrong: "部長に残業させました。(I was made to work late)", right: "部長に残業させられました。" }
+
+- id: ja.b2.hazu_beki_wake
+  level: B2
+  title: "はず, べき, わけ"
+  prerequisites: [ja.a2.plain_form]
+  description: "はず = should be (expectation); べき = ought to (duty); わけ = that's why / it means."
+  examples:
+    - { wrong: "彼はもう着いたべきです。(expectation)", right: "彼はもう着いたはずです。" }
+
+- id: ja.b2.keigo_business
+  level: B2
+  title: "Business keigo: humble vs honorific"
+  prerequisites: [ja.b1.keigo_basic]
+  description: "Use humble forms for your own actions (拝見する, 伺う) and honorific ones for others' (ご覧になる, いらっしゃる)."
+  examples:
+    - { wrong: "資料をご覧になりました。(about yourself)", right: "資料を拝見しました。" }
+
+- id: ja.b2.compound_particles
+  level: B2
+  title: "について, に対して, によって"
+  prerequisites: []
+  description: "について = about; に対して = towards / against; によって = by / depending on."
+  examples:
+    - { wrong: "この問題に対して話しましょう。", right: "この問題について話しましょう。" }

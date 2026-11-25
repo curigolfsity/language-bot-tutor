@@ -76,9 +76,14 @@ def test_aggregate():
 
 
 def test_cases_reference_real_topics():
-    """Every expected rule_tag in the eval set must exist in the curriculum."""
-    es = load_curriculum(REPO_ROOT / "curriculum" / "es")
-    cases_dir = Path(__file__).resolve().parents[1] / "cases"
+    """Every expected rule_tag in the eval set must exist in that language's curriculum."""
+    cases_root = Path(__file__).resolve().parents[1] / "cases"
+    for lang_dir in sorted(p for p in cases_root.iterdir() if p.is_dir()):
+        _check_cases(lang_dir)
+
+
+def _check_cases(cases_dir: Path) -> None:
+    es = load_curriculum(REPO_ROOT / "curriculum" / cases_dir.name)
     count = 0
     for path in cases_dir.glob("*.yaml"):
         for case in yaml.safe_load(path.read_text(encoding="utf-8")):
@@ -90,4 +95,4 @@ def test_cases_reference_real_topics():
                 assert find_span(case["text"], exp["wrong"]), f"{case['id']}: {exp['wrong']}"
             for phrase in case.get("must_not_flag") or []:
                 assert find_span(case["text"], phrase), f"{case['id']}: {phrase}"
-    assert count >= 30
+    assert count >= (30 if cases_dir.name == "es" else 8), cases_dir.name

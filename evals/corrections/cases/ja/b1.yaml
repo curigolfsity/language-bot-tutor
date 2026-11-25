@@ -1,0 +1,20 @@
+- id: ja-b1-001
+  level: B1
+  text: "来年日本に行きようと思います。"
+  expected:
+    - { wrong: "行きよう", right: "行こう", rule_tag: ja.b1.volitional }
+  must_not_flag: ["来年"]
+
+- id: ja-b1-002
+  level: B1
+  text: "きのう電車で財布を盗みました。とても困りました。"
+  expected:
+    - { wrong: "盗みました", right: "盗まれました", rule_tag: ja.b1.passive }
+  must_not_flag: ["困りました"]
+
+- id: ja-b1-003
+  level: B1
+  text: "わたしは買った本はとてもおもしろいです。"
+  expected:
+    - { wrong: "わたしは買った", right: "わたしが買った", rule_tag: ja.b1.relative_clauses }
+  must_not_flag: ["おもしろいです"]

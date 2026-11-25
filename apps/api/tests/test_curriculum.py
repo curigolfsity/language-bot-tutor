@@ -134,3 +134,17 @@ def test_starter_scenario_wrong_level(tmp_path):
                 levels=levels,
             )
         )
+
+
+def test_all_shipped_languages_load():
+    from tutor_api.config import REPO_ROOT
+    from tutor_api.curriculum import load_all_curricula
+
+    curricula = load_all_curricula(REPO_ROOT / "curriculum")
+    assert {"es", "zh", "ja"} <= set(curricula)
+    for code, cur in curricula.items():
+        assert cur.lang.flag, code
+        assert cur.ordered_levels[0] == cur.lowest_level
+        for level in cur.levels.values():  # every level has a starter role-play at that level
+            assert level.starter_scenario in cur.scenarios, (code, level.code)
+        assert all(t.id.startswith(f"{code}.") for t in cur.topics.values())

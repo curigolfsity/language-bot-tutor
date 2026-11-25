@@ -1,0 +1,39 @@
+- id: zh.b2.complex_conjunctions
+  level: B2
+  title: "Paired connectors (虽然…但是, 即使…也, 不但…而且)"
+  prerequisites: [zh.a2.yinwei_suoyi]
+  description: "Many connectors come in pairs; the second half (但是, 也, 而且) is needed in the main clause."
+  examples:
+    - { wrong: "即使下雨，我们去。", right: "即使下雨，我们也去。" }
+
+- id: zh.b2.zhiyao_zhiyou
+  level: B2
+  title: "只要…就 vs 只有…才"
+  prerequisites: [zh.b2.complex_conjunctions]
+  description: "只要…就 = as long as (enough); 只有…才 = only if (necessary). Don't mix the pairs."
+  examples:
+    - { wrong: "只有努力，就能成功。", right: "只要努力，就能成功。" }
+
+- id: zh.b2.formal_connectors
+  level: B2
+  title: "Formal connectors (由于, 因此, 从而)"
+  prerequisites: [zh.b2.complex_conjunctions]
+  description: "Written style uses 由于…因此 rather than 因为…所以; don't pair 由于 with 所以 in formal writing."
+  examples:
+    - { wrong: "由于天气不好，所以比赛取消了。", right: "由于天气不好，比赛因此取消了。" }
+
+- id: zh.b2.chengyu_usage
+  level: B2
+  title: "Using chengyu (four-character idioms) correctly"
+  prerequisites: []
+  description: "Each 成语 has a fixed meaning and role in the sentence; it can't always take 很 or an object."
+  examples:
+    - { wrong: "他很一帆风顺。", right: "他的工作一帆风顺。" }
+
+- id: zh.b2.bei_alternatives
+  level: B2
+  title: "Passive without 被 (叫, 让, 受到, 遭到)"
+  prerequisites: [zh.b1.bei_passive]
+  description: "Speech uses 叫/让; formal texts use 受到/遭到 + noun: 受到欢迎, 遭到批评."
+  examples:
+    - { wrong: "这个计划被大家的欢迎。", right: "这个计划受到了大家的欢迎。" }

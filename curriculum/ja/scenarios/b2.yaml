@@ -1,0 +1,19 @@
+- id: ja.b2.job_interview
+  level: B2
+  title: "Job interview"
+  setting: "An interview for an engineering role at a company in Tokyo."
+  bot_role: "Mr. Takahashi (高橋部長), a formal but kind department manager."
+  goals: ["Introduce yourself formally", "Explain why you want the job", "Describe a past challenge", "Ask a polite question"]
+  target_topics: [ja.b2.keigo_business, ja.b1.keigo_basic, ja.b2.compound_particles]
+  key_vocab: ["志望動機", "経験", "担当しておりました", "御社", "よろしくお願いいたします"]
+  opening_line: "本日はお越しいただきありがとうございます。では、まず自己紹介をお願いします。"
+
+- id: ja.b2.neighbour_complaint
+  level: B2
+  title: "Talking to a noisy neighbour"
+  setting: "Your apartment building in Nagoya; the neighbour is often loud at night."
+  bot_role: "The neighbour, polite but a little defensive."
+  goals: ["Raise the problem politely", "Explain the impact on you", "Agree on a solution"]
+  target_topics: [ja.b2.hazu_beki_wake, ja.b2.causative_passive, ja.b1.conditionals]
+  key_vocab: ["夜遅く", "音", "気をつけます", "お互いさま", "申し訳ない"]
+  opening_line: "あ、こんばんは。何かありましたか？"

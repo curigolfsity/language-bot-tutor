@@ -1,0 +1,96 @@
+- id: ja.a1.desu_copula
+  level: A1
+  title: "です (desu): A is B"
+  prerequisites: []
+  description: "Noun + です: 学生です. Negative: じゃありません / ではありません. Past: でした."
+  examples:
+    - { wrong: "わたしは学生だです。", right: "わたしは学生です。" }
+
+- id: ja.a1.wa_topic
+  level: A1
+  title: "は (wa): the topic marker"
+  prerequisites: [ja.a1.desu_copula]
+  description: "は marks what the sentence is about: わたしは田中です. Written は, pronounced 'wa'."
+  examples:
+    - { wrong: "わたしを田中です。", right: "わたしは田中です。" }
+
+- id: ja.a1.no_possessive
+  level: A1
+  title: "の (no): possession and linking nouns"
+  prerequisites: []
+  description: "Noun + の + noun: わたしの本, 日本語の先生."
+  examples:
+    - { wrong: "これはわたし本です。", right: "これはわたしの本です。" }
+
+- id: ja.a1.ka_questions
+  level: A1
+  title: "Questions with か and question words"
+  prerequisites: [ja.a1.wa_topic]
+  description: "Add か to make a question; question words (何, どこ, だれ, いつ) stay where the answer goes."
+  examples:
+    - { wrong: "何はこれですか。", right: "これは何ですか。" }
+
+- id: ja.a1.kosoado
+  level: A1
+  title: "これ / この, それ / その, あれ / あの"
+  prerequisites: [ja.a1.desu_copula]
+  description: "これ/それ/あれ stand alone; この/その/あの must go before a noun: この本."
+  examples:
+    - { wrong: "これ本は高いです。", right: "この本は高いです。" }
+
+- id: ja.a1.masu_verbs
+  level: A1
+  title: "ます verbs: present, negative, past"
+  prerequisites: []
+  description: "Polite verbs: 食べます / 食べません / 食べました / 食べませんでした."
+  examples:
+    - { wrong: "きのう映画を見ます。", right: "きのう映画を見ました。" }
+
+- id: ja.a1.wo_object
+  level: A1
+  title: "を (o): the object marker"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "を marks what the action is done to: パンを食べます. Written を, pronounced 'o'."
+  examples:
+    - { wrong: "パンが食べます。", right: "パンを食べます。" }
+
+- id: ja.a1.ni_de_place
+  level: A1
+  title: "に vs で for places"
+  prerequisites: [ja.a1.wo_object]
+  description: "で = where an action happens (図書館で勉強します); に = destination or where something exists (学校に行きます)."
+  examples:
+    - { wrong: "図書館に勉強します。", right: "図書館で勉強します。" }
+
+- id: ja.a1.time_ni
+  level: A1
+  title: "に with times"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "Clock times, days and dates take に (7時に, 月曜日に); relative words like きのう, あした, 毎日 don't."
+  examples:
+    - { wrong: "あしたに行きます。", right: "あした行きます。" }
+
+- id: ja.a1.aru_iru
+  level: A1
+  title: "ある vs いる: there is"
+  prerequisites: [ja.a1.ni_de_place]
+  description: "いる for people and animals, ある for things and plants: 猫がいます, 本があります."
+  examples:
+    - { wrong: "テーブルの下に猫があります。", right: "テーブルの下に猫がいます。" }
+
+- id: ja.a1.i_na_adjectives
+  level: A1
+  title: "い-adjectives and な-adjectives"
+  prerequisites: [ja.a1.desu_copula]
+  description: "い-adjectives go straight before nouns (高い本); な-adjectives need な (きれいな部屋)."
+  examples:
+    - { wrong: "きれいい部屋です。", right: "きれいな部屋です。" }
+    - { wrong: "高いな本", right: "高い本" }
+
+- id: ja.a1.counters_basic
+  level: A1
+  title: "Counting things (つ, 人, 本, 枚)"
+  prerequisites: [ja.a1.wo_object]
+  description: "Counters depend on the thing: りんごを三つ, 学生が二人, ペンが一本, 紙が一枚."
+  examples:
+    - { wrong: "りんごを三人買いました。", right: "りんごを三つ買いました。" }

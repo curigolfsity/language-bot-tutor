@@ -1,0 +1,28 @@
+- id: zh-a2-001
+  level: A2
+  text: "我去中国过两次，很喜欢那里。"
+  expected:
+    - { wrong: "去中国过", right: "去过中国", rule_tag: zh.a2.guo_experience }
+  must_not_flag: ["很喜欢那里"]
+
+- id: zh-a2-002
+  level: A2
+  text: "他比我很高，也比我大三岁。"
+  expected:
+    - { wrong: "比我很高", right: "比我高", rule_tag: zh.a2.bi_comparison }
+  must_not_flag: ["比我大三岁"]
+
+- id: zh-a2-003
+  level: A2
+  text: "他说中文很好得。我两年学了中文。"
+  expected:
+    - { wrong: "说中文很好得", right: "说中文说得很好", rule_tag: zh.a2.de_degree_complement }
+    - { wrong: "两年学了中文", right: "学了两年中文", rule_tag: zh.a2.duration }
+  must_not_flag: []
+
+# No errors: nothing should be flagged.
+- id: zh-a2-004
+  level: A2
+  text: "我昨天跟朋友去看了一个电影，很有意思。"
+  expected: []
+  must_not_flag: ["看了一个电影", "很有意思"]

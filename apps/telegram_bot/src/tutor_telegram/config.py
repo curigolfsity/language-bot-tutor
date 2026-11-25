@@ -19,7 +19,10 @@ class BotSettings(BaseSettings):
     # single shared .env works in development.
     api_key: str | None = Field(default=None, alias="TUTOR_API_KEY")
     client_api_keys: str | None = Field(default=None, alias="CLIENT_API_KEYS")
+    # Default language for chats that haven't picked one (and for single-language bots).
     target_lang: str = Field(default="es", alias="BOT_TARGET_LANG")
+    # Languages offered to learners (comma-separated codes; each needs curriculum/<code>/).
+    target_langs: str = Field(default="es,zh,ja", alias="BOT_TARGET_LANGS")
     default_native_lang: str = Field(default="en", alias="BOT_DEFAULT_NATIVE_LANG")
     # Buttons offered for "explain things in..." (code:label, comma-separated). Presentation only;
     # any ISO 639-1 code also works via /native <code>.
@@ -37,6 +40,10 @@ class BotSettings(BaseSettings):
         default=REPO_ROOT / ".run" / "bot_state.pickle", alias="BOT_STATE_FILE"
     )
     reminder_poll_seconds: float = Field(default=300.0, ge=30, alias="BOT_REMINDER_POLL_SECONDS")
+
+    def languages(self) -> list[str]:
+        codes = [c.strip() for c in self.target_langs.split(",") if c.strip()]
+        return codes or [self.target_lang]
 
     def native_choices(self) -> list[tuple[str, str]]:
         out = []

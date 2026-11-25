@@ -36,7 +36,7 @@ apps/api/src/tutor_api/   core FastAPI backend
 apps/api/migrations/      Alembic
 apps/telegram_bot/        thin Telegram client (python-telegram-bot + httpx)
 packages/contracts/       shared Pydantic request/response DTOs (the API contract)
-evals/corrections/        correction-accuracy eval (cases/*.yaml + run_eval.py)
+evals/corrections/        correction-accuracy eval (cases/<lang>/*.yaml + run_eval.py --lang)
 scripts/                  local background runner (supervisor.py) + its CLI (tutor.py, via tutor.cmd)
 ```
 
@@ -78,12 +78,11 @@ Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive
 - correction eval script
 - added on request (2026-11-25): streaks/daily goal/reminders, side questions ("ask"),
   spaced-repetition practice of the learner's own mistakes, voice messages in (speech-to-text),
-  grammar lessons with generated exercises (2026-11-25)
+  grammar lessons with generated exercises, Chinese (zh) and Japanese (ja) curricula (2026-11-25)
 
 **Not yet (do not build unless asked):**
 - listening exercises and spoken replies (text-to-speech)
 - web or mobile clients
 - spaced-repetition of vocabulary
 - placement test
-- multi-language content
 - billing and real auth

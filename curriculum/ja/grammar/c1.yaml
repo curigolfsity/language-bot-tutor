@@ -1,0 +1,23 @@
+- id: ja.c1.written_style
+  level: C1
+  title: "Written style (である体) and keeping style consistent"
+  prerequisites: [ja.a2.plain_form]
+  description: "Reports and essays use だ/である, not です/ます; don't mix the two styles in one text."
+  examples:
+    - { wrong: "本研究は新しい方法を提案します。しかし課題も残っている。", right: "本研究は新しい方法を提案する。しかし課題も残っている。" }
+
+- id: ja.c1.concessive_connectives
+  level: C1
+  title: "Formal connectives (にもかかわらず, ものの, したがって)"
+  prerequisites: [ja.b1.conditionals]
+  description: "にもかかわらず / ものの = despite (an unexpected result follows); したがって = therefore."
+  examples:
+    - { wrong: "努力したにもかかわらず、合格した。", right: "努力したにもかかわらず、不合格だった。" }
+
+- id: ja.c1.obligation_nuance
+  level: C1
+  title: "Nuanced obligation (ざるを得ない, わけにはいかない)"
+  prerequisites: [ja.b2.hazu_beki_wake]
+  description: "ない-stem + ざるを得ない = have no choice but to (する→せざるを得ない); 〜わけにはいかない = can't (for social reasons)."
+  examples:
+    - { wrong: "行かなくざるを得ない。", right: "行かざるを得ない。" }

@@ -252,3 +252,26 @@ def test_help_explain_without_corrections(es):
     system, user = build_help_prompt(p, "explain", None, [], "Hola", [])
     assert "no corrections" in user
     assert "glosses" in system  # B1 = mixed explanation language
+
+
+# ---------------------------------------------------------------- languages without spaces
+
+from tutor_api.domain.mastery import contains_phrase  # noqa: E402
+from tutor_api.domain.review import quick_grade  # noqa: E402
+from tutor_api.domain.text import contains_unit, is_unspaced  # noqa: E402
+
+
+def test_contains_unit_spaced_and_unspaced():
+    assert contains_unit("mi amigo", "mi") and not contains_unit("amigos", "mi")
+    assert contains_unit("我喜欢喝咖啡", "咖啡") and contains_unit(
+        "わたしはがくせいです", "がくせい"
+    )
+    assert not contains_unit("我喜欢喝茶", "咖啡") and not contains_unit("x", "")
+    assert is_unspaced("学生") and is_unspaced("カタカナ") and not is_unspaced("hola")
+
+
+def test_vocab_and_quick_grade_work_for_cjk():
+    assert contains_phrase("我想喝一杯咖啡。", "咖啡")
+    assert quick_grade("我有两本书", "两书", "两本书") is True
+    assert quick_grade("わたしは学生です", "わたし学生", "わたしは学生") is True
+    assert quick_grade("我有两书", "两书", "两本书") is None

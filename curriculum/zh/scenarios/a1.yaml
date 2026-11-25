@@ -1,0 +1,19 @@
+- id: zh.a1.meet_new_friend
+  level: A1
+  title: "Meeting someone new"
+  setting: "A language exchange evening in a café in Beijing."
+  bot_role: "Lín Xiǎo (林晓), a friendly university student from Beijing who speaks slowly and simply."
+  goals: ["Say your name and where you are from", "Say what you do", "Ask one question back"]
+  target_topics: [zh.a1.shi_sentences, zh.a1.question_words, zh.a1.ma_questions]
+  key_vocab: ["我叫", "我是…人", "学生", "工作", "你呢？"]
+  opening_line: "你好！我叫林晓。你叫什么名字？(Nǐ hǎo! Wǒ jiào Lín Xiǎo. Nǐ jiào shénme míngzi?)"
+
+- id: zh.a1.tea_shop_order
+  level: A1
+  title: "Ordering at a milk-tea shop"
+  setting: "A busy bubble-tea counter in Shanghai, afternoon."
+  bot_role: "Xiǎo Wáng (小王), a cheerful shop assistant."
+  goals: ["Order a drink with size and sugar level", "Ask the price", "Pay"]
+  target_topics: [zh.a1.measure_words_basic, zh.a1.xiang_yao, zh.a1.question_words]
+  key_vocab: ["一杯", "奶茶", "大杯", "少糖", "多少钱？"]
+  opening_line: "你好！你想喝什么？(Nǐ hǎo! Nǐ xiǎng hē shénme?)"

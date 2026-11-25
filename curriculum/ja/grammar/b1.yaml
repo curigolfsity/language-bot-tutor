@@ -1,0 +1,63 @@
+- id: ja.b1.potential_form
+  level: B1
+  title: "Potential form: can do"
+  prerequisites: [ja.a2.plain_form]
+  description: "話す→話せる, 食べる→食べられる, する→できる. The object usually takes が: 日本語が話せます."
+  examples:
+    - { wrong: "日本語を話せれます。", right: "日本語が話せます。" }
+
+- id: ja.b1.passive
+  level: B1
+  title: "Passive (〜れる / 〜られる)"
+  prerequisites: [ja.a2.plain_form]
+  description: "Things done to you, often unwelcome: 財布を盗まれました, 先生にほめられました."
+  examples:
+    - { wrong: "電車で財布を盗みました。(it was stolen from me)", right: "電車で財布を盗まれました。" }
+
+- id: ja.b1.conditionals
+  level: B1
+  title: "If and when: と, ば, たら, なら"
+  prerequisites: [ja.a2.plain_form]
+  description: "たら = after/if (most flexible); と = always follows; ば = general condition; なら = given that."
+  examples:
+    - { wrong: "駅に着くなら、電話してください。", right: "駅に着いたら、電話してください。" }
+
+- id: ja.b1.volitional
+  level: B1
+  title: "Volitional: let's / I think I'll (〜よう, 〜おう)"
+  prerequisites: [ja.a2.plain_form]
+  description: "行く→行こう, 食べる→食べよう. 〜ようと思います = I'm thinking of doing."
+  examples:
+    - { wrong: "来年日本に行きようと思います。", right: "来年日本に行こうと思います。" }
+
+- id: ja.b1.keigo_basic
+  level: B1
+  title: "Basic honorific and humble verbs"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "Raise others: いらっしゃる, おっしゃる, 召し上がる. Lower yourself: おる, 申す, いただく."
+  examples:
+    - { wrong: "先生はどこにおりますか。", right: "先生はどこにいらっしゃいますか。" }
+
+- id: ja.b1.sou_rashii_you
+  level: B1
+  title: "Looks like / I hear (そう, らしい, ようだ)"
+  prerequisites: [ja.a2.plain_form]
+  description: "Stem + そう = looks like (降りそう); plain + そう = I hear; らしい / ようだ = it seems."
+  examples:
+    - { wrong: "雨が降るそうに見えます。", right: "雨が降りそうです。" }
+
+- id: ja.b1.te_oku_te_shimau
+  level: B1
+  title: "〜ておく (in advance) and 〜てしまう (completely / regret)"
+  prerequisites: [ja.a2.te_form]
+  description: "〜ておく = do in preparation; 〜てしまう = finish completely or do by mistake."
+  examples:
+    - { wrong: "パーティーの前に飲み物を買っています。(to be ready)", right: "パーティーの前に飲み物を買っておきます。" }
+
+- id: ja.b1.relative_clauses
+  level: B1
+  title: "Describing nouns with clauses"
+  prerequisites: [ja.a2.plain_form]
+  description: "A plain-form clause goes before the noun; the clause's subject takes が (or の): わたしが買った本."
+  examples:
+    - { wrong: "わたしは買った本はおもしろいです。", right: "わたしが買った本はおもしろいです。" }

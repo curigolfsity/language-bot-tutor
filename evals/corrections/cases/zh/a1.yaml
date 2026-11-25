@@ -1,0 +1,28 @@
+- id: zh-a1-001
+  level: A1
+  text: "我是很忙，我没有时间。"
+  expected:
+    - { wrong: "是很忙", right: "很忙", rule_tag: zh.a1.adjective_predicates }
+  must_not_flag: ["没有时间"]
+
+- id: zh-a1-002
+  level: A1
+  text: "我有两书，你有几本书？"
+  expected:
+    - { wrong: "两书", right: "两本书", rule_tag: zh.a1.measure_words_basic }
+  must_not_flag: ["几本书"]
+
+- id: zh-a1-003
+  level: A1
+  text: "我今天吃饭在家。我去北京明天。"
+  expected:
+    - { wrong: "吃饭在家", right: "在家吃饭", rule_tag: zh.a1.time_place_order }
+    - { wrong: "去北京明天", right: "明天去北京", rule_tag: zh.a1.time_place_order }
+  must_not_flag: []
+
+- id: zh-a1-004
+  level: A1
+  text: "我不有哥哥，可是我有一个姐姐。"
+  expected:
+    - { wrong: "不有", right: "没有", rule_tag: zh.a1.bu_vs_mei, also_tags: [zh.a1.you_have_there_is] }
+  must_not_flag: ["一个姐姐"]

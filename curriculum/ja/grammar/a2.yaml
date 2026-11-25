@@ -1,0 +1,79 @@
+- id: ja.a2.te_form
+  level: A2
+  title: "The て-form: requests and linking actions"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "書く→書いて, 飲む→飲んで, 食べる→食べて. Use it for requests (てください) and 'and then'."
+  examples:
+    - { wrong: "ここに名前を書きてください。", right: "ここに名前を書いてください。" }
+
+- id: ja.a2.te_iru
+  level: A2
+  title: "〜ている: doing now / a lasting state"
+  prerequisites: [ja.a2.te_form]
+  description: "て-form + いる for ongoing actions (今テレビを見ています) and states (結婚しています)."
+  examples:
+    - { wrong: "今、テレビを見ます。", right: "今、テレビを見ています。" }
+
+- id: ja.a2.plain_form
+  level: A2
+  title: "Plain (dictionary) form"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "Casual forms: 食べる / 食べない / 食べた / 食べなかった. Needed before many patterns."
+  examples:
+    - { wrong: "あした肉を食べるない。", right: "あした肉を食べない。" }
+
+- id: ja.a2.tai_want
+  level: A2
+  title: "〜たい: want to"
+  prerequisites: [ja.a1.masu_verbs]
+  description: "ます-stem + たい: 飲みたいです. It conjugates like an い-adjective (飲みたくない)."
+  examples:
+    - { wrong: "コーヒーを飲むたいです。", right: "コーヒーを飲みたいです。" }
+
+- id: ja.a2.ga_with_likes
+  level: A2
+  title: "が with すき, じょうず, わかる, ほしい"
+  prerequisites: [ja.a1.wo_object]
+  description: "The thing you like, are good at, understand or want takes が, not を: すしがすきです."
+  examples:
+    - { wrong: "わたしはすしをすきです。", right: "わたしはすしがすきです。" }
+
+- id: ja.a2.kara_reason
+  level: A2
+  title: "から and ので: because"
+  prerequisites: [ja.a2.plain_form]
+  description: "Reason + から/ので + result. Nouns and な-adjectives need だ before から and な before ので."
+  examples:
+    - { wrong: "雨から、うちにいます。", right: "雨だから、うちにいます。" }
+
+- id: ja.a2.yori_comparison
+  level: A2
+  title: "Comparisons with より and いちばん"
+  prerequisites: [ja.a1.i_na_adjectives]
+  description: "AはBより + adjective; AよりBのほうが + adjective; ～でいちばん."
+  examples:
+    - { wrong: "東京は大阪よりのほうが大きいです。", right: "東京は大阪より大きいです。" }
+
+- id: ja.a2.ta_koto_ga_aru
+  level: A2
+  title: "〜たことがある: have you ever…?"
+  prerequisites: [ja.a2.plain_form]
+  description: "Plain past + ことがあります for experience: 日本に行ったことがあります."
+  examples:
+    - { wrong: "すしを食べることがあります。(= I have tried it)", right: "すしを食べたことがあります。" }
+
+- id: ja.a2.temo_ii
+  level: A2
+  title: "〜てもいい / 〜てはいけない: may / must not"
+  prerequisites: [ja.a2.te_form]
+  description: "Permission: 写真をとってもいいですか. Prohibition: ここで食べてはいけません."
+  examples:
+    - { wrong: "ここで写真をとってもだめですか。", right: "ここで写真をとってもいいですか。" }
+
+- id: ja.a2.giving_receiving
+  level: A2
+  title: "Giving and receiving (あげる, もらう, くれる)"
+  prerequisites: [ja.a1.wo_object]
+  description: "あげる = give (to others); くれる = someone gives to me/us; もらう = receive."
+  examples:
+    - { wrong: "友だちはわたしにプレゼントをあげました。", right: "友だちはわたしにプレゼントをくれました。" }

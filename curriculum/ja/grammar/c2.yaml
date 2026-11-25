@@ -1,0 +1,15 @@
+- id: ja.c2.misused_set_phrases
+  level: C2
+  title: "Commonly misused set phrases (役不足, 気が置けない)"
+  prerequisites: [ja.c1.written_style]
+  description: "Some phrases mean the opposite of what many think: 役不足 = the role is too small for someone; 気が置けない = relaxed, no need for formality."
+  examples:
+    - { wrong: "私では役不足ですが、頑張ります。", right: "私では力不足ですが、頑張ります。" }
+
+- id: ja.c2.double_keigo
+  level: C2
+  title: "Avoiding double honorifics (二重敬語)"
+  prerequisites: [ja.b2.keigo_business]
+  description: "Don't stack honorifics: おっしゃる is already honorific, so no 〜られる on top."
+  examples:
+    - { wrong: "社長がそうおっしゃられました。", right: "社長がそうおっしゃいました。" }

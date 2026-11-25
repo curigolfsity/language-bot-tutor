@@ -1,0 +1,28 @@
+- id: ja-a1-001
+  level: A1
+  text: "わたしは学生だです。東京に住んでいます。"
+  expected:
+    - { wrong: "学生だです", right: "学生です", rule_tag: ja.a1.desu_copula }
+  must_not_flag: ["住んでいます"]
+
+- id: ja-a1-002
+  level: A1
+  text: "きのう、図書館に勉強しました。"
+  expected:
+    - { wrong: "図書館に勉強", right: "図書館で勉強", rule_tag: ja.a1.ni_de_place }
+  must_not_flag: ["きのう"]
+
+- id: ja-a1-003
+  level: A1
+  text: "これ本はわたし本です。"
+  expected:
+    - { wrong: "これ本", right: "この本", rule_tag: ja.a1.kosoado }
+    - { wrong: "わたし本", right: "わたしの本", rule_tag: ja.a1.no_possessive }
+  must_not_flag: []
+
+- id: ja-a1-004
+  level: A1
+  text: "テーブルの下に猫があります。かわいいです。"
+  expected:
+    - { wrong: "猫があります", right: "猫がいます", rule_tag: ja.a1.aru_iru }
+  must_not_flag: ["かわいいです"]

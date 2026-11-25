@@ -1,0 +1,27 @@
+- id: ja-a2-001
+  level: A2
+  text: "わたしはすしをすきです。毎週食べます。"
+  expected:
+    - { wrong: "すしをすき", right: "すしがすき", rule_tag: ja.a2.ga_with_likes }
+  must_not_flag: ["毎週食べます"]
+
+- id: ja-a2-002
+  level: A2
+  text: "すみません、ここに名前を書きてください。"
+  expected:
+    - { wrong: "書きて", right: "書いて", rule_tag: ja.a2.te_form }
+  must_not_flag: ["すみません"]
+
+- id: ja-a2-003
+  level: A2
+  text: "友だちはわたしにプレゼントをあげました。とてもうれしかったです。"
+  expected:
+    - { wrong: "あげました", right: "くれました", rule_tag: ja.a2.giving_receiving }
+  must_not_flag: ["うれしかったです"]
+
+# No errors: nothing should be flagged.
+- id: ja-a2-004
+  level: A2
+  text: "週末は京都に行って、お寺を見ました。"
+  expected: []
+  must_not_flag: ["京都に行って", "お寺を見ました"]

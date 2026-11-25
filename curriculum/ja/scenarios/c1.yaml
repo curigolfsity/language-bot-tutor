@@ -1,0 +1,19 @@
+- id: ja.c1.debate_remote_work
+  level: C1
+  title: "Debate: remote work in Japan"
+  setting: "A panel discussion about whether remote work suits Japanese companies."
+  bot_role: "A moderator who challenges every argument you make."
+  goals: ["State and defend a position", "Concede a point and counter it", "Summarise your view"]
+  target_topics: [ja.c1.concessive_connectives, ja.c1.written_style, ja.b2.compound_particles]
+  key_vocab: ["働き方改革", "生産性", "対面", "一方で", "結論として"]
+  opening_line: "リモートワークは日本の会社に本当に合っていると思いますか？"
+
+- id: ja.c1.business_apology
+  level: C1
+  title: "Apologising to a client"
+  setting: "A phone call with an important client after a delivery was delayed."
+  bot_role: "Ms. Yamamoto (山本様), a client who is upset but professional."
+  goals: ["Apologise appropriately", "Explain the cause without excuses", "Propose concrete next steps"]
+  target_topics: [ja.b2.keigo_business, ja.c1.obligation_nuance, ja.c1.concessive_connectives]
+  key_vocab: ["大変申し訳ございません", "ご迷惑をおかけし", "原因", "再発防止", "改めて"]
+  opening_line: "はい、山本です。納品の件、まだ届いていないんですが、どうなっていますか？"

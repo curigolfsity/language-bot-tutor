@@ -1,0 +1,71 @@
+# Level policy for Japanese. Same CEFR scale as every language (so code never needs
+# language-specific level names); labels show the familiar JLPT equivalent.
+# See curriculum/es/levels.yaml for what each field means.
+#
+# Reading aid: beginners can't read most kanji yet, so the tutor adds hiragana readings.
+
+A1:
+  rank: 1
+  label: "Total beginner (≈ JLPT N5)"
+  can_do: "I know a few words, or none at all"
+  explanation_language: native
+  max_corrections_per_turn: 2
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very short polite です/ます sentences, mostly hiragana. After every kanji word, add its hiragana reading in parentheses, e.g. 学生（がくせい）" }
+  free_opening: "こんにちは！お元気（げんき）ですか？"
+  starter_scenario: ja.a1.meet_new_friend
+
+A2:
+  rank: 2
+  label: "Beginner (≈ JLPT N4)"
+  can_do: "I can introduce myself and order food"
+  explanation_language: native
+  max_corrections_per_turn: 3
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple polite sentences. After every kanji word, add its hiragana reading in parentheses" }
+  free_opening: "こんにちは！今日（きょう）はどんな一日（いちにち）でしたか？"
+  starter_scenario: ja.a2.restaurant_order
+
+B1:
+  rank: 3
+  label: "Intermediate (≈ JLPT N3)"
+  can_do: "I can chat about my day and my plans"
+  explanation_language: mixed
+  max_corrections_per_turn: 4
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural polite Japanese. Add hiragana readings in parentheses only after less common kanji" }
+  free_opening: "こんにちは！最近、何か面白いことはありましたか？"
+  starter_scenario: ja.b1.doctor_visit
+
+B2:
+  rank: 4
+  label: "Upper intermediate (≈ JLPT N2)"
+  can_do: "I can discuss news and give my opinion"
+  explanation_language: target
+  max_corrections_per_turn: 5
+  correct_topics: all
+  tutor_reply: { max_sentences: 5, vocab_ceiling: B2, speed_note: "natural speed, idiomatic, no readings" }
+  free_opening: "こんにちは！最近気になったニュースはありますか？"
+  starter_scenario: ja.b2.job_interview
+
+C1:
+  rank: 5
+  label: "Advanced (≈ JLPT N1)"
+  can_do: "I can handle complex topics and debates"
+  explanation_language: target
+  max_corrections_per_turn: 8
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 6, vocab_ceiling: C1, speed_note: "native register, nuanced, polite or casual as fits" }
+  free_opening: "今日は少し意見が分かれそうなテーマについて話しませんか？"
+  starter_scenario: ja.c1.debate_remote_work
+
+C2:
+  rank: 6
+  label: "Near-native"
+  can_do: "I want to polish style and nuance"
+  explanation_language: target
+  max_corrections_per_turn: 10
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 8, vocab_ceiling: C2, speed_note: "fully native, literary when appropriate, set phrases welcome" }
+  free_opening: "最近、心に残った言葉や作品はありますか？"
+  starter_scenario: ja.c2.literary_salon

@@ -13,6 +13,7 @@ class LanguageOut(BaseModel):
     code: str
     name: str
     native_name: str
+    flag: str = ""
     levels: list[LevelOut]
 
 

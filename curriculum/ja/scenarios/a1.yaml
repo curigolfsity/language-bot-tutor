@@ -1,0 +1,19 @@
+- id: ja.a1.meet_new_friend
+  level: A1
+  title: "Meeting someone new"
+  setting: "A language exchange meetup in a café in Tokyo."
+  bot_role: "Yui (ゆい), a friendly university student from Tokyo who speaks slowly and simply."
+  goals: ["Say your name and where you are from", "Say what you do", "Ask one question back"]
+  target_topics: [ja.a1.desu_copula, ja.a1.wa_topic, ja.a1.ka_questions]
+  key_vocab: ["はじめまして", "〜です", "〜から来ました", "学生", "よろしくおねがいします"]
+  opening_line: "はじめまして！わたしはゆいです。お名前（なまえ）は？"
+
+- id: ja.a1.convenience_store
+  level: A1
+  title: "At the convenience store"
+  setting: "A konbini in Osaka at lunchtime."
+  bot_role: "A polite store clerk."
+  goals: ["Buy a bento and a drink", "Answer whether you want it heated", "Ask for a bag"]
+  target_topics: [ja.a1.wo_object, ja.a1.counters_basic, ja.a1.kosoado]
+  key_vocab: ["これ", "おねがいします", "あたためますか", "ふくろ", "いくらですか"]
+  opening_line: "いらっしゃいませ。お弁当（べんとう）、あたためますか？"

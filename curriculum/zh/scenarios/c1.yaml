@@ -1,0 +1,19 @@
+- id: zh.c1.debate_city_life
+  level: C1
+  title: "Debate: big-city life"
+  setting: "A podcast recording about whether young people should stay in first-tier cities."
+  bot_role: "A podcast host who takes the opposite side of whatever you argue."
+  goals: ["State and defend a position", "Concede a point and counter it", "Sum up your argument"]
+  target_topics: [zh.c1.discourse_markers, zh.c1.collocations, zh.b2.formal_connectors]
+  key_vocab: ["生活压力", "发展机会", "房价", "躺平", "幸福感"]
+  opening_line: "欢迎来到我们的节目！你觉得年轻人应该留在北上广深打拼吗？"
+
+- id: zh.c1.business_negotiation
+  level: C1
+  title: "Negotiating with a supplier"
+  setting: "A video call with a factory in Guangdong about price and delivery dates."
+  bot_role: "Mr. Huáng (黄总), an experienced supplier who negotiates hard but politely."
+  goals: ["Ask for a lower price for a bigger order", "Negotiate the delivery date", "Agree on terms"]
+  target_topics: [zh.c1.collocations, zh.c1.literary_particles, zh.b2.zhiyao_zhiyou]
+  key_vocab: ["报价", "订单量", "交货期", "折扣", "合作愉快"]
+  opening_line: "您好！我们的报价单您已经看过了吧？您觉得怎么样？"

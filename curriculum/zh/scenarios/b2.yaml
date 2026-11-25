@@ -1,0 +1,19 @@
+- id: zh.b2.job_interview
+  level: B2
+  title: "Job interview"
+  setting: "A video interview for a marketing role at a tech company in Beijing."
+  bot_role: "Ms. Zhào (赵经理), a sharp but fair HR manager."
+  goals: ["Introduce your background", "Explain why you want the job", "Describe a challenge you handled", "Ask about the team"]
+  target_topics: [zh.b2.complex_conjunctions, zh.b2.formal_connectors, zh.b1.de_de_de]
+  key_vocab: ["经验", "负责", "团队合作", "优势", "发展机会"]
+  opening_line: "你好，欢迎参加面试。请先简单介绍一下你自己。"
+
+- id: zh.b2.hotel_complaint
+  level: B2
+  title: "Complaining at a hotel"
+  setting: "The front desk of a hotel in Xi'an; your room has problems."
+  bot_role: "A polite receptionist who first offers small fixes."
+  goals: ["Explain what is wrong with the room", "Insist politely on a solution", "Agree on compensation"]
+  target_topics: [zh.b1.bei_passive, zh.b2.complex_conjunctions, zh.b2.zhiyao_zhiyou]
+  key_vocab: ["换房间", "空调坏了", "太吵", "退款", "投诉"]
+  opening_line: "您好，前台。请问有什么可以帮您的？"

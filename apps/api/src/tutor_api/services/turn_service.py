@@ -279,8 +279,9 @@ async def handle_voice_turn(ctx: AppContext, session_id: uuid.UUID, audio: bytes
         profile = await ProfileRepo(db).get(session.profile_id)
         assert profile is not None
         language = profile.target_lang
+    stt_prompt = ctx.curriculum(language).lang.stt_prompt or None
     try:
-        transcript = await ctx.stt.transcribe(audio, language)
+        transcript = await ctx.stt.transcribe(audio, language, stt_prompt)
     except AudioTooLongError as e:
         raise InvalidRequestError(str(e)) from e
     except STTError as e:

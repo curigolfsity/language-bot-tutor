@@ -2,7 +2,7 @@
 
 A personal AI language tutor you chat with on Telegram. It holds real conversations and
 role-plays at your level, corrects your mistakes gently, and brings them back later so they
-stick. **Spanish (A1–C2) is live; more languages (Chinese next) are planned.** Adding a
+stick. **Spanish 🇪🇸, Chinese 🇨🇳 (Mandarin, Simplified) and Japanese 🇯🇵 are live (A1–C2).** Adding a
 language is curriculum data, not code.
 
 ## What it does
@@ -38,8 +38,8 @@ tutor autostart on              # optional: start at Windows logon
 
 Tests: `uv run pytest`. The eval makes paid API calls: `uv run python evals/corrections/run_eval.py --level A1`.
 
-## Adding a language (e.g. Chinese)
-1. Create `curriculum/zh/` with `language.yaml`, `levels.yaml`, `grammar/*.yaml` and `scenarios/*.yaml`
+## Adding a language (e.g. Korean)
+1. Create `curriculum/ko/` with `language.yaml`, `levels.yaml`, `grammar/*.yaml` and `scenarios/*.yaml`
    (copy `curriculum/es/` as a template). The API validates it at startup.
-2. Add eval cases in `evals/corrections/cases/` and run the eval.
-3. Run a bot with `BOT_TARGET_LANG=zh`.
+2. Add eval cases in `evals/corrections/cases/ko/` and run `run_eval.py --lang ko`.
+3. Add `ko` to `BOT_TARGET_LANGS` so the bot offers it.

@@ -1,0 +1,23 @@
+- id: zh.c1.literary_particles
+  level: C1
+  title: "Literary particles in formal Chinese (之, 其, 于, 以)"
+  prerequisites: [zh.b2.formal_connectors]
+  description: "Formal writing borrows classical words: 原因之一, 位于北京, 以…为主. Watch fixed patterns like 之一."
+  examples:
+    - { wrong: "这是一个最重要的问题之一。", right: "这是最重要的问题之一。" }
+
+- id: zh.c1.collocations
+  level: C1
+  title: "Verb-noun collocations (提高水平, 发挥作用)"
+  prerequisites: []
+  description: "Formal nouns take specific verbs: 提高水平 (not 增加), 发挥作用, 解决问题, 满足需求."
+  examples:
+    - { wrong: "我想增加我的中文水平。", right: "我想提高我的中文水平。" }
+
+- id: zh.c1.discourse_markers
+  level: C1
+  title: "Structuring arguments (首先, 此外, 换句话说, 总之)"
+  prerequisites: [zh.b2.complex_conjunctions]
+  description: "Discourse markers organise speech and writing; they stand alone at the start of a clause."
+  examples:
+    - { wrong: "总之说，这个办法很好。", right: "总之，这个办法很好。" }

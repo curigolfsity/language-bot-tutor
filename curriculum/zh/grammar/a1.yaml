@@ -1,0 +1,106 @@
+- id: zh.a1.shi_sentences
+  level: A1
+  title: "是 (shì): saying what something is"
+  prerequisites: []
+  description: "A 是 B links two nouns: 我是学生. Negative: 不是. 是 is not used before adjectives."
+  examples:
+    - { wrong: "我学生。", right: "我是学生。" }
+
+- id: zh.a1.adjective_predicates
+  level: A1
+  title: "Adjectives as predicates (很 + adjective)"
+  prerequisites: [zh.a1.shi_sentences]
+  description: "Adjectives work like verbs: 我很忙, 天气很好. No 是 before them; 很 is usually needed in plain statements."
+  examples:
+    - { wrong: "我是很忙。", right: "我很忙。" }
+
+- id: zh.a1.ma_questions
+  level: A1
+  title: "Yes/no questions with 吗 (ma)"
+  prerequisites: [zh.a1.shi_sentences]
+  description: "Add 吗 to the end of a statement to make a yes/no question; word order does not change."
+  examples:
+    - { wrong: "你是吗老师？", right: "你是老师吗？" }
+
+- id: zh.a1.question_words
+  level: A1
+  title: "Question words (什么, 谁, 哪儿, 几, 多少)"
+  prerequisites: [zh.a1.ma_questions]
+  description: "The question word stays where the answer would go; no 吗 with a question word."
+  examples:
+    - { wrong: "什么你喜欢？", right: "你喜欢什么？" }
+    - { wrong: "你叫什么名字吗？", right: "你叫什么名字？" }
+
+- id: zh.a1.bu_vs_mei
+  level: A1
+  title: "Negation: 不 (bù) vs 没 (méi)"
+  prerequisites: [zh.a1.shi_sentences]
+  description: "不 negates present/future and habits; 没 negates 有 and past actions."
+  examples:
+    - { wrong: "我不有钱。", right: "我没有钱。" }
+
+- id: zh.a1.you_have_there_is
+  level: A1
+  title: "有 (yǒu): to have / there is"
+  prerequisites: [zh.a1.bu_vs_mei]
+  description: "有 means 'have' and 'there is'. Its negative is always 没有."
+  examples:
+    - { wrong: "我是两个哥哥。", right: "我有两个哥哥。" }
+
+- id: zh.a1.measure_words_basic
+  level: A1
+  title: "Measure words (个, 本, 杯, 只)"
+  prerequisites: []
+  description: "Numbers and 这/那 need a measure word before the noun: 一本书, 这杯咖啡. 个 is the general one."
+  examples:
+    - { wrong: "我有两书。", right: "我有两本书。" }
+
+- id: zh.a1.er_vs_liang
+  level: A1
+  title: "二 (èr) vs 两 (liǎng)"
+  prerequisites: [zh.a1.measure_words_basic]
+  description: "Use 两 before a measure word (两个人); use 二 when counting or in numbers (二十二)."
+  examples:
+    - { wrong: "二个人", right: "两个人" }
+
+- id: zh.a1.de_possessive
+  level: A1
+  title: "的 (de) for possession"
+  prerequisites: []
+  description: "Noun/pronoun + 的 + noun: 我的书. With close relations 的 is often dropped: 我妈妈."
+  examples:
+    - { wrong: "这是我书。", right: "这是我的书。" }
+
+- id: zh.a1.zai_location
+  level: A1
+  title: "在 (zài): being somewhere"
+  prerequisites: [zh.a1.shi_sentences]
+  description: "在 + place says where someone or something is: 他在学校. No 是 with it."
+  examples:
+    - { wrong: "他是在学校。", right: "他在学校。" }
+
+- id: zh.a1.time_place_order
+  level: A1
+  title: "Word order: time and place before the verb"
+  prerequisites: [zh.a1.zai_location]
+  description: "Subject + time + 在 place + verb: 我明天在家吃饭. Time and place never come at the end."
+  examples:
+    - { wrong: "我吃饭在家。", right: "我在家吃饭。" }
+    - { wrong: "我去北京明天。", right: "我明天去北京。" }
+
+- id: zh.a1.xiang_yao
+  level: A1
+  title: "想 (xiǎng) and 要 (yào) + verb: want to"
+  prerequisites: [zh.a1.time_place_order]
+  description: "想 / 要 go before the verb: 我想喝茶. 想 is softer; 要 is stronger or means 'going to'."
+  examples:
+    - { wrong: "我喝想茶。", right: "我想喝茶。" }
+
+- id: zh.a1.dates_and_times
+  level: A1
+  title: "Dates and times (big to small)"
+  prerequisites: [zh.a1.measure_words_basic]
+  description: "Year, month, day, weekday, time: 2025年5月3日 星期六 下午三点."
+  examples:
+    - { wrong: "五月2025年", right: "2025年五月" }
+    - { wrong: "三点下午", right: "下午三点" }

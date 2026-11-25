@@ -1,0 +1,72 @@
+- id: zh.b1.ba_construction
+  level: B1
+  title: "The 把 (bǎ) construction"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "Subject + 把 + object + verb + something more (result, place, 了): 我把书放在桌子上. The verb can't stand alone."
+  examples:
+    - { wrong: "我放书在桌子上。", right: "我把书放在桌子上。" }
+    - { wrong: "我把作业做。", right: "我把作业做完了。" }
+
+- id: zh.b1.bei_passive
+  level: B1
+  title: "Passive with 被 (bèi)"
+  prerequisites: [zh.b1.ba_construction]
+  description: "Receiver + 被 (+ doer) + verb + result: 我的手机被偷了. Often for unwelcome events; the verb needs a complement or 了."
+  examples:
+    - { wrong: "我的手机被小偷偷。", right: "我的手机被小偷偷了。" }
+
+- id: zh.b1.resultative_complements
+  level: B1
+  title: "Result complements (完, 到, 懂, 好)"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "Verb + result: 看完, 找到, 听懂, 做好. The object comes after the complement."
+  examples:
+    - { wrong: "我看书完了。", right: "我看完书了。" }
+
+- id: zh.b1.potential_complements
+  level: B1
+  title: "Can / can't with 得 / 不 (听得懂, 听不懂)"
+  prerequisites: [zh.b1.resultative_complements]
+  description: "Verb + 得/不 + result says whether something is possible: 我听不懂, 你看得见吗?"
+  examples:
+    - { wrong: "我不能听懂。", right: "我听不懂。" }
+
+- id: zh.b1.directional_complements
+  level: B1
+  title: "Direction complements (来, 去, 进来, 出去)"
+  prerequisites: [zh.a2.le_completed_action]
+  description: "来 = towards the speaker, 去 = away. A place goes before 来/去: 他进房间来了."
+  examples:
+    - { wrong: "他进来房间。", right: "他进房间来了。" }
+
+- id: zh.b1.de_de_de
+  level: B1
+  title: "的, 地, 得: three kinds of de"
+  prerequisites: [zh.a2.de_degree_complement, zh.a1.de_possessive]
+  description: "的 before nouns (漂亮的花), 地 before verbs (高兴地说), 得 after verbs (说得好)."
+  examples:
+    - { wrong: "他高兴的说。", right: "他高兴地说。" }
+
+- id: zh.b1.zhe_ongoing_state
+  level: B1
+  title: "着 (zhe): a lasting state"
+  prerequisites: [zh.a2.zai_progressive]
+  description: "Verb + 着 for a continuing state: 门开着, 他穿着红衣服. Not combined with 了."
+  examples:
+    - { wrong: "门开了着。", right: "门开着。" }
+
+- id: zh.b1.lian_dou
+  level: B1
+  title: "连…都/也: even"
+  prerequisites: [zh.a1.bu_vs_mei]
+  description: "连 + emphasised part + 都/也 + verb: 他连一个字都不认识."
+  examples:
+    - { wrong: "我连一个字不认识。", right: "我连一个字都不认识。" }
+
+- id: zh.b1.yuelaiyue
+  level: B1
+  title: "越来越 / 越…越…: more and more"
+  prerequisites: [zh.a1.adjective_predicates]
+  description: "越来越 + adjective (no 很): 天气越来越冷. 越 A 越 B: 越学越有意思."
+  examples:
+    - { wrong: "天气越来越很冷。", right: "天气越来越冷。" }

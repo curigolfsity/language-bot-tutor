@@ -1,0 +1,71 @@
+# Level policy for Mandarin Chinese. Same CEFR scale as every language (so code never needs
+# language-specific level names); labels show the familiar HSK equivalent.
+# See curriculum/es/levels.yaml for what each field means.
+#
+# Reading aid: beginners cannot read characters yet, so the tutor adds pinyin (see speed_note).
+
+A1:
+  rank: 1
+  label: "Total beginner (≈ HSK 1)"
+  can_do: "I know a few words, or none at all"
+  explanation_language: native
+  max_corrections_per_turn: 2
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 2, vocab_ceiling: A1, speed_note: "very short, simple sentences. After every sentence, add its full pinyin with tone marks in parentheses" }
+  free_opening: "你好！你今天怎么样？(Nǐ hǎo! Nǐ jīntiān zěnmeyàng?)"
+  starter_scenario: zh.a1.meet_new_friend
+
+A2:
+  rank: 2
+  label: "Beginner (≈ HSK 2–3)"
+  can_do: "I can introduce myself and order food"
+  explanation_language: native
+  max_corrections_per_turn: 3
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 3, vocab_ceiling: A2, speed_note: "simple everyday sentences. After every sentence, add its pinyin with tone marks in parentheses" }
+  free_opening: "你好！今天过得怎么样？(Nǐ hǎo! Jīntiān guò de zěnmeyàng?)"
+  starter_scenario: zh.a2.restaurant_order
+
+B1:
+  rank: 3
+  label: "Intermediate (≈ HSK 4)"
+  can_do: "I can chat about my day and my plans"
+  explanation_language: mixed
+  max_corrections_per_turn: 4
+  correct_topics: at_or_below_level
+  tutor_reply: { max_sentences: 4, vocab_ceiling: B1, speed_note: "natural everyday Chinese. Add pinyin in parentheses only after less common words" }
+  free_opening: "嗨！最近忙什么呢？"
+  starter_scenario: zh.b1.renting_apartment
+
+B2:
+  rank: 4
+  label: "Upper intermediate (≈ HSK 5)"
+  can_do: "I can discuss news and give my opinion"
+  explanation_language: target
+  max_corrections_per_turn: 5
+  correct_topics: all
+  tutor_reply: { max_sentences: 5, vocab_ceiling: B2, speed_note: "natural speed, idiomatic, no pinyin" }
+  free_opening: "你好！最近有什么新闻让你印象深刻吗？"
+  starter_scenario: zh.b2.job_interview
+
+C1:
+  rank: 5
+  label: "Advanced (≈ HSK 6)"
+  can_do: "I can handle complex topics and debates"
+  explanation_language: target
+  max_corrections_per_turn: 8
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 6, vocab_ceiling: C1, speed_note: "native register, nuanced, formal and informal as fits" }
+  free_opening: "我们今天来聊一个有争议的话题，怎么样？"
+  starter_scenario: zh.c1.debate_city_life
+
+C2:
+  rank: 6
+  label: "Near-native"
+  can_do: "I want to polish style and nuance"
+  explanation_language: target
+  max_corrections_per_turn: 10
+  correct_topics: all_plus_style
+  tutor_reply: { max_sentences: 8, vocab_ceiling: C2, speed_note: "fully native, literary when appropriate, idioms welcome" }
+  free_opening: "最近读到什么让你回味的文字吗？"
+  starter_scenario: zh.c2.literary_salon

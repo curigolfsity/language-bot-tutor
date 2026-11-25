@@ -2,6 +2,7 @@
 
     uv run python evals/corrections/run_eval.py --level A1
     uv run python evals/corrections/run_eval.py              # every level with a cases file
+    uv run python evals/corrections/run_eval.py --lang zh    # cases/zh/ (default: es)
 
 Each case goes through `turn_service.run_correction` (the production LLM + sanitise + policy path)
 with a fixed neutral context: free conversation, no history, native language "en".
@@ -99,7 +100,7 @@ async def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--level", action="append", help="level to run (repeatable); default: all")
     ap.add_argument("--lang", default="es")
-    ap.add_argument("--cases-dir", type=Path, default=HERE / "cases")
+    ap.add_argument("--cases-dir", type=Path, help="default: cases/<lang>/")
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--input-price", type=float, default=4.0, help="USD per 1M input tokens")
     ap.add_argument("--output-price", type=float, default=20.0, help="USD per 1M output tokens")
@@ -112,7 +113,7 @@ async def main() -> int:
     if args.effort:
         settings = settings.model_copy(update={"tutor_effort": args.effort})
     curriculum = load_curriculum(settings.curriculum_dir / args.lang)
-    cases = load_cases(args.cases_dir, args.level)
+    cases = load_cases(args.cases_dir or HERE / "cases" / args.lang, args.level)
     if not cases:
         print("no cases selected", file=sys.stderr)
         return 1

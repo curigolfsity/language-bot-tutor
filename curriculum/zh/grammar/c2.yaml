@@ -1,0 +1,15 @@
+- id: zh.c2.tricky_expressions
+  level: C2
+  title: "Tricky set expressions (好不容易, 差点儿)"
+  prerequisites: [zh.c1.collocations]
+  description: "Some fixed expressions defy logic: 好不容易 and 好容易 both mean 'with great difficulty'; 差点儿没 can mean the same as 差点儿."
+  examples:
+    - { wrong: "我好不容易找不到他。", right: "我好不容易才找到他。" }
+
+- id: zh.c2.commonly_misused_idioms
+  level: C2
+  title: "Commonly misused idioms (差强人意, 不以为然)"
+  prerequisites: [zh.b2.chengyu_usage]
+  description: "Many idioms mean something different from their surface: 差强人意 = just about satisfactory; 不以为然 = to disagree."
+  examples:
+    - { wrong: "结果太差了，真是差强人意。", right: "结果还算差强人意，不过还能更好。" }

@@ -1,0 +1,21 @@
+- id: zh-b1-001
+  level: B1
+  text: "我放书在桌子上了，你看见了吗？"
+  expected:
+    - { wrong: "放书在桌子上", right: "把书放在桌子上", rule_tag: zh.b1.ba_construction }
+  must_not_flag: ["你看见了吗"]
+
+- id: zh-b1-002
+  level: B1
+  text: "他高兴的说：我们明天去旅行！"
+  expected:
+    - { wrong: "高兴的说", right: "高兴地说", rule_tag: zh.b1.de_de_de }
+  must_not_flag: ["明天去旅行"]
+
+- id: zh-b1-003
+  level: B1
+  text: "天气越来越很冷了。老师说得太快，我不能听懂。"
+  expected:
+    - { wrong: "越来越很冷", right: "越来越冷", rule_tag: zh.b1.yuelaiyue }
+    - { wrong: "不能听懂", right: "听不懂", rule_tag: zh.b1.potential_complements }
+  must_not_flag: ["说得太快"]

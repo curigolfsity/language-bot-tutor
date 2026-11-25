@@ -34,6 +34,7 @@ from telegram.ext import (
     filters,
 )
 from tutor_contracts import (
+    LanguageOut,
     LearnerPatch,
     LearnerProfileOut,
     LevelOut,
@@ -60,6 +61,7 @@ COMMANDS = [
     BotCommand("ask", "Ask a question without interrupting the conversation"),
     BotCommand("progress", "Your progress and recent mistakes"),
     BotCommand("end", "Finish the session and see a summary"),
+    BotCommand("language", "Switch language (Spanish, Chinese, Japanese)"),
     BotCommand("settings", "Level, language, daily goal, reminders"),
     BotCommand("help", "How it works"),
 ]
@@ -82,8 +84,38 @@ def _detected_lang(update: Update) -> str | None:
     return code if len(code) >= 2 else None
 
 
+def _lang(context: ContextTypes.DEFAULT_TYPE) -> str:
+    """The language this chat is learning: picked in onboarding or settings, else the default.
+    Everything learned (level, mistakes, streak) lives per language in the API."""
+    settings = _settings(context)
+    chosen = (context.chat_data or {}).get("lang")
+    return chosen if chosen in settings.languages() else settings.target_lang
+
+
+def _has_chosen_lang(context: ContextTypes.DEFAULT_TYPE) -> bool:
+    return bool((context.chat_data or {}).get("lang")) or len(_settings(context).languages()) < 2
+
+
+async def _languages(context: ContextTypes.DEFAULT_TYPE) -> list[LanguageOut]:
+    """Offered languages with names and flags (fetched once, then cached)."""
+    cached = context.application.bot_data.get("languages")
+    if cached is None:
+        api = _api(context)
+        cached = [await api.language(code) for code in _settings(context).languages()]
+        context.application.bot_data["languages"] = cached
+    return cached
+
+
+async def _lang_info(context: ContextTypes.DEFAULT_TYPE, code: str | None = None) -> LanguageOut:
+    code = code or _lang(context)
+    for lang in await _languages(context):
+        if lang.code == code:
+            return lang
+    return await _api(context).language(code)
+
+
 async def _resolve(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+    update: Update, context: ContextTypes.DEFAULT_TYPE, native_lang: str | None = None
 ) -> tuple[LearnerProfileOut, bool]:
     user = update.effective_user
     assert user is not None
@@ -93,8 +125,8 @@ async def _resolve(
             provider=PROVIDER,
             external_id=str(user.id),
             display_name=user.full_name or "",
-            target_lang=settings.target_lang,
-            native_lang=_detected_lang(update) or settings.default_native_lang,
+            target_lang=_lang(context),
+            native_lang=native_lang or _detected_lang(update) or settings.default_native_lang,
         )
     )
     return res.profile, res.created
@@ -125,7 +157,7 @@ async def _typing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> AsyncIt
 
 
 async def _levels(context: ContextTypes.DEFAULT_TYPE) -> list[LevelOut]:
-    return (await _api(context).language(_settings(context).target_lang)).levels
+    return (await _lang_info(context)).levels
 
 
 async def _show_session(
@@ -144,23 +176,36 @@ async def _show_session(
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    profile, created = await _resolve(update, context)
-    if created:
-        lang = await _api(context).language(_settings(context).target_lang)
+    if not _has_chosen_lang(context):
         await _send(
             update,
-            f"👋 <b>Hi!</b> I'm your {lang.name} conversation tutor.\n"
+            "👋 <b>Hi!</b> I'm your language conversation tutor.\n"
             "We'll chat, I'll gently fix your mistakes, and you'll pick up words as you go.\n\n"
-            "First, <b>which language should I explain things in?</b>",
+            "First, <b>which language do you want to learn?</b>",
+            reply_markup=kb.language_keyboard(await _languages(context), None, onboarding=True),
+        )
+        return
+    await _start_in_language(update, context)
+
+
+async def _start_in_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Onboarding for a new profile in the current language, or "welcome back"."""
+    profile, created = await _resolve(update, context)
+    lang = await _lang_info(context)
+    if created:
+        await _send(
+            update,
+            f"{lang.flag} Great, let's learn <b>{lang.name}</b>!\n\n"
+            "<b>Which language should I explain things in?</b>",
             reply_markup=kb.native_keyboard(
                 _settings(context).native_choices(), _detected_lang(update), onboarding=True
             ),
         )
         return
-    levels = await _levels(context)
     await _send(
         update,
-        "👋 Welcome back! " + formatting.format_profile(profile, levels),
+        f"👋 Welcome back! {lang.flag} <b>{lang.name}</b> · "
+        + formatting.format_profile(profile, lang.levels),
         reply_markup=kb.main_menu(),
     )
     session = await _api(context).active_session(profile.id)
@@ -175,7 +220,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def _ask_level(update: Update, context: ContextTypes.DEFAULT_TYPE, onboarding: bool) -> None:
-    lang = await _api(context).language(_settings(context).target_lang)
+    lang = await _lang_info(context)
     await _send(
         update,
         f"<b>How much {lang.name} do you know?</b>",
@@ -243,11 +288,57 @@ async def do_finish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def do_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     profile, _ = await _resolve(update, context)
+    lang = await _lang_info(context)
+    multi = len(_settings(context).languages()) > 1
     await _send(
         update,
-        formatting.format_settings(profile, await _levels(context)),
-        reply_markup=kb.settings_keyboard(profile.reminders_enabled),
+        f"{lang.flag} <b>{lang.name}</b>\n" + formatting.format_settings(profile, lang.levels),
+        reply_markup=kb.settings_keyboard(
+            profile.reminders_enabled, f"{lang.flag} {lang.name}" if multi else None
+        ),
     )
+
+
+async def do_choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _send(
+        update,
+        "🌍 <b>Which language do you want to practise?</b>\n"
+        "<i>Each language keeps its own level, progress and streak.</i>",
+        reply_markup=kb.language_keyboard(
+            await _languages(context), _lang(context), onboarding=False
+        ),
+    )
+
+
+async def switch_language(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, code: str, onboarding: bool
+) -> None:
+    """Make `code` this chat's language. A new language gets a level question and a starter
+    role-play (the explanation language carries over); a known one just continues."""
+    if code not in _settings(context).languages():
+        return
+    assert context.chat_data is not None
+    native = None
+    if not onboarding and context.chat_data.get("lang"):
+        current, _ = await _resolve(update, context)
+        native = current.native_lang
+    context.chat_data["lang"] = code
+    if onboarding:
+        await _start_in_language(update, context)
+        return
+    profile, created = await _resolve(update, context, native_lang=native)
+    lang = await _lang_info(context, code)
+    if created:
+        await _send(update, f"{lang.flag} Great, let's learn <b>{lang.name}</b>!")
+        await _ask_level(update, context, onboarding=True)
+        return
+    await _send(
+        update,
+        f"✅ Switched to {lang.flag} <b>{lang.name}</b> · "
+        + formatting.format_profile(profile, lang.levels),
+        reply_markup=kb.main_menu(),
+    )
+    await _send(update, "What would you like to do?", reply_markup=kb.next_step_keyboard())
 
 
 async def do_resume(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -591,6 +682,22 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
         return
 
+    if kind == "tl":  # choose the language to learn
+        await _ack(query)
+        code, _, flag = rest.partition(":")
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await switch_language(update, context, code, onboarding=flag == "o")
+        return
+
+    if kind == "go":  # from a reminder: switch to that language, then resume / review
+        await _ack(query)
+        code, _, action = rest.partition(":")
+        if code in _settings(context).languages() and context.chat_data is not None:
+            context.chat_data["lang"] = code
+        await (do_review if action == "review" else do_resume)(update, context)
+        return
+
     if kind == "fb":  # fold / unfold the feedback of a tutor message
         message = query.message
         assert message is not None
@@ -677,6 +784,8 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await do_lessons(update, context)
         elif rest == "resume":
             await do_resume(update, context)
+        elif rest == "settings_lang":
+            await do_choose_language(update, context)
         elif rest == "settings_goal":
             profile, _ = await _resolve(update, context)
             await _send(
@@ -794,13 +903,19 @@ async def send_due_reminders(app: Application) -> int:
     api: TutorApiClient = app.bot_data["api"]
     settings: BotSettings = app.bot_data["settings"]
     sent = 0
-    for r in await api.claim_reminders(PROVIDER, settings.target_lang):
+    due = [
+        (await api.language(code), r)
+        for code in settings.languages()
+        for r in await api.claim_reminders(PROVIDER, code)
+    ]
+    for lang, r in due:
         try:
             await app.bot.send_message(
                 chat_id=int(r.external_id),
-                text=formatting.format_reminder_with_reviews(r),
+                text=f"{lang.flag} <b>{lang.name}</b>\n"
+                + formatting.format_reminder_with_reviews(r),
                 parse_mode=ParseMode.HTML,
-                reply_markup=kb.reminder_keyboard(r.reviews_due),
+                reply_markup=kb.reminder_keyboard(r.reviews_due, lang.code),
             )
             sent += 1
         except Forbidden:
@@ -872,6 +987,7 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler("settings", do_settings))
     app.add_handler(CommandHandler("level", cmd_level))
     app.add_handler(CommandHandler("native", cmd_native))
+    app.add_handler(CommandHandler(["language", "languages"], do_choose_language))
     app.add_handler(CommandHandler("ask", cmd_ask))
     app.add_handler(CommandHandler(["lessons", "lesson", "grammar"], do_lessons))
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))

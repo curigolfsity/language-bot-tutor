@@ -1,0 +1,9 @@
+- id: ja.c2.literary_salon
+  level: C2
+  title: "A literary salon"
+  setting: "A small literary gathering in Kamakura discussing modern Japanese novels."
+  bot_role: "A well-read editor who enjoys subtle expressions and set phrases."
+  goals: ["Discuss a book or author you love", "Use set phrases naturally", "Respond to a subtle argument"]
+  target_topics: [ja.c2.misused_set_phrases, ja.c2.double_keigo, ja.c1.written_style]
+  key_vocab: ["村上春樹", "余韻", "行間を読む", "味わい深い", "心に響く"]
+  opening_line: "ようこそ。最近、心に残った本はありますか？"

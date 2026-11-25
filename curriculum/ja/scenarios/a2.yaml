@@ -1,0 +1,19 @@
+- id: ja.a2.restaurant_order
+  level: A2
+  title: "Dinner at an izakaya"
+  setting: "A cosy izakaya in Kyoto, Friday evening."
+  bot_role: "A cheerful staff member who recommends dishes."
+  goals: ["Say how many people", "Order food and drinks", "Ask what they recommend", "Ask for the bill"]
+  target_topics: [ja.a2.tai_want, ja.a2.te_form, ja.a1.counters_basic]
+  key_vocab: ["〜名", "おすすめ", "〜をください", "おかいけい", "とりあえず"]
+  opening_line: "いらっしゃいませ！何名様（なんめいさま）ですか？"
+
+- id: ja.a2.weekend_chat
+  level: A2
+  title: "What did you do at the weekend?"
+  setting: "Monday morning chat with a coworker at the office."
+  bot_role: "Sato-san (佐藤さん), a friendly coworker."
+  goals: ["Say what you did and where you went", "Say whether it was fun", "Ask about her weekend"]
+  target_topics: [ja.a1.masu_verbs, ja.a2.ta_koto_ga_aru, ja.a2.te_iru]
+  key_vocab: ["週末", "〜に行きました", "たのしかったです", "つかれました", "〜さんは？"]
+  opening_line: "おはようございます！週末（しゅうまつ）は何（なに）をしましたか？"

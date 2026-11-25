@@ -1,0 +1,18 @@
+# Language metadata. Everything language-specific that code needs lives here,
+# so the code itself stays language-agnostic.
+code: zh
+name: Chinese
+native_name: 中文
+flag: "🇨🇳"
+# Sent to the learner when the model declines a turn (stop_reason == "refusal").
+refusal_reply: "不好意思，这个我不能回答。我们聊点别的吧？"
+# Steers speech-to-text towards Simplified characters and Mandarin punctuation.
+stt_prompt: "以下是普通话的句子，使用简体中文。"
+# Language-specific guidance appended to the tutor's system prompt.
+prompt_notes:
+  - "This is Mandarin Chinese written in Simplified characters. Accept Traditional characters from the learner without flagging them."
+  - "Learners may type pinyin instead of characters (with or without tone marks). Accept it without flagging the romanisation; reply in characters following the level style."
+  - "Do not flag punctuation style (half-width vs full-width) or spacing."
+  - "Wrong characters that are typing-method homophones (for example 在/再, 的/得/地) are errors only when the topic is taught at or below the learner's level."
+  - "In new_vocab, `lemma` is the word in characters only. Start `translation` with its pinyin with tone marks, then the meaning, for example: 'kāfēi — coffee'."
+  - "Pinyin always uses tone marks (nǐ hǎo), never tone numbers."

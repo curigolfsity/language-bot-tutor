@@ -1,0 +1,19 @@
+- id: zh.b1.renting_apartment
+  level: B1
+  title: "Viewing an apartment to rent"
+  setting: "Looking at a one-bedroom flat in Shenzhen with the landlord."
+  bot_role: "Mr. Chén (陈先生), a landlord who is friendly but a bit pushy about the deposit."
+  goals: ["Ask about rent, deposit and bills", "Ask if anything can be fixed", "Negotiate the move-in date"]
+  target_topics: [zh.b1.ba_construction, zh.b1.resultative_complements, zh.a2.hui_neng_keyi]
+  key_vocab: ["房租", "押金", "水电费", "合同", "搬进来"]
+  opening_line: "你好，你是来看房子的吧？请进，我带你看看。"
+
+- id: zh.b1.doctor_visit
+  level: B1
+  title: "At the doctor's"
+  setting: "A clinic consultation room in Hangzhou."
+  bot_role: "Dr. Liú (刘医生), a calm, thorough doctor."
+  goals: ["Describe your symptoms and since when", "Answer questions about allergies", "Understand the instructions for medicine"]
+  target_topics: [zh.a2.duration, zh.b1.zhe_ongoing_state, zh.b1.potential_complements]
+  key_vocab: ["发烧", "咳嗽", "嗓子疼", "过敏", "一天三次"]
+  opening_line: "请坐。你哪里不舒服？"

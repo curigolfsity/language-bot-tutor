@@ -410,3 +410,33 @@ def test_exercise_round_trip_and_results():
         ),
     )
     assert "Answer: <b>estoy</b>" in done and "Lesson done: 5/5" in done and "🌟" in done
+
+
+def _langs():
+    from tutor_contracts import LanguageOut
+
+    return [
+        LanguageOut(code="es", name="Spanish", native_name="Español", flag="🇪🇸", levels=[]),
+        LanguageOut(code="ja", name="Japanese", native_name="日本語", flag="🇯🇵", levels=[]),
+    ]
+
+
+def test_language_keyboard():
+    rows = kb.language_keyboard(_langs(), "ja", onboarding=True).inline_keyboard
+    assert [(r[0].text, r[0].callback_data) for r in rows] == [
+        ("🇪🇸 Spanish · Español", "tl:es:o"),
+        ("✓ 🇯🇵 Japanese · 日本語", "tl:ja:o"),
+    ]
+    assert (
+        kb.language_keyboard(_langs(), None, onboarding=False).inline_keyboard[0][0].callback_data
+        == "tl:es:s"
+    )
+
+
+def test_settings_and_reminders_carry_language():
+    rows = kb.settings_keyboard(True, "🇯🇵 Japanese").inline_keyboard
+    assert rows[0][0].callback_data == "menu:settings_lang" and "Japanese" in rows[0][0].text
+    assert kb.settings_keyboard(True).inline_keyboard[0][0].callback_data == "menu:settings_level"
+    rem = kb.reminder_keyboard(3, "zh").inline_keyboard
+    assert [r[0].callback_data for r in rem] == ["go:zh:resume", "go:zh:review", "rem:off"]
+    assert kb.reminder_keyboard().inline_keyboard[0][0].callback_data == "menu:resume"

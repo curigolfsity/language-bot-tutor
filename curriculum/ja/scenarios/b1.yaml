@@ -1,0 +1,19 @@
+- id: ja.b1.doctor_visit
+  level: B1
+  title: "At the clinic"
+  setting: "A neighbourhood clinic in Yokohama."
+  bot_role: "Dr. Suzuki (鈴木先生), a calm and careful doctor."
+  goals: ["Describe your symptoms and since when", "Answer questions about allergies", "Understand how to take the medicine"]
+  target_topics: [ja.a2.te_iru, ja.b1.sou_rashii_you, ja.b1.conditionals]
+  key_vocab: ["熱があります", "せき", "のどがいたい", "アレルギー", "一日三回"]
+  opening_line: "今日はどうされましたか？"
+
+- id: ja.b1.lost_item
+  level: B1
+  title: "Reporting a lost item"
+  setting: "The lost-and-found office at a big train station in Tokyo."
+  bot_role: "A station staff member who needs details to search."
+  goals: ["Say what you lost and where", "Describe it", "Leave your contact details"]
+  target_topics: [ja.b1.passive, ja.b1.relative_clauses, ja.b1.te_oku_te_shimau]
+  key_vocab: ["忘れ物", "落としてしまいました", "黒いかばん", "何時ごろ", "連絡先"]
+  opening_line: "どうされましたか？何か忘れ物ですか？"

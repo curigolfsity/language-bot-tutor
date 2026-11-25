@@ -16,6 +16,8 @@ import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from tutor_api.domain.text import contains_unit  # same matching as production
+
 
 @dataclass(frozen=True)
 class Expected:
@@ -77,7 +79,7 @@ def spans_overlap(a: tuple[int, int] | None, b: tuple[int, int] | None) -> bool:
 
 def rights_match(pred: str, exp: str) -> bool:
     p, e = normalize(pred), normalize(exp)
-    return bool(p) and bool(e) and (p == e or f" {e} " in f" {p} " or f" {p} " in f" {e} ")
+    return bool(p) and bool(e) and (p == e or contains_unit(p, e) or contains_unit(e, p))
 
 
 def _wrong_overlap(text: str, pred: str, exp: str) -> bool:
@@ -86,7 +88,7 @@ def _wrong_overlap(text: str, pred: str, exp: str) -> bool:
         return spans_overlap(ps, es)
     # The model did not quote the text verbatim: fall back to normalised containment.
     p, e = normalize(pred), normalize(exp)
-    return bool(p) and bool(e) and (f" {e} " in f" {p} " or f" {p} " in f" {e} ")
+    return bool(p) and bool(e) and (contains_unit(p, e) or contains_unit(e, p))
 
 
 def score_case(

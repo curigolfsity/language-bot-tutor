@@ -4,6 +4,8 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   h:<kind>:<turn_id>     help on a tutor message (hint | translate | suggest | explain)
   ask:<turn_id>          ask a question about a tutor message (answer goes inside that message)
   fb:<turn_id>           fold / unfold the feedback (fixes, praise, new words) of a tutor message
+  tl:<code>:<o|s>        choose the language to learn (o = onboarding, s = switch)
+  go:<code>:<action>     from a reminder: switch to that language, then resume | review
   nat:<code>:<o|s>       set native language (o = onboarding step, s = from settings)
   lvl:<code>:<o|s>       set level
   play:<scenario_id>     start a role-play
@@ -12,7 +14,8 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   rv:<next|done>         practise-my-mistakes: next card / stop
   ls:<topic_id>          start a grammar lesson on that topic
   lb                     browse every grammar topic at the learner's level
-  menu:<action>          free | roleplay | resume | settings_level | settings_native | settings_goal
+  menu:<action>          free | roleplay | resume | review | lessons | settings_level |
+                         settings_native | settings_goal | settings_lang
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ from telegram import (
     KeyboardButton,
     ReplyKeyboardMarkup,
 )
-from tutor_contracts import LessonTopicOut, LevelOut, ScenarioOut
+from tutor_contracts import LanguageOut, LessonTopicOut, LevelOut, ScenarioOut
 
 # Persistent menu under the text box. Pressing one sends its label as a message.
 MENU_CHAT = "💬 Free chat"
@@ -155,14 +158,46 @@ def next_step_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def settings_keyboard(reminders_enabled: bool = True) -> InlineKeyboardMarkup:
+def language_keyboard(
+    languages: list[LanguageOut], current: str | None, onboarding: bool
+) -> InlineKeyboardMarkup:
+    flag = "o" if onboarding else "s"
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    ("✓ " if lang.code == current else "")
+                    + f"{lang.flag} {lang.name} · {lang.native_name}",
+                    callback_data=f"tl:{lang.code}:{flag}",
+                )
+            ]
+            for lang in languages
+        ]
+    )
+
+
+def settings_keyboard(
+    reminders_enabled: bool = True, language_label: str | None = None
+) -> InlineKeyboardMarkup:
     reminder = (
         InlineKeyboardButton("🔕 Turn reminders off", callback_data="rem:off")
         if reminders_enabled
         else InlineKeyboardButton("🔔 Turn reminders on", callback_data="rem:on")
     )
+    language = (
+        [
+            [
+                InlineKeyboardButton(
+                    f"🌍 Learning {language_label}: switch", callback_data="menu:settings_lang"
+                )
+            ]
+        ]
+        if language_label
+        else []
+    )
     return InlineKeyboardMarkup(
         [
+            *language,
             [InlineKeyboardButton("📶 Change my level", callback_data="menu:settings_level")],
             [
                 InlineKeyboardButton(
@@ -188,11 +223,14 @@ def goal_keyboard(current: int) -> InlineKeyboardMarkup:
     )
 
 
-def reminder_keyboard(reviews_due: int = 0) -> InlineKeyboardMarkup:
-    rows = [[InlineKeyboardButton("▶️ Practise now", callback_data="menu:resume")]]
+def reminder_keyboard(reviews_due: int = 0, lang: str | None = None) -> InlineKeyboardMarkup:
+    """With `lang`, the buttons switch the chat to that language first (multi-language bots)."""
+    resume = f"go:{lang}:resume" if lang else "menu:resume"
+    review = f"go:{lang}:review" if lang else "menu:review"
+    rows = [[InlineKeyboardButton("▶️ Practise now", callback_data=resume)]]
     if reviews_due:
         rows.append(
-            [InlineKeyboardButton(f"🧠 Review {reviews_due} mistakes", callback_data="menu:review")]
+            [InlineKeyboardButton(f"🧠 Review {reviews_due} mistakes", callback_data=review)]
         )
     rows.append([InlineKeyboardButton("🔕 Stop reminders", callback_data="rem:off")])
     return InlineKeyboardMarkup(rows)

@@ -70,8 +70,11 @@ class LanguageMeta(_Strict):
     code: str
     name: str
     native_name: str
+    flag: str = ""  # emoji shown next to the language name in clients
     refusal_reply: str
     prompt_notes: tuple[str, ...] = ()
+    # Optional text that steers speech-to-text (e.g. Simplified vs Traditional Chinese).
+    stt_prompt: str = ""
 
 
 @dataclass(frozen=True)

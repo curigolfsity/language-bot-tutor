@@ -10,7 +10,9 @@ class FakeSTT:
         self.text, self.error = text, error
         self.calls: list[tuple[bytes, str]] = []
 
-    async def transcribe(self, audio: bytes, language: str) -> Transcript:
+    async def transcribe(
+        self, audio: bytes, language: str, prompt: str | None = None
+    ) -> Transcript:
         self.calls.append((audio, language))
         if self.error:
             raise self.error

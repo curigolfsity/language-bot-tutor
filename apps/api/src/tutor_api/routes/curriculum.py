@@ -30,7 +30,11 @@ async def get_language(lang: str, ctx: Ctx) -> LanguageOut:
     """Language name and levels (with learner-friendly labels), for onboarding screens."""
     cur = ctx.curriculum(lang)
     return LanguageOut(
-        code=cur.code, name=cur.lang.name, native_name=cur.lang.native_name, levels=_levels(cur)
+        code=cur.code,
+        name=cur.lang.name,
+        native_name=cur.lang.native_name,
+        flag=cur.lang.flag,
+        levels=_levels(cur),
     )
 
 
