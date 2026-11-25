@@ -3,6 +3,7 @@
 Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   h:<kind>:<turn_id>     help on a tutor message (hint | translate | suggest | explain)
   ask:<turn_id>          ask a question about a tutor message (answer goes inside that message)
+  fb:<turn_id>           fold / unfold the feedback (fixes, praise, new words) of a tutor message
   nat:<code>:<o|s>       set native language (o = onboarding step, s = from settings)
   lvl:<code>:<o|s>       set level
   play:<scenario_id>     start a role-play
@@ -66,7 +67,14 @@ def main_menu() -> ReplyKeyboardMarkup:
     )
 
 
-def help_buttons(turn_id: int | None, has_corrections: bool = False) -> InlineKeyboardMarkup | None:
+def help_buttons(
+    turn_id: int | None,
+    has_corrections: bool = False,
+    feedback_label: str | None = None,
+    expanded: bool = False,
+) -> InlineKeyboardMarkup | None:
+    """Buttons under a tutor message. `feedback_label` (e.g. "✏️ 2 fixes") adds the fold
+    toggle; "Explain my mistakes" shows only while the feedback is unfolded."""
     if turn_id is None:
         return None
     rows = [
@@ -77,11 +85,14 @@ def help_buttons(turn_id: int | None, has_corrections: bool = False) -> InlineKe
         ]
     ]
     second = [InlineKeyboardButton("🙋 Ask", callback_data=f"ask:{turn_id}")]
-    if has_corrections:
-        second.append(
-            InlineKeyboardButton("❓ Explain my mistakes", callback_data=f"h:explain:{turn_id}")
-        )
+    if feedback_label:
+        toggle = "▴ Hide feedback" if expanded else f"▾ {feedback_label}"
+        second.append(InlineKeyboardButton(toggle, callback_data=f"fb:{turn_id}"))
     rows.append(second)
+    if has_corrections and (expanded or not feedback_label):
+        rows.append(
+            [InlineKeyboardButton("❓ Explain my mistakes", callback_data=f"h:explain:{turn_id}")]
+        )
     return InlineKeyboardMarkup(rows)
 
 

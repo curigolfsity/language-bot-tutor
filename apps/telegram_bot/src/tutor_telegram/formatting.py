@@ -69,16 +69,25 @@ def _topic(title: str | None, fallback: str) -> str:
     return escape(title or fallback)
 
 
-def format_turn(result: TurnResponse) -> str:
+def turn_body(result: TurnResponse) -> str:
+    """What is always visible: (what was heard,) the reply, and a rare streak line."""
     parts = []
     if result.transcript:
         parts.append(f"🎤 <i>I heard: “{escape(result.transcript)}”</i>\n")
     parts.append(escape(result.reply))
+    if milestone := format_milestone(result.progress):
+        parts.append(f"\n{milestone}")
+    return "\n".join(parts)
+
+
+def turn_feedback(result: TurnResponse) -> str:
+    """The foldable part: praise, fixes (with reasons) and new words. Empty if none."""
+    parts = []
     if result.well_done:
-        parts.append("\n✅ Nice use of: " + ", ".join(escape(t.title) for t in result.well_done))
+        parts.append("✅ Nice use of: " + ", ".join(escape(t.title) for t in result.well_done))
     if result.corrections:
         n = len(result.corrections)
-        lines = [f"\n✏️ <b>{n} quick fix{'es' if n > 1 else ''}</b>"]
+        lines = [f"✏️ <b>{n} quick fix{'es' if n > 1 else ''}</b>"]
         lines.extend(
             f"• <s>{escape(c.wrong)}</s> → <b>{escape(c.right)}</b>" for c in result.corrections
         )
@@ -89,10 +98,32 @@ def format_turn(result: TurnResponse) -> str:
         vocab = ", ".join(
             f"<b>{escape(v.lemma)}</b> = {escape(v.translation)}" for v in result.new_vocab
         )
-        parts.append(f"\n📚 {vocab}")
-    if milestone := format_milestone(result.progress):
-        parts.append(f"\n{milestone}")
-    return "\n".join(parts)
+        parts.append(f"📚 {vocab}")
+    return "\n\n".join(parts)
+
+
+def feedback_label(result: TurnResponse) -> str | None:
+    """Short summary for the fold button, e.g. "✏️ 2 fixes · 📚 1 word". None if no feedback."""
+    bits = []
+    if n := len(result.corrections):
+        bits.append(f"✏️ {n} fix{'es' if n > 1 else ''}")
+    elif result.well_done:
+        bits.append("✅ Well done")
+    if n := len(result.new_vocab):
+        bits.append(f"📚 {n} word{'s' if n > 1 else ''}")
+    return " · ".join(bits) or None
+
+
+def help_block(kind: str, text: str) -> str:
+    """A help answer folded inside the tutor message."""
+    title = HELP_TITLES.get(kind, "💡")
+    return f"\n\n<blockquote expandable>{title}\n{escape(text)}</blockquote>"
+
+
+def format_turn(result: TurnResponse) -> str:
+    """Everything unfolded (used when a message can't be folded, and in tests)."""
+    feedback = turn_feedback(result)
+    return turn_body(result) + (f"\n\n{feedback}" if feedback else "")
 
 
 def _days(n: int) -> str:

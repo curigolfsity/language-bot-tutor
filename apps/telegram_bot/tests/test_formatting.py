@@ -152,7 +152,7 @@ def test_help_buttons():
     assert kb.help_buttons(None) is None
     rows = kb.help_buttons(5).inline_keyboard
     assert [b.callback_data for b in rows[0]] == ["h:hint:5", "h:translate:5", "h:suggest:5"]
-    assert len(kb.help_buttons(5, has_corrections=True).inline_keyboard) == 2
+    assert [b.callback_data for b in rows[1]] == ["ask:5"]
 
 
 def test_native_keyboard_puts_detected_first():
@@ -274,11 +274,76 @@ def test_voice_turn_shows_transcript_first():
     assert "I heard" not in formatting.format_turn(turn())
 
 
-def test_help_buttons_include_ask():
-    rows = kb.help_buttons(5).inline_keyboard
-    assert [b.callback_data for b in rows[1]] == ["ask:5"]
-    rows = kb.help_buttons(5, has_corrections=True).inline_keyboard
-    assert [b.callback_data for b in rows[1]] == ["ask:5", "h:explain:5"]
+def test_fold_toggle_and_explain_button():
+    folded = kb.help_buttons(5, True, "✏️ 2 fixes", expanded=False).inline_keyboard
+    assert [(b.text, b.callback_data) for b in folded[1]] == [
+        ("🙋 Ask", "ask:5"),
+        ("▾ ✏️ 2 fixes", "fb:5"),
+    ]
+    assert len(folded) == 2  # "Explain my mistakes" waits until the fixes are visible
+    unfolded = kb.help_buttons(5, True, "✏️ 2 fixes", expanded=True).inline_keyboard
+    assert unfolded[1][1].text == "▴ Hide feedback"
+    assert [b.callback_data for b in unfolded[2]] == ["h:explain:5"]
+    # Corrections but nothing to fold (unforeseen): Explain stays reachable.
+    assert kb.help_buttons(5, True).inline_keyboard[2][0].callback_data == "h:explain:5"
+
+
+def test_turn_split_into_body_and_feedback():
+    t = turn(
+        reply="¡Hola!",
+        corrections=[
+            Correction(wrong="soy", right="estoy", rule_tag="x", explanation="e", severity="major")
+        ],
+        new_vocab=[NewVocab(lemma="la playa", translation="beach", pos="noun")],
+        well_done=[TopicRef(id="t", title="Ser")],
+    )
+    body, feedback = formatting.turn_body(t), formatting.turn_feedback(t)
+    assert body == "¡Hola!"  # only the reply is visible by default
+    assert "Nice use of" in feedback and "<s>soy</s>" in feedback and "la playa" in feedback
+    assert formatting.feedback_label(t) == "✏️ 1 fix · 📚 1 word"
+    assert formatting.feedback_label(turn(well_done=[TopicRef(id="t", title="Ser")])) == (
+        "✅ Well done"
+    )
+    assert formatting.feedback_label(turn()) is None and formatting.turn_feedback(turn()) == ""
+    # Milestones stay visible.
+    assert "🔥" in formatting.turn_body(turn(progress=progress(first_today=True)))
+
+
+def test_views_fold_and_extras():
+    from tutor_telegram import views
+
+    t = turn(
+        reply="¡Hola!",
+        corrections=[
+            Correction(wrong="soy", right="estoy", rule_tag="x", explanation="e", severity="major")
+        ],
+    )
+    v = views.from_turn(t)
+    assert views.render(v) == "¡Hola!"
+    assert views.markup(v).inline_keyboard[1][1].callback_data == "fb:7"
+    v["expanded"] = True
+    assert "<s>soy</s>" in views.render(v)
+    v["extras"].append(["translate", formatting.help_block("translate", "Hello!")])
+    assert views.has_extra(v, "translate") and not views.has_extra(v, "hint")
+    assert views.render(v).endswith("🌐 <b>Translation</b>\nHello!</blockquote>")
+    assert views.fits(v)
+    v["extras"].append(["ask", formatting.inline_answer_block("q", "x" * 5000)])
+    assert not views.fits(v)
+
+    # A plain view (no feedback) has no fold button.
+    plain = views.new_view(9, "Opening line")
+    assert [b.callback_data for b in views.markup(plain).inline_keyboard[1]] == ["ask:9"]
+
+
+def test_views_memory_is_bounded():
+    from tutor_telegram import views
+
+    chat_data: dict = {}
+    for i in range(views.VIEWS_KEPT + 5):
+        views.remember(chat_data, i, views.new_view(i, "x"))
+    assert views.lookup(chat_data, 0) is None
+    assert views.lookup(chat_data, views.VIEWS_KEPT + 4) is not None
+    assert views.lookup(None, 1) is None
 
 
 def test_ask_prompt_link_round_trip():

@@ -302,11 +302,9 @@ Button-first, so nobody needs to type commands. Modules:
 
 **🙋 Ask about one message.** Tapping it sends a reply prompt attached to that tutor message. The prompt holds `?start=ask_<turn_id>_<message_id>` in an invisible text link, which Telegram passes back with the learner's reply, so routing needs no bot state. The bot calls `/ask` with `turn_id`: that tutor message becomes `<message_in_question>`, and the history before it is context. It then edits the tutor message to append the Q&A in a collapsed blockquote (keeping its buttons) and deletes the prompt and the question message. The tutor message's HTML is cached in `chat_data` when Ask is tapped (last 50 per chat). If the cache is gone (bot restarted) or the 4096-character limit would be exceeded, the answer is sent as a reply under the tutor message instead.
 
-**Turn message layout:**
-1. the reply
-2. ✅ praise (`well_done`)
-3. ✏️ "N quick fixes" with `wrong → right` lines and the explanations in a collapsed `<blockquote expandable>`
-4. 📚 new words
+**Turn message layout (foldable).** By default a tutor message shows only the reply (plus "🎤 I heard…" for voice and the rare 🔥/🎯 milestone line). The feedback (✅ praise, ✏️ fixes with a collapsed "Why", 📚 new words) is folded behind a toggle button labelled with what's inside, e.g. `▾ ✏️ 2 fixes · 📚 1 word` (`fb:<turn_id>`). "Explain my mistakes" appears once the fixes are unfolded. Hint, Translate, Suggest, Explain and 🙋 Ask answers are added inside the same message as collapsed blockquotes (each help kind once per message) instead of separate messages.
+
+How it works: `views.py` keeps a small dict per tutor message (`body`, `feedback`, `label`, `expanded`, `extras`) in `chat_data`, at most 100 per chat. Every button re-renders the message from it with `editMessageText`. `chat_data` is persisted with `PicklePersistence` to `BOT_STATE_FILE` (default `.run/bot_state.pickle`; display state only, never learner data), so folding survives restarts. A message with no view, or one that would exceed 4096 characters, falls back to sending the help as a reply.
 
 The bot keeps sending "typing…" until the API answers. After 🏁 Finish, it offers next-step buttons.
 

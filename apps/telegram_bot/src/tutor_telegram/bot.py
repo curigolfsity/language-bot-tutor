@@ -14,7 +14,6 @@ from collections.abc import AsyncIterator
 from telegram import (
     BotCommand,
     CallbackQuery,
-    InlineKeyboardMarkup,
     LinkPreviewOptions,
     MaybeInaccessibleMessage,
     Message,
@@ -30,6 +29,8 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     MessageHandler,
+    PersistenceInput,
+    PicklePersistence,
     filters,
 )
 from tutor_contracts import (
@@ -40,7 +41,7 @@ from tutor_contracts import (
     SessionOut,
 )
 
-from tutor_telegram import formatting
+from tutor_telegram import formatting, views
 from tutor_telegram import keyboards as kb
 from tutor_telegram.api_client import ApiError, TutorApiClient
 from tutor_telegram.config import BotSettings
@@ -126,12 +127,16 @@ async def _levels(context: ContextTypes.DEFAULT_TYPE) -> list[LevelOut]:
     return (await _api(context).language(_settings(context).target_lang)).levels
 
 
-async def _show_session(update: Update, session: SessionOut, first_time: bool = False) -> None:
-    await _send(
-        update,
-        formatting.format_session_start(session, first_time),
-        reply_markup=kb.help_buttons(session.opening_turn_id),
+async def _show_session(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    session: SessionOut,
+    first_time: bool = False,
+) -> None:
+    view = views.new_view(
+        session.opening_turn_id, formatting.format_session_start(session, first_time)
     )
+    await _send_view(update, context, view, reply_to=None)
 
 
 # ----------------------------------------------------------------------------- onboarding
@@ -191,7 +196,7 @@ async def _after_level_chosen(
     )
     starter = level.starter_scenario if level else None
     session = await _api(context).start_session(profile.id, starter)
-    await _show_session(update, session, first_time=True)
+    await _show_session(update, context, session, first_time=True)
 
 
 # ----------------------------------------------------------------------------- menu actions
@@ -199,7 +204,7 @@ async def _after_level_chosen(
 
 async def do_free_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     profile, _ = await _resolve(update, context)
-    await _show_session(update, await _api(context).start_session(profile.id))
+    await _show_session(update, context, await _api(context).start_session(profile.id))
 
 
 async def do_roleplay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -265,15 +270,58 @@ async def do_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ----------------------------------------------------------------------------- side questions
 
 
-ASK_SOURCES_KEPT = 50  # tutor messages remembered for in-message answers (per chat)
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 
-def _ask_sources(context: ContextTypes.DEFAULT_TYPE) -> dict[int, tuple[str, object]]:
-    """Per chat: tutor message id -> (its HTML, its buttons), captured when 🙋 Ask is tapped.
-    Only a display cache: after a bot restart the answer is sent as a reply instead."""
-    assert context.chat_data is not None
-    return context.chat_data.setdefault("ask_sources", {})
+async def _send_view(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, view: views.View, reply_to: Message | None
+) -> None:
+    """Send a tutor message (feedback folded) and remember it so buttons can edit it later."""
+    html = views.render(view)
+    markup = views.markup(view)
+    if reply_to is not None:
+        sent = await reply_to.reply_text(
+            html, parse_mode=ParseMode.HTML, reply_markup=markup, link_preview_options=NO_PREVIEW
+        )
+    else:
+        sent = await _send(update, html, reply_markup=markup, link_preview_options=NO_PREVIEW)
+    if view["turn_id"] is not None and context.chat_data is not None:
+        views.remember(context.chat_data, sent.message_id, view)
+
+
+async def _redraw(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int, view: views.View
+) -> bool:
+    """Edit a tutor message to match its view. False if it is too long or Telegram refuses."""
+    if not views.fits(view):
+        return False
+    try:
+        await context.bot.edit_message_text(
+            views.render(view),
+            chat_id=chat_id,
+            message_id=message_id,
+            parse_mode=ParseMode.HTML,
+            reply_markup=views.markup(view),
+            link_preview_options=NO_PREVIEW,
+        )
+    except TelegramError as e:
+        log.info("could not edit tutor message %s: %s", message_id, e)
+        return False
+    return True
+
+
+async def _add_inside(
+    context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int, key: str, block: str
+) -> bool:
+    """Append a block (help answer, Q&A) inside a remembered tutor message."""
+    view = views.lookup(context.chat_data, message_id)
+    if view is None:
+        return False
+    view["extras"].append([key, block])
+    if await _redraw(context, chat_id, message_id, view):
+        return True
+    view["extras"].pop()
+    return False
 
 
 async def ask_about_message(
@@ -285,10 +333,6 @@ async def ask_about_message(
     """🙋 Ask under a tutor message: open a reply box tied to that message."""
     if not isinstance(tutor_message, Message):
         return
-    sources = _ask_sources(context)
-    sources[tutor_message.message_id] = (tutor_message.text_html, tutor_message.reply_markup)
-    while len(sources) > ASK_SOURCES_KEPT:
-        sources.pop(next(iter(sources)))
     await _send(
         update,
         formatting.ask_about_prompt(turn_id, tutor_message.message_id, context.bot.username),
@@ -315,29 +359,12 @@ async def answer_inside_message(
     async with _typing(update, context):
         answer = await _api(context).ask(profile.id, question, turn_id=turn_id)
 
-    sources = _ask_sources(context)
-    source = sources.get(message_id)
-    if source is not None:
-        html, markup = source
-        new_html = html + formatting.inline_answer_block(question, answer.answer)
-        if formatting.visible_length(new_html) <= formatting.TELEGRAM_TEXT_LIMIT:
-            try:
-                await context.bot.edit_message_text(
-                    new_html,
-                    chat_id=chat.id,
-                    message_id=message_id,
-                    parse_mode=ParseMode.HTML,
-                    reply_markup=markup if isinstance(markup, InlineKeyboardMarkup) else None,
-                    link_preview_options=NO_PREVIEW,
-                )
-            except TelegramError as e:
-                log.info("could not edit tutor message %s: %s", message_id, e)
-            else:
-                sources[message_id] = (new_html, markup)
-                for m in (prompt, msg):  # the Q&A now lives in the tutor message
-                    with contextlib.suppress(TelegramError):
-                        await m.delete()
-                return
+    block = formatting.inline_answer_block(question, answer.answer)
+    if await _add_inside(context, chat.id, message_id, "ask", block):
+        for m in (prompt, msg):  # the Q&A now lives in the tutor message
+            with contextlib.suppress(TelegramError):
+                await m.delete()
+        return
 
     with contextlib.suppress(TelegramError):
         await prompt.delete()
@@ -450,7 +477,9 @@ async def cmd_play(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await do_roleplay(update, context)
         return
     profile, _ = await _resolve(update, context)
-    await _show_session(update, await _api(context).start_session(profile.id, context.args[0]))
+    await _show_session(
+        update, context, await _api(context).start_session(profile.id, context.args[0])
+    )
 
 
 async def cmd_mistakes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -460,11 +489,11 @@ async def cmd_mistakes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 # ----------------------------------------------------------------------------- callbacks
 
 
-async def _ack(query: CallbackQuery, text: str | None = None) -> None:
+async def _ack(query: CallbackQuery, text: str | None = None, alert: bool = False) -> None:
     """Stop the button's spinner. Taps queued while the bot was down are too old to
     acknowledge; Telegram rejects those, but the tap itself is still handled."""
     try:
-        await query.answer(text)
+        await query.answer(text, show_alert=alert)
     except BadRequest as e:
         log.debug("could not answer callback query: %s", e)
 
@@ -479,11 +508,40 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         if help_kind not in HELP_KINDS or not turn_id.isdigit():
             await _ack(query)
             return
+        message = query.message
+        assert message is not None
+        view = views.lookup(context.chat_data, message.message_id)
+        if view is not None and views.has_extra(view, help_kind):
+            await _ack(query, "Already shown in the message ↑")
+            return
         await _ack(query, "One moment…")
         async with _typing(update, context):
             help_ = await _api(context).help(int(turn_id), help_kind)  # type: ignore[arg-type]
-        assert query.message is not None
-        await query.message.reply_text(formatting.format_help(help_), parse_mode=ParseMode.HTML)
+        block = formatting.help_block(help_.kind, help_.text)
+        if not await _add_inside(context, message.chat.id, message.message_id, help_kind, block):
+            # Not foldable (older message, or too long): send it on its own.
+            await _send(
+                update,
+                formatting.format_help(help_),
+                reply_parameters=ReplyParameters(
+                    message_id=message.message_id, allow_sending_without_reply=True
+                ),
+            )
+        return
+
+    if kind == "fb":  # fold / unfold the feedback of a tutor message
+        message = query.message
+        assert message is not None
+        view = views.lookup(context.chat_data, message.message_id)
+        if view is None:
+            await _ack(query, "This older message can't be folded. New ones can.", alert=True)
+            return
+        view["expanded"] = not view["expanded"]
+        if not await _redraw(context, message.chat.id, message.message_id, view):
+            view["expanded"] = not view["expanded"]
+            await _ack(query, "Sorry, I couldn't update that message.", alert=True)
+            return
+        await _ack(query)
         return
 
     await _ack(query)
@@ -513,7 +571,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
     elif kind == "play":
         profile, _ = await _resolve(update, context)
-        await _show_session(update, await _api(context).start_session(profile.id, rest))
+        await _show_session(update, context, await _api(context).start_session(profile.id, rest))
     elif kind == "goal" and rest.isdigit():
         profile, _ = await _resolve(update, context)
         updated = await _api(context).patch_learner(profile.id, LearnerPatch(daily_goal=int(rest)))
@@ -602,11 +660,7 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         session = await api.start_session(profile.id)
     async with _typing(update, context):
         result = await api.send_turn(session.id, msg.text)
-    await msg.reply_text(
-        formatting.format_turn(result),
-        parse_mode=ParseMode.HTML,
-        reply_markup=kb.help_buttons(result.turn_id, bool(result.corrections)),
-    )
+    await _send_view(update, context, views.from_turn(result), reply_to=msg)
 
 
 MAX_VOICE_SECONDS = 120  # keep in step with the API's STT_MAX_SECONDS
@@ -642,11 +696,7 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         result = await api.send_voice_turn(
             session.id, audio, "voice.ogg", media.mime_type or "audio/ogg"
         )
-    await msg.reply_text(
-        formatting.format_turn(result),
-        parse_mode=ParseMode.HTML,
-        reply_markup=kb.help_buttons(result.turn_id, bool(result.corrections)),
-    )
+    await _send_view(update, context, views.from_turn(result), reply_to=msg)
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -725,6 +775,15 @@ def build_application(settings: BotSettings) -> Application:
     app = (
         ApplicationBuilder()
         .token(settings.telegram_token)
+        .persistence(
+            PicklePersistence(
+                filepath=settings.state_file,
+                store_data=PersistenceInput(
+                    bot_data=False, user_data=False, chat_data=True, callback_data=False
+                ),
+                update_interval=10,
+            )
+        )
         .post_init(post_init)
         .post_shutdown(post_shutdown)
         .concurrent_updates(True)

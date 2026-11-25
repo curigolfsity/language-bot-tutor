@@ -32,6 +32,10 @@ class BotSettings(BaseSettings):
     )
     request_timeout_seconds: float = Field(default=180.0, alias="BOT_REQUEST_TIMEOUT_SECONDS")
     # How often to ask the API who is due a practice reminder (the API decides who and when).
+    # Small per-chat display state (foldable messages), kept across restarts. Not learner data.
+    state_file: Path = Field(
+        default=REPO_ROOT / ".run" / "bot_state.pickle", alias="BOT_STATE_FILE"
+    )
     reminder_poll_seconds: float = Field(default=300.0, ge=30, alias="BOT_REMINDER_POLL_SECONDS")
 
     def native_choices(self) -> list[tuple[str, str]]:
