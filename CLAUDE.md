@@ -84,6 +84,8 @@ Config comes from `.env` (see `.env.example`). Never commit `.env`. The C: drive
 - added on request (2026-11-25): spoken replies (edge-tts; voice per language in language.yaml,
   speed per level in levels.yaml), lesson explanations reused via `lesson_cache`, placement test
   (curriculum/<lang>/placement.yaml, a suggestion only), word flashcards (self-graded), weekly summary
+- added on request (2026-11-26): daily chat tidy (past days replaced by day cards, readable in place;
+  switch in Settings) and past-day history (`/history`)
 
 **Not yet (do not build unless asked):**
 - listening exercises

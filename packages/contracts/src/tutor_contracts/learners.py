@@ -24,6 +24,9 @@ class LearnerProfileOut(BaseModel):
     timezone: str = Field(description="IANA timezone used for daily streaks (effective value).")
     daily_goal: int = Field(description="Messages per day for the daily goal (effective value).")
     reminders_enabled: bool = True
+    tidy_chat: bool = Field(
+        default=True, description="Replace each past day's messages with a day card."
+    )
 
 
 class LearnerPatch(BaseModel):
@@ -36,6 +39,7 @@ class LearnerPatch(BaseModel):
     timezone: str | None = Field(default=None, max_length=64, description="IANA name")
     daily_goal: int | None = Field(default=None, ge=1, le=200)
     reminders_enabled: bool | None = None
+    tidy_chat: bool | None = None
 
 
 class DailyProgressOut(BaseModel):

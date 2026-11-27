@@ -106,6 +106,8 @@ async def patch_profile(
             profile.daily_goal = patch.daily_goal
         if "reminders_enabled" in fields and patch.reminders_enabled is not None:
             profile.reminders_enabled = patch.reminders_enabled
+        if "tidy_chat" in fields and patch.tidy_chat is not None:
+            profile.tidy_chat = patch.tidy_chat
         await db.flush()
         return profile_out(profile, await profiles.skills(profile.id), ctx.settings)
 

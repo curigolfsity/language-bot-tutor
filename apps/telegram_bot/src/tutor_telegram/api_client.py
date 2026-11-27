@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, TypeVar
 from uuid import UUID
 
@@ -12,6 +13,8 @@ from tutor_contracts import (
     AskRequest,
     CreateSessionRequest,
     DailyProgressOut,
+    DayListOut,
+    DayTranscriptOut,
     HelpKind,
     HelpOut,
     HelpRequest,
@@ -40,6 +43,7 @@ from tutor_contracts import (
     SessionOut,
     SessionSummary,
     StartLessonRequest,
+    TidyOut,
     TurnRequest,
     TurnResponse,
     VocabOut,
@@ -144,6 +148,20 @@ class TutorApiClient:
         return await self._request(
             "POST", "/v1/reminders/weekly/claim", list[WeeklySummaryOut], req
         )
+
+    async def days(self, profile_id: UUID, limit: int = 14) -> DayListOut:
+        return await self._request(
+            "GET", f"/v1/learners/{profile_id}/days", DayListOut, limit=limit
+        )
+
+    async def day(self, profile_id: UUID, day: date) -> DayTranscriptOut:
+        return await self._request(
+            "GET", f"/v1/learners/{profile_id}/days/{day.isoformat()}", DayTranscriptOut
+        )
+
+    async def claim_tidy(self, provider: str, target_lang: str) -> list[TidyOut]:
+        req = ReminderClaimRequest(provider=provider, target_lang=target_lang)
+        return await self._request("POST", "/v1/reminders/tidy/claim", list[TidyOut], req)
 
     async def resolve_user(self, req: ResolveUserRequest) -> ResolveUserResponse:
         return await self._request("POST", "/v1/users/resolve", ResolveUserResponse, req)

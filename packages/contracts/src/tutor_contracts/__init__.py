@@ -11,6 +11,14 @@ from tutor_contracts.common import (
     Skill,
 )
 from tutor_contracts.curriculum import GrammarTopicOut, LanguageOut, LevelOut, ScenarioOut
+from tutor_contracts.history import (
+    DayListOut,
+    DayOut,
+    DayTranscriptOut,
+    TidyOut,
+    TranscriptFix,
+    TranscriptLine,
+)
 from tutor_contracts.learners import (
     DailyProgressOut,
     LearnerPatch,
@@ -86,6 +94,12 @@ __all__ = [
     "Correction",
     "CreateSessionRequest",
     "DailyProgressOut",
+    "DayListOut",
+    "DayOut",
+    "DayTranscriptOut",
+    "TidyOut",
+    "TranscriptFix",
+    "TranscriptLine",
     "ExerciseKind",
     "ExerciseOut",
     "ExplanationLanguage",

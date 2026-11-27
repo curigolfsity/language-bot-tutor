@@ -96,6 +96,9 @@ class LearnerProfile(Base):
     streak_best: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     # Local date of the last weekly summary sent (one per week).
     last_weekly_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Daily chat tidy: the client replaces yesterday's messages with a day card.
+    tidy_chat: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
+    last_tidied_on: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 class DailyActivity(Base):
@@ -183,6 +186,7 @@ class Turn(Base):
     __table_args__ = (
         UniqueConstraint("session_id", "seq"),
         CheckConstraint("role IN ('learner', 'tutor')", name="role"),
+        Index("ix_turns_created_at", "created_at"),
     )
     id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"))

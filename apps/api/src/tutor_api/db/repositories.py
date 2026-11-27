@@ -168,6 +168,22 @@ class TurnRepo:
         stmt = select(Turn).where(Turn.session_id == session_id).order_by(Turn.seq).limit(1)
         return (await self.db.execute(stmt)).scalar_one_or_none()
 
+    async def for_profile_between(
+        self, profile_id: uuid.UUID, start: datetime, end: datetime
+    ) -> list[tuple[Turn, Session]]:
+        """The profile's turns created in [start, end), oldest first, with their session."""
+        stmt = (
+            select(Turn, Session)
+            .join(Session, Session.id == Turn.session_id)
+            .where(
+                Session.profile_id == profile_id,
+                Turn.created_at >= start,
+                Turn.created_at < end,
+            )
+            .order_by(Turn.created_at, Turn.session_id, Turn.seq)
+        )
+        return [(t, s) for t, s in (await self.db.execute(stmt)).all()]
+
     async def count_learner_turns(self, session_id: uuid.UUID) -> int:
         stmt = select(func.count()).where(Turn.session_id == session_id, Turn.role == "learner")
         return int((await self.db.execute(stmt)).scalar_one())
@@ -218,6 +234,13 @@ class MistakeRepo:
             .limit(limit)
         )
         return [(tag, int(n)) for tag, n in (await self.db.execute(stmt)).all()]
+
+    async def for_turns(self, turn_ids: Iterable[int]) -> Sequence[Mistake]:
+        ids = list(turn_ids)
+        if not ids:
+            return []
+        stmt = select(Mistake).where(Mistake.turn_id.in_(ids)).order_by(Mistake.id)
+        return (await self.db.execute(stmt)).scalars().all()
 
     async def count_between(self, profile_id: uuid.UUID, start: datetime, end: datetime) -> int:
         stmt = select(func.count()).where(
@@ -313,7 +336,7 @@ class VocabRepo:
             .where(
                 VocabItem.profile_id == profile_id,
                 VocabItem.first_seen_at >= start,
-                VocabItem.first_seen_at <= end,
+                VocabItem.first_seen_at < end,
             )
             .order_by(VocabItem.first_seen_at)
         )
@@ -406,6 +429,21 @@ class ActivityRepo:
                 UserIdentity.provider == provider,
                 LearnerProfile.target_lang == target_lang,
                 LearnerProfile.reminders_enabled.is_(True),
+            )
+        )
+        return [(p, ext) for p, ext in (await self.db.execute(stmt)).all()]
+
+    async def tidy_candidates(
+        self, provider: str, target_lang: str
+    ) -> list[tuple[LearnerProfile, str]]:
+        """Profiles with the daily chat tidy on, with the external id of their identity."""
+        stmt = (
+            select(LearnerProfile, UserIdentity.external_id)
+            .join(UserIdentity, UserIdentity.user_id == LearnerProfile.user_id)
+            .where(
+                UserIdentity.provider == provider,
+                LearnerProfile.target_lang == target_lang,
+                LearnerProfile.tidy_chat.is_(True),
             )
         )
         return [(p, ext) for p, ext in (await self.db.execute(stmt)).all()]

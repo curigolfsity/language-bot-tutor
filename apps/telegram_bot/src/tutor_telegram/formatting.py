@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from html import escape
 
 from tutor_contracts import (
     AskOut,
     DailyProgressOut,
+    DayOut,
+    DayTranscriptOut,
     ExerciseOut,
     HelpOut,
     LearnerProfileOut,
@@ -27,6 +29,7 @@ from tutor_contracts import (
     ScenarioOut,
     SessionOut,
     SessionSummary,
+    TranscriptLine,
     TurnProgress,
     TurnResponse,
     WeeklySummaryOut,
@@ -673,3 +676,88 @@ def format_round_summary(done: int, right: int, streak: int | None) -> str:
     stars = "🌟" if right == done else ("👍" if right * 2 >= done else "💪")
     streak_text = f" · 🔥 streak {streak}" if streak else ""
     return f"🏁 <b>Round done!</b> {stars}\n<b>{right}/{done}</b> right{streak_text}"
+
+
+# ----------------------------------------------------------------------------- past days
+
+
+DAY_PAGE_CHARS = 3300  # visible characters per page of a day's conversation
+LINE_MAX_CHARS = 1500  # one very long message never fills more than a page
+
+
+def day_label(d: date) -> str:
+    return f"{d:%a} {d.day} {d:%b}"
+
+
+def _plural(n: int, word: str, many: str | None = None) -> str:
+    return f"{n} {word if n == 1 else many or word + 's'}"
+
+
+def _day_head(d: date, lang_tag: str) -> str:
+    return f"📅 <b>{day_label(d)}</b>" + (f" · {lang_tag}" if lang_tag else "")
+
+
+def format_day_card(d: DayOut, lang_tag: str = "") -> str:
+    """A past day in a few lines: what is left in the chat after the nightly tidy."""
+    stats = [f"💬 {_plural(d.messages, 'message')}"]
+    if d.corrections:
+        stats.append(f"✏️ {_plural(d.corrections, 'fix', 'fixes')}")
+    if d.new_words:
+        stats.append(f"📚 {_plural(d.new_words, 'new word')}")
+    if d.lessons:
+        stats.append(f"📖 {_plural(d.lessons, 'lesson')}")
+    lines = [_day_head(d.day, lang_tag), " · ".join(stats)]
+    if d.top_mistakes:
+        titles = ", ".join(escape(t.title) for t in d.top_mistakes)
+        lines.append(f"<i>Mistakes: {titles}</i>")
+    return "\n".join(lines)
+
+
+def _clip(text: str) -> str:
+    return text if len(text) <= LINE_MAX_CHARS else text[: LINE_MAX_CHARS - 1] + "…"
+
+
+def _transcript_block(line: TranscriptLine) -> str:
+    out = []
+    if line.scenario_title:
+        out.append(f"<b>— {escape(line.scenario_title)} —</b>")
+    if line.role == "learner":
+        out.append(f"🧑 <b>You:</b> {escape(_clip(line.text))}")
+        for f in line.fixes:
+            why = f" <i>({escape(f.explanation)})</i>" if f.explanation else ""
+            out.append(f"    ✏️ <s>{escape(f.wrong)}</s> → <b>{escape(f.right)}</b>{why}")
+    else:
+        out.append(f"🎓 {escape(_clip(line.text))}")
+    return "\n".join(out)
+
+
+def day_pages(t: DayTranscriptOut) -> list[str]:
+    """The day's conversation split into pages that fit one Telegram message (no header)."""
+    pages: list[str] = []
+    current: list[str] = []
+    size = 0
+    for line in t.lines:
+        block = _transcript_block(line)
+        n = visible_length(block) + 2
+        if current and size + n > DAY_PAGE_CHARS:
+            pages.append("\n\n".join(current))
+            current, size = [], 0
+        current.append(block)
+        size += n
+    if current:
+        pages.append("\n\n".join(current))
+    return pages or ["<i>No conversation that day (lessons and practice aren't shown).</i>"]
+
+
+def format_day_page(t: DayTranscriptOut, page: int, total: int, lang_tag: str = "") -> str:
+    head = _day_head(t.day.day, lang_tag)
+    if total > 1:
+        head += f" · page {page}/{total}"
+    return head + "\n\n" + day_pages(t)[page - 1]
+
+
+def format_day_list(days: list[DayOut], lang_tag: str = "") -> str:
+    if not days:
+        return "📅 No practice days yet. Your conversations will show up here."
+    tag = f" · {lang_tag}" if lang_tag else ""
+    return f"📅 <b>Your recent days</b>{tag}\nTap a day to read that conversation."

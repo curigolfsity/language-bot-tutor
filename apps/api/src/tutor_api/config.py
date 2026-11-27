@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     reminder_max_idle_days: int = Field(default=7, ge=1, alias="REMINDER_MAX_IDLE_DAYS")
     # Weekly summary: sent on this local weekday (0 = Monday, 6 = Sunday) after REMINDER_HOUR.
     weekly_summary_weekday: int = Field(default=6, ge=0, le=6, alias="WEEKLY_SUMMARY_WEEKDAY")
+    # Daily chat tidy: after this local hour, clients replace yesterday's messages with a card.
+    tidy_hour: int = Field(default=4, ge=0, le=23, alias="TIDY_HOUR")
 
     # Voice messages: local speech-to-text (faster-whisper). Model files go to STT_MODEL_DIR.
     stt_enabled: bool = Field(default=True, alias="STT_ENABLED")

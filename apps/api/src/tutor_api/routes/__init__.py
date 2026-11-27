@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from tutor_api.routes import (
     curriculum,
     health,
+    history,
     learners,
     lessons,
     practice,
@@ -28,5 +29,7 @@ v1.include_router(lessons.learner_router)
 v1.include_router(lessons.router)
 v1.include_router(practice.learner_router)
 v1.include_router(practice.router)
+v1.include_router(history.learner_router)
+v1.include_router(history.router)
 
 __all__ = ["health", "v1"]

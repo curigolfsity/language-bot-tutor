@@ -29,6 +29,7 @@ def profile_out(
         timezone=p.timezone or settings.default_timezone,
         daily_goal=p.daily_goal or settings.default_daily_goal,
         reminders_enabled=p.reminders_enabled,
+        tidy_chat=p.tidy_chat,
     )
 
 

@@ -9,11 +9,14 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from collections.abc import AsyncIterator
+from datetime import date
 
 from telegram import (
     BotCommand,
     CallbackQuery,
+    InlineKeyboardMarkup,
     LinkPreviewOptions,
     MaybeInaccessibleMessage,
     Message,
@@ -31,6 +34,7 @@ from telegram.ext import (
     MessageHandler,
     PersistenceInput,
     PicklePersistence,
+    TypeHandler,
     filters,
 )
 from tutor_contracts import (
@@ -46,7 +50,7 @@ from tutor_contracts import (
     WordQueueOut,
 )
 
-from tutor_telegram import formatting, views
+from tutor_telegram import formatting, tidy, views
 from tutor_telegram import keyboards as kb
 from tutor_telegram.api_client import ApiError, TutorApiClient
 from tutor_telegram.config import BotSettings
@@ -65,6 +69,7 @@ COMMANDS = [
     BotCommand("words", "Word flashcards from our chats"),
     BotCommand("save", "Save words as flashcards: /save palabra"),
     BotCommand("week", "Your week in numbers"),
+    BotCommand("history", "Read the conversations of past days"),
     BotCommand("placement", "Quick test to find your level"),
     BotCommand("ask", "Ask a question without interrupting the conversation"),
     BotCommand("progress", "Your progress and recent mistakes"),
@@ -123,7 +128,10 @@ async def _lang_info(context: ContextTypes.DEFAULT_TYPE, code: str | None = None
 
 
 async def _resolve(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, native_lang: str | None = None
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    native_lang: str | None = None,
+    target_lang: str | None = None,
 ) -> tuple[LearnerProfileOut, bool]:
     user = update.effective_user
     assert user is not None
@@ -133,7 +141,7 @@ async def _resolve(
             provider=PROVIDER,
             external_id=str(user.id),
             display_name=user.full_name or "",
-            target_lang=_lang(context),
+            target_lang=target_lang or _lang(context),
             native_lang=native_lang or _detected_lang(update) or settings.default_native_lang,
         )
     )
@@ -305,6 +313,7 @@ async def do_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             profile.reminders_enabled,
             f"{lang.flag} {lang.name}" if multi else None,
             voice=_voice_on(context),
+            tidy_chat=profile.tidy_chat,
         ),
     )
 
@@ -891,6 +900,73 @@ async def do_week(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+# ----------------------------------------------------------------------------- past days
+
+
+async def _lang_tag(context: ContextTypes.DEFAULT_TYPE, code: str) -> str:
+    """Flag and name of the language, shown only when the bot offers several."""
+    if len(_settings(context).languages()) < 2:
+        return ""
+    lang = await _lang_info(context, code)
+    return f"{lang.flag} {lang.name}"
+
+
+async def _edit_or_send(update: Update, text: str, markup: InlineKeyboardMarkup | None) -> None:
+    """Show `text` in the tapped message (past days open in place), else as a new message."""
+    query = update.callback_query
+    if query is not None:
+        try:
+            await query.edit_message_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=markup,
+                link_preview_options=NO_PREVIEW,
+            )
+            return
+        except BadRequest as e:
+            if "not modified" in str(e):
+                return
+            log.info("could not edit day message: %s", e)
+    await _send(update, text, reply_markup=markup, link_preview_options=NO_PREVIEW)
+
+
+async def do_history(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, code: str | None = None
+) -> None:
+    code = code if code in _settings(context).languages() else _lang(context)
+    profile, _ = await _resolve(update, context, target_lang=code)
+    days = (await _api(context).days(profile.id, limit=14)).days
+    await _edit_or_send(
+        update,
+        formatting.format_day_list(days, await _lang_tag(context, code)),
+        kb.day_list_keyboard(code, [d.day for d in days], [d.messages for d in days])
+        if days
+        else None,
+    )
+
+
+async def show_day(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, code: str, day: date, page: int
+) -> None:
+    """A past day in place: page 0 is its card, 1.. are pages of its conversation."""
+    if code not in _settings(context).languages():
+        return
+    profile, _ = await _resolve(update, context, target_lang=code)
+    t = await _api(context).day(profile.id, day)
+    tag = await _lang_tag(context, code)
+    if page == 0:
+        text = formatting.format_day_card(t.day, tag)
+        await _edit_or_send(update, text, kb.day_card_keyboard(code, day))
+        return
+    total = len(formatting.day_pages(t))
+    page = min(page, total)
+    await _edit_or_send(
+        update,
+        formatting.format_day_page(t, page, total, tag),
+        kb.day_page_keyboard(code, day, page, total),
+    )
+
+
 MENU_ACTIONS = {
     kb.MENU_CHAT: do_free_chat,
     kb.MENU_ROLEPLAY: do_roleplay,
@@ -1129,6 +1205,27 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             if context.chat_data is not None:
                 context.chat_data.pop("round", None)
             await _send(update, "👍 Nice work. What next?", reply_markup=kb.next_step_keyboard())
+    elif kind == "tidy" and rest in ("on", "off"):
+        profile, _ = await _resolve(update, context)
+        await _api(context).patch_learner(profile.id, LearnerPatch(tidy_chat=rest == "on"))
+        with contextlib.suppress(Exception):
+            await query.edit_message_reply_markup(None)
+        await _send(
+            update,
+            "🧹 Daily tidy on. Every night I'll replace the day's messages with a short "
+            "📅 card. Tap 📖 on a card to read that day again."
+            if rest == "on"
+            else "🧹 Daily tidy off. I won't delete any messages. "
+            "Past days are still in 📅 Past days (/history).",
+        )
+    elif kind == "dy":
+        await _ack(query)
+        parsed = kb.parse_day(rest)
+        if parsed is not None:
+            await show_day(update, context, *parsed)
+    elif kind == "dl":
+        await _ack(query)
+        await do_history(update, context, rest or None)
     elif kind == "rem" and rest in ("on", "off"):
         profile, _ = await _resolve(update, context)
         await _api(context).patch_learner(profile.id, LearnerPatch(reminders_enabled=rest == "on"))
@@ -1335,12 +1432,90 @@ async def send_due_reminders(app: Application) -> int:
     return sent
 
 
+async def track_incoming(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Remember the learner's messages so the nightly tidy can delete them (runs first)."""
+    msg = update.message
+    if msg is None or msg.chat.type != "private" or context.chat_data is None:
+        return
+    tidy.track(context.chat_data, msg.message_id, msg.date.timestamp(), _lang(context))
+
+
+def _record_sent(app: Application, msg: Message, menu: bool) -> None:
+    """Remember a message the bot sent (TrackingBot calls this for every new message)."""
+    if msg.chat.type != "private":
+        return
+    settings: BotSettings = app.bot_data["settings"]
+    data = app.chat_data[msg.chat.id]  # created on first use
+    lang = data.get("lang")
+    tidy.track(
+        data,
+        msg.message_id,
+        msg.date.timestamp(),
+        lang if lang in settings.languages() else settings.target_lang,
+        menu=menu,
+    )
+    app.mark_data_for_update_persistence(chat_ids=msg.chat.id)
+
+
+async def _delete(app: Application, chat_id: int, ids: list[int]) -> None:
+    for batch in tidy.batches(ids):
+        try:
+            await app.bot.delete_messages(chat_id, batch)
+        except Forbidden:
+            raise
+        except TelegramError as e:
+            log.info("tidy: batch delete in %s failed (%s); deleting one by one", chat_id, e)
+            for message_id in batch:
+                with contextlib.suppress(TelegramError):
+                    await app.bot.delete_message(chat_id, message_id)
+
+
+async def run_due_tidies(app: Application) -> int:
+    """Nightly tidy: delete each due chat's messages from before today and leave one card
+    per day practised. Returns how many chats were tidied."""
+    api: TutorApiClient = app.bot_data["api"]
+    settings: BotSettings = app.bot_data["settings"]
+    multi = len(settings.languages()) > 1
+    tidied = 0
+    for code in settings.languages():
+        due = await api.claim_tidy(PROVIDER, code)
+        if not due:
+            continue
+        lang = await api.language(code)
+        tag = f"{lang.flag} {lang.name}" if multi else ""
+        for t in due:
+            chat_id = int(t.external_id)
+            data = app.chat_data[chat_id]
+            ids = tidy.take_deletable(data, code, t.before.timestamp(), time.time())
+            app.mark_data_for_update_persistence(chat_ids=chat_id)
+            try:
+                await _delete(app, chat_id, ids)
+                for day in t.days:
+                    card = await app.bot.send_message(
+                        chat_id=chat_id,
+                        text=formatting.format_day_card(day, tag),
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=kb.day_card_keyboard(code, day.day),
+                        disable_notification=True,
+                    )
+                    tidy.untrack(data, card.message_id)  # cards stay
+                tidied += 1
+            except Forbidden:
+                log.info("tidy: chat %s blocked the bot; turning the tidy off", chat_id)
+                await api.patch_learner(t.profile_id, LearnerPatch(tidy_chat=False))
+            except TelegramError as e:
+                log.warning("tidy of chat %s failed: %s", chat_id, e)
+    return tidied
+
+
 async def _reminder_loop(app: Application) -> None:
     settings: BotSettings = app.bot_data["settings"]
     while True:
         try:
             if sent := await send_due_reminders(app):
                 log.info("sent %d practice reminder(s)", sent)
+            if tidied := await run_due_tidies(app):
+                log.info("tidied %d chat(s)", tidied)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -1370,7 +1545,7 @@ def build_application(settings: BotSettings) -> Application:
 
     app = (
         ApplicationBuilder()
-        .token(settings.telegram_token)
+        .bot(tidy.TrackingBot(token=settings.telegram_token))
         .persistence(
             PicklePersistence(
                 filepath=settings.state_file,
@@ -1385,6 +1560,9 @@ def build_application(settings: BotSettings) -> Application:
         .concurrent_updates(True)
         .build()
     )
+    assert isinstance(app.bot, tidy.TrackingBot)
+    app.bot.set_on_sent(lambda msg, menu: _record_sent(app, msg, menu))
+    app.add_handler(TypeHandler(Update, track_incoming), group=-1)
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", do_help))
     app.add_handler(CommandHandler("chat", do_free_chat))
@@ -1401,6 +1579,7 @@ def build_application(settings: BotSettings) -> Application:
     app.add_handler(CommandHandler(["review", "practise", "practice"], do_review))
     app.add_handler(CommandHandler(["words", "cards"], do_words))
     app.add_handler(CommandHandler("week", do_week))
+    app.add_handler(CommandHandler(["history", "days"], do_history))
     app.add_handler(CommandHandler("save", cmd_save))
     app.add_handler(CommandHandler("practice_now", start_round))
     app.add_handler(CommandHandler(["placement", "test"], do_placement))

@@ -83,3 +83,24 @@ def weekly_due(
         and (today - last_active).days <= max_idle_days
         and last_sent != today
     )
+
+
+# Telegram (and most chat apps) only let a bot delete messages from the last 48 hours, so a
+# tidy never looks further back than this.
+TIDY_LOOKBACK_DAYS = 2
+
+
+def tidy_due(*, enabled: bool, local_now: datetime, hour: int, last_tidied: date | None) -> bool:
+    """Daily chat tidy: once per local day, after `hour`."""
+    return enabled and local_now.hour >= hour and last_tidied != local_now.date()
+
+
+def days_to_tidy(active_days: Sequence[date], today: date, last_tidied: date | None) -> list[date]:
+    """Past active days that get a day card, oldest first: after the last tidy, before today,
+    and recent enough that their messages can still be deleted."""
+    earliest = today - timedelta(days=TIDY_LOOKBACK_DAYS)
+    return sorted(
+        d
+        for d in set(active_days)
+        if earliest <= d < today and (last_tidied is None or d >= last_tidied)
+    )

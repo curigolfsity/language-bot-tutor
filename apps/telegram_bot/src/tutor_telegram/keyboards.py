@@ -25,9 +25,14 @@ Callback data (max 64 bytes) is self-describing, so the bot stays stateless:
   pr:go                  start a mixed practice round (mistakes + words)
   menu:<action>          free | roleplay | resume | review | lessons | settings_level |
                          settings_native | settings_goal | settings_lang
+  tidy:<on|off>          daily chat tidy on / off
+  dy:<lang>:<ymd>:<page> a past day: 0 = its card, 1.. = pages of its conversation
+  dl:<lang>              list of recent days ("dl:" = the chat's current language)
 """
 
 from __future__ import annotations
+
+from datetime import date, datetime
 
 from telegram import (
     ForceReply,
@@ -204,7 +209,10 @@ def language_keyboard(
 
 
 def settings_keyboard(
-    reminders_enabled: bool = True, language_label: str | None = None, voice: bool = False
+    reminders_enabled: bool = True,
+    language_label: str | None = None,
+    voice: bool = False,
+    tidy_chat: bool = True,
 ) -> InlineKeyboardMarkup:
     reminder = (
         InlineKeyboardButton("🔕 Turn reminders off", callback_data="rem:off")
@@ -239,6 +247,12 @@ def settings_keyboard(
                 if voice
                 else InlineKeyboardButton("🔊 Turn voice replies on", callback_data="av:on")
             ],
+            [
+                InlineKeyboardButton("🧹 Daily tidy: on (turn off)", callback_data="tidy:off")
+                if tidy_chat
+                else InlineKeyboardButton("🧹 Daily tidy: off (turn on)", callback_data="tidy:on")
+            ],
+            [InlineKeyboardButton("📅 Past days", callback_data="dl:")],
         ]
     )
 
@@ -446,3 +460,55 @@ def practice_keyboard(mistakes_due: int, words_due: int) -> InlineKeyboardMarkup
         ]
     )
     return InlineKeyboardMarkup(rows)
+
+
+# ----------------------------------------------------------------------------- past days
+# dy:<lang>:<yyyymmdd>:<page>   a day: page 0 = the card, 1.. = the conversation
+# dl:<lang>                     the list of recent days
+
+
+def _day_data(lang: str, d: date, page: int) -> str:
+    return f"dy:{lang}:{d:%Y%m%d}:{page}"
+
+
+def parse_day(rest: str) -> tuple[str, date, int] | None:
+    """`<lang>:<yyyymmdd>:<page>` from a dy: button."""
+    parts = rest.split(":")
+    if len(parts) != 3 or not parts[2].isdigit():
+        return None
+    try:
+        return parts[0], datetime.strptime(parts[1], "%Y%m%d").date(), int(parts[2])
+    except ValueError:
+        return None
+
+
+def day_card_keyboard(lang: str, d: date) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("📖 Read this day", callback_data=_day_data(lang, d, 1))]]
+    )
+
+
+def day_page_keyboard(lang: str, d: date, page: int, total: int) -> InlineKeyboardMarkup:
+    nav = []
+    if page > 1:
+        nav.append(InlineKeyboardButton("◀", callback_data=_day_data(lang, d, page - 1)))
+    if page < total:
+        nav.append(InlineKeyboardButton("▶", callback_data=_day_data(lang, d, page + 1)))
+    rows = [nav] if nav else []
+    rows.append(
+        [
+            InlineKeyboardButton("✖ Close", callback_data=_day_data(lang, d, 0)),
+            InlineKeyboardButton("📅 Other days", callback_data=f"dl:{lang}"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def day_list_keyboard(lang: str, days: list[date], counts: list[int]) -> InlineKeyboardMarkup:
+    buttons = [
+        InlineKeyboardButton(
+            f"{d:%a} {d.day} {d:%b} · {n} msg", callback_data=_day_data(lang, d, 1)
+        )
+        for d, n in zip(days, counts, strict=True)
+    ]
+    return InlineKeyboardMarkup([buttons[i : i + 2] for i in range(0, len(buttons), 2)])
