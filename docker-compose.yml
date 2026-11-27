@@ -1,0 +1,63 @@
+# Production stack: Postgres + API + Telegram bot. See docs/deploy.md.
+#   docker compose up -d --build     start / update
+#   docker compose logs -f bot       follow the bot's log
+# Secrets come from .env (never committed). DB_PASSWORD there is the database password.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tutor
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: spanish_tutor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tutor -d spanish_tutor"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tutor:${DB_PASSWORD}@db:5432/spanish_tutor
+      STT_MODEL_DIR: /data/models/whisper
+    # Migrate, then serve. Not published to the internet: only the bot talks to it.
+    command: >
+      sh -c "alembic -c apps/api/alembic.ini upgrade head &&
+             uvicorn tutor_api.main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - models:/data/models
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TUTOR_API_URL: http://api:8000
+      BOT_STATE_FILE: /data/bot/bot_state.pickle
+    command: python -m tutor_telegram
+    volumes:
+      - botstate:/data/bot
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  models:
+  botstate:

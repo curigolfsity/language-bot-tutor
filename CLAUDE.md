@@ -38,6 +38,7 @@ apps/telegram_bot/        thin Telegram client (python-telegram-bot + httpx)
 packages/contracts/       shared Pydantic request/response DTOs (the API contract)
 evals/corrections/        correction-accuracy eval (cases/<lang>/*.yaml + run_eval.py --lang)
 scripts/                  local background runner (supervisor.py) + its CLI (tutor.py, via tutor.cmd)
+Dockerfile, docker-compose.yml   cloud deployment (Postgres + API + bot); guide in docs/deploy.md
 ```
 
 ## Commands

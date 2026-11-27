@@ -37,3 +37,6 @@ logs/
 Thumbs.db
 desktop.ini
 .claude/settings.local.json
+
+# Database exports and backups (personal data)
+backups/
